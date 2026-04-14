@@ -1,0 +1,149 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user with role and media specialty.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["LIDER_I", "LIDER_II", "VOLUNTARIO"] },
+        "specialty": { "type": "string", "description": "e.g., Som, Câmera, Projeção" },
+        "color": { "type": "string", "description": "Hex color for UI" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "photoURL": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["uid", "displayName", "email", "role"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Church event like service, rehearsal, or meeting.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["CULTO", "ENSAIO", "REUNIAO"] },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isRecurring": { "type": "boolean" },
+        "recurrenceId": { "type": "string" },
+        "frequency": { "type": "string", "enum": ["WEEKLY", "MONTHLY"] },
+        "daysOfWeek": { "type": "array", "items": { "type": "number" } },
+        "status": { "type": "string", "enum": ["AGENDADO", "CONCLUIDO"] }
+      },
+      "required": ["title", "date", "type"]
+    },
+    "Setlist": {
+      "title": "Setlist",
+      "description": "Music/praise setlist.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content"]
+    },
+    "Cronograma": {
+      "title": "Cronograma",
+      "description": "Cult schedule/organization.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "externalLink": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content"]
+    },
+    "Scale": {
+      "title": "Scale",
+      "description": "Assignment of volunteers to an event.",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "assignments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "userId": { "type": "string" },
+              "role": { "type": "string" }
+            }
+          }
+        },
+        "isTemplate": { "type": "boolean" }
+      },
+      "required": ["eventId", "assignments"]
+    },
+    "CheckIn": {
+      "title": "CheckIn",
+      "description": "Volunteer presence record.",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "status": { "type": "string", "enum": ["PRESENTE", "AUSENTE", "ATRASADO"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["eventId", "userId", "status"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System notification for users.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "message"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Church announcement for the mural.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "description": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "date", "time"]
+    },
+    "Reaction": {
+      "title": "Reaction",
+      "description": "User reaction to an event or scale.",
+      "type": "object",
+      "properties": {
+        "targetId": { "type": "string" },
+        "userId": { "type": "string" },
+        "emoji": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["targetId", "userId", "emoji"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/events/{eventId}": { "schema": "Event", "description": "Church events" },
+    "/scales/{scaleId}": { "schema": "Scale", "description": "Event scales" },
+    "/checkins/{checkInId}": { "schema": "CheckIn", "description": "Presence records" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" },
+    "/announcements/{announcementId}": { "schema": "Announcement", "description": "Church announcements" },
+    "/reactions/{reactionId}": { "schema": "Reaction", "description": "User reactions" },
+    "/setlists/{setlistId}": { "schema": "Setlist", "description": "Music setlists" },
+    "/cronogramas/{cronogramaId}": { "schema": "Cronograma", "description": "Cult schedules" }
+  }
+}
