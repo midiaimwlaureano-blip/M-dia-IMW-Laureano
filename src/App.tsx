@@ -462,22 +462,32 @@ export default function App() {
       {/* Sidebar / Top Nav */}
       <aside className={cn(
         "bg-white border-gray-200 z-20 transition-all shrink-0 glass",
-        navStyle === 'sidebar' ? "w-full md:w-64 border-r flex flex-col" : "w-full border-b flex flex-row items-center justify-between px-8 py-4"
+        navStyle === 'sidebar' ? "w-full md:w-64 md:border-r border-b flex flex-col" : "w-full border-b flex flex-row items-center justify-between px-4 md:px-8 py-4"
       )}>
-        <button 
-          onClick={() => setActiveTab('dashboard')}
-          className={cn("flex items-center gap-3 hover:opacity-80 transition-opacity", navStyle === 'sidebar' ? "p-6 border-b border-gray-100" : "p-0")}
-        >
-          <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-            <ChristianCross size={20} />
-          </div>
-          <div className={navStyle === 'sidebar' ? "block text-left" : "hidden sm:block text-left"}>
-            <h1 className="text-lg font-black text-gray-900 leading-none">MÍDIA IMW</h1>
-            <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase">Laureano</p>
-          </div>
-        </button>
+        <div className={cn("flex items-center justify-between", navStyle === 'sidebar' ? "border-b border-gray-100 p-4 md:p-6" : "")}>
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
+            <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+              <ChristianCross size={20} />
+            </div>
+            <div className={navStyle === 'sidebar' ? "block text-left" : "hidden sm:block text-left"}>
+              <h1 className="text-lg font-black text-gray-900 leading-none">MÍDIA IMW</h1>
+              <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase">Laureano</p>
+            </div>
+          </button>
+          
+          {/* Mobile Profile Button */}
+          <button 
+            onClick={() => setIsProfileModalOpen(true)}
+            className="md:hidden w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden shrink-0"
+          >
+            {user.photoURL ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : user.displayName[0]}
+          </button>
+        </div>
 
-        <nav className={cn("flex gap-1 overflow-x-auto no-scrollbar", navStyle === 'sidebar' ? "flex-col p-4 flex-1" : "flex-row items-center px-4")}>
+        <nav className={cn("flex gap-2 overflow-x-auto no-scrollbar", navStyle === 'sidebar' ? "flex-row md:flex-col p-4 flex-none md:flex-1" : "flex-row items-center px-4")}>
           <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard size={20} />} label="Dashboard" compact={navStyle === 'top'} theme={theme} />
           <NavItem active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<CalendarDays size={20} />} label="Calendário" compact={navStyle === 'top'} theme={theme} />
           <NavItem active={activeTab === 'events'} onClick={() => setActiveTab('events')} icon={<CalendarIcon size={20} />} label="Eventos" compact={navStyle === 'top'} theme={theme} />
@@ -489,7 +499,7 @@ export default function App() {
           <NavItem active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={20} />} label="Notificações" compact={navStyle === 'top'} theme={theme} />
         </nav>
 
-        <div className={cn("border-t border-gray-100", navStyle === 'sidebar' ? "p-4" : "p-0 ml-4 flex items-center gap-4")}>
+        <div className={cn("border-t border-gray-100 hidden md:flex", navStyle === 'sidebar' ? "p-4 flex-col" : "p-0 ml-4 items-center gap-4")}>
           <button 
             onClick={() => setIsProfileModalOpen(true)}
             className={cn("flex items-center gap-3 transition-all", navStyle === 'sidebar' ? "w-full p-3 bg-gray-50 rounded-2xl mb-4 hover:bg-gray-100" : "p-2 hover:bg-gray-50 rounded-xl")}
@@ -863,8 +873,9 @@ export default function App() {
               )}
             </div>
             <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b border-gray-100">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[600px]">
+                  <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Evento</th>
                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Data</th>
@@ -930,6 +941,7 @@ export default function App() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -1344,12 +1356,12 @@ function NavItem({ active, onClick, icon, label, compact, theme = 'indigo' }: { 
   return (
     <button onClick={onClick} className={cn(
       "flex items-center gap-3 transition-all group shrink-0",
-      compact ? "p-2 rounded-lg" : "w-full p-3 rounded-xl",
+      compact ? "p-3 rounded-xl" : "px-4 py-3 md:w-full md:p-3 rounded-xl",
       active ? themeClasses[theme as keyof typeof themeClasses] : "text-gray-500 hover:bg-gray-100"
     )}>
       <span className={cn("transition-transform group-hover:scale-110", active ? "text-white" : "text-gray-400 group-hover:" + textClasses[theme as keyof typeof textClasses])}>{icon}</span>
       {!compact && <span className="font-semibold text-sm">{label}</span>}
-      {!compact && active && <ChevronRight size={16} className="ml-auto opacity-50" />}
+      {!compact && active && <ChevronRight size={16} className="ml-auto opacity-50 hidden md:block" />}
     </button>
   );
 }
