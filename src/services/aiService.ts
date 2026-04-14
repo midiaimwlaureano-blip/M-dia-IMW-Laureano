@@ -1,9 +1,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai: GoogleGenAI | null = null;
+
+function getAiClient() {
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY não está configurada nas variáveis de ambiente.");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+}
 
 export async function parseCommand(command: string) {
-  const response = await ai.models.generateContent({
+  const aiClient = getAiClient();
+  const response = await aiClient.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Interprete o comando: "${command}". 
     Determine a ação: CREATE_EVENT, CREATE_VOLUNTEER, CREATE_NOTIFICATION, ou CREATE_ANNOUNCEMENT.
