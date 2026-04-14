@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   collection, 
   query, 
@@ -46,7 +47,10 @@ import {
   MessageSquare,
   Download,
   ExternalLink,
-  Upload
+  Upload,
+  PanelLeftClose,
+  PanelLeftOpen,
+  AlertTriangle
 } from 'lucide-react';
 
 const ChristianCross = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
@@ -82,6 +86,7 @@ export default function App() {
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [layoutMode, setLayoutMode] = useState<'modern' | 'compact'>('modern');
   const [navStyle, setNavStyle] = useState<'sidebar' | 'top'>('sidebar');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<'indigo' | 'red' | 'blue' | 'rose' | 'sky' | 'imw'>('imw');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [events, setEvents] = useState<ChurchEvent[]>([]);
@@ -462,17 +467,20 @@ export default function App() {
       {/* Sidebar / Top Nav */}
       <aside className={cn(
         "bg-white border-gray-200 z-20 transition-all shrink-0 glass",
-        navStyle === 'sidebar' ? "w-full md:w-64 md:border-r border-b flex flex-col" : "w-full border-b flex flex-row items-center justify-between px-4 md:px-8 py-4"
+        navStyle === 'sidebar' ? (isSidebarCollapsed ? "w-full md:w-20 md:border-r border-b flex flex-col" : "w-full md:w-64 md:border-r border-b flex flex-col") : "w-full border-b flex flex-row items-center justify-between px-4 md:px-8 py-4"
       )}>
         <div className={cn("flex items-center justify-between", navStyle === 'sidebar' ? "border-b border-gray-100 p-4 md:p-6" : "")}>
           <button 
             onClick={() => setActiveTab('dashboard')}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
-            <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+            <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
               <ChristianCross size={20} />
             </div>
-            <div className={navStyle === 'sidebar' ? "block text-left" : "hidden sm:block text-left"}>
+            <div className={cn(
+              navStyle === 'sidebar' ? "block text-left" : "hidden sm:block text-left",
+              navStyle === 'sidebar' && isSidebarCollapsed ? "md:hidden" : ""
+            )}>
               <h1 className="text-lg font-black text-gray-900 leading-none">MÍDIA IMW</h1>
               <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase">Laureano</p>
             </div>
@@ -488,18 +496,28 @@ export default function App() {
         </div>
 
         <nav className={cn("flex gap-2 overflow-x-auto no-scrollbar", navStyle === 'sidebar' ? "flex-row md:flex-col p-4 flex-none md:flex-1" : "flex-row items-center px-4")}>
-          <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard size={20} />} label="Dashboard" compact={navStyle === 'top'} theme={theme} />
-          <NavItem active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<CalendarDays size={20} />} label="Calendário" compact={navStyle === 'top'} theme={theme} />
-          <NavItem active={activeTab === 'events'} onClick={() => setActiveTab('events')} icon={<CalendarIcon size={20} />} label="Eventos" compact={navStyle === 'top'} theme={theme} />
-          <NavItem active={activeTab === 'scales'} onClick={() => setActiveTab('scales')} icon={<Clock size={20} />} label="Escalas" compact={navStyle === 'top'} theme={theme} />
-          <NavItem active={activeTab === 'volunteers'} onClick={() => setActiveTab('volunteers')} icon={<Users size={20} />} label="Voluntários" compact={navStyle === 'top'} theme={theme} />
-          <NavItem active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} icon={<Megaphone size={20} />} label="Anúncios" compact={navStyle === 'top'} theme={theme} />
-          <NavItem active={activeTab === 'setlist'} onClick={() => setActiveTab('setlist')} icon={<FileText size={20} />} label="Setlist" compact={navStyle === 'top'} theme={theme} />
-          <NavItem active={activeTab === 'cronograma'} onClick={() => setActiveTab('cronograma')} icon={<CalendarIcon size={20} />} label="Cronograma" compact={navStyle === 'top'} theme={theme} />
-          <NavItem active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={20} />} label="Notificações" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard size={20} />} label="Dashboard" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<CalendarDays size={20} />} label="Calendário" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'events'} onClick={() => setActiveTab('events')} icon={<CalendarIcon size={20} />} label="Eventos" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'scales'} onClick={() => setActiveTab('scales')} icon={<Clock size={20} />} label="Escalas" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'volunteers'} onClick={() => setActiveTab('volunteers')} icon={<Users size={20} />} label="Voluntários" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} icon={<Megaphone size={20} />} label="Anúncios" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'setlist'} onClick={() => setActiveTab('setlist')} icon={<FileText size={20} />} label="Setlist" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'cronograma'} onClick={() => setActiveTab('cronograma')} icon={<CalendarIcon size={20} />} label="Cronograma" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={20} />} label="Notificações" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
         </nav>
 
         <div className={cn("border-t border-gray-100 hidden md:flex", navStyle === 'sidebar' ? "p-4 flex-col" : "p-0 ml-4 items-center gap-4")}>
+          {navStyle === 'sidebar' && (
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="flex items-center justify-center gap-3 w-full p-3 text-gray-500 hover:bg-gray-100 rounded-xl mb-4 transition-colors"
+              title={isSidebarCollapsed ? "Expandir menu" : "Recolher menu"}
+            >
+              {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+              {!isSidebarCollapsed && <span className="font-medium text-sm">Recolher</span>}
+            </button>
+          )}
           <button 
             onClick={() => setIsProfileModalOpen(true)}
             className={cn("flex items-center gap-3 transition-all", navStyle === 'sidebar' ? "w-full p-3 bg-gray-50 rounded-2xl mb-4 hover:bg-gray-100" : "p-2 hover:bg-gray-50 rounded-xl")}
@@ -507,23 +525,48 @@ export default function App() {
             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden shrink-0">
               {user.photoURL ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : user.displayName[0]}
             </div>
-            {navStyle === 'sidebar' && (
+            {navStyle === 'sidebar' && !isSidebarCollapsed && (
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm font-bold text-gray-900 truncate">{user.displayName}</p>
                 <p className="text-xs text-gray-500 truncate">{user.role}</p>
               </div>
             )}
-            {navStyle === 'sidebar' && <Settings size={16} className="text-gray-400" />}
+            {navStyle === 'sidebar' && !isSidebarCollapsed && <Settings size={16} className="text-gray-400" />}
           </button>
           <button onClick={logout} className={cn("flex items-center gap-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors", navStyle === 'sidebar' ? "w-full p-3" : "p-2")}>
-            <LogOut size={20} /> {navStyle === 'sidebar' && <span className="font-medium">Sair</span>}
+            <LogOut size={20} /> {navStyle === 'sidebar' && !isSidebarCollapsed && <span className="font-medium">Sair</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="h-full"
+          >
+            {!['dashboard', 'calendar', 'events', 'scales', 'volunteers', 'announcements', 'setlist', 'cronograma', 'notifications'].includes(activeTab) ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
+                <div className="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+                  <AlertTriangle size={48} />
+                </div>
+                <h2 className="text-4xl font-black text-gray-900 mb-4">404</h2>
+                <p className="text-xl text-gray-600 mb-8">Página não encontrada ou em construção.</p>
+                <button 
+                  onClick={() => setActiveTab('dashboard')}
+                  className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 mx-auto"
+                >
+                  Voltar para o Início
+                </button>
+              </div>
+            ) : (
+              <>
+                <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">
               {activeTab === 'dashboard' && 'Olá, ' + user.displayName.split(' ')[0] + '! 👋'}
@@ -1187,6 +1230,10 @@ export default function App() {
         {activeTab === 'cronograma' && (
           <CronogramaView cronogramas={cronogramas} isAdmin={isAdmin} theme={theme} setViewingCronograma={setViewingCronograma} />
         )}
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Modals */}
