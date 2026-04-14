@@ -1,98 +1,86 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-headline: "Manrope", sans-serif;
-
-  --color-primary: #ba0015;
-  --color-primary-container: #e31c25;
-  --color-secondary: #175ead;
-  --color-secondary-container: #72aafe;
-  --color-tertiary: #00618c;
-  --color-background: #fcf9f8;
-  --color-surface: #fcf9f8;
-  --color-surface-container: #f0eded;
-  --color-on-surface: #1c1b1b;
-  --color-on-surface-variant: #5d3f3c;
-  --color-outline: #926e6b;
-
-  --radius-3xl: 1.5rem;
-  --radius-2xl: 1rem;
-  --radius-xl: 0.75rem;
-}
-
-@layer base {
-  body {
-    @apply bg-background text-on-surface font-sans transition-colors duration-300;
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
-
-  .dark body {
-    --color-background: #1c1b1b;
-    --color-surface: #1c1b1b;
-    --color-on-surface: #fcf9f8;
-    --color-on-surface-variant: #e5e2e1;
-    --color-surface-container: #313030;
-    @apply bg-background text-on-surface;
-  }
-
-  input[type="text"],
-  input[type="email"],
-  input[type="date"],
-  input[type="time"],
-  input[type="datetime-local"],
-  input[type="tel"],
-  input[type="number"],
-  input[type="password"],
-  select,
-  textarea {
-    @apply text-gray-900 dark:text-white bg-gray-50 dark:bg-stone-800 border-gray-200 dark:border-stone-700 placeholder-gray-400 dark:placeholder-stone-500;
-  }
-
-  label {
-    @apply text-gray-500 dark:text-stone-400;
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
-@layer components {
-  .glass-effect {
-    @apply backdrop-blur-xl bg-white/80 dark:bg-stone-900/80;
-  }
-
-  .bento-card {
-    @apply bg-white dark:bg-stone-900 rounded-3xl p-6 border border-stone-100 dark:border-stone-800 shadow-sm hover:shadow-md transition-all;
-  }
-
-  .btn-primary {
-    @apply bg-primary text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2;
-  }
-
-  .btn-secondary {
-    @apply bg-surface-container text-secondary dark:text-secondary-container font-bold py-3 px-6 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2;
-  }
-
-  .form-input {
-    @apply w-full p-3 bg-gray-50 dark:bg-stone-800 border border-gray-200 dark:border-stone-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-stone-500 transition-colors;
-  }
+/* iPhone App Style Base */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.quill {
-  @apply bg-white dark:bg-stone-900 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-700;
+/* Glassmorphism utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.ql-toolbar {
-  @apply !border-none !bg-stone-50 dark:!bg-stone-800;
+/* Dark Mode Overrides */
+.dark body {
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
-.ql-container {
-  @apply !border-none min-h-[200px] dark:text-white;
+.dark .bg-white {
+  background-color: #1e293b !important;
 }
 
-/* Hide scrollbar but keep functionality */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+.dark .bg-gray-50 {
+  background-color: #0f172a !important;
 }
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+.dark .bg-gray-100 {
+  background-color: #334155 !important;
+}
+
+.dark .text-gray-900 {
+  color: #f8fafc !important;
+}
+
+.dark .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-400 {
+  color: #64748b !important;
+}
+
+.dark .border-gray-100 {
+  border-color: #334155 !important;
+}
+
+.dark .border-gray-200 {
+  border-color: #475569 !important;
+}
+
+.dark .glass {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark input, .dark select, .dark textarea {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+.dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
 }

@@ -45,8 +45,16 @@ import {
   Smile,
   MessageSquare,
   Download,
-  ExternalLink
+  ExternalLink,
+  Upload
 } from 'lucide-react';
+
+const ChristianCross = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 3v18" />
+    <path d="M8 8h8" />
+  </svg>
+);
 import { formatDate, cn } from './lib/utils';
 import { parseCommand } from './services/aiService';
 import { Toaster, toast } from 'sonner';
@@ -60,8 +68,7 @@ import {
   isSameMonth, 
   isSameDay, 
   addMonths, 
-  subMonths,
-  startOfDay
+  subMonths 
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactQuill from 'react-quill-new';
@@ -72,10 +79,20 @@ import html2canvas from 'html2canvas';
 export default function App() {
   const { user, loading, login, logout, isAdmin, isCoordinator } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showPastEvents, setShowPastEvents] = useState(false);
   const [layoutMode, setLayoutMode] = useState<'modern' | 'compact'>('modern');
   const [navStyle, setNavStyle] = useState<'sidebar' | 'top'>('sidebar');
   const [theme, setTheme] = useState<'indigo' | 'red' | 'blue' | 'rose' | 'sky' | 'imw'>('imw');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [events, setEvents] = useState<ChurchEvent[]>([]);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
   const [scales, setScales] = useState<Scale[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
@@ -86,27 +103,6 @@ export default function App() {
   const [cronogramas, setCronogramas] = useState<Cronograma[]>([]);
   const [aiCommand, setAiCommand] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' || 
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  // Theme effect
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  const upcomingEvents = events.filter(e => e.status !== 'CONCLUIDO' && startOfDay(new Date(e.date)) >= startOfDay(new Date()));
-  const pastEvents = events.filter(e => e.status === 'CONCLUIDO' || startOfDay(new Date(e.date)) < startOfDay(new Date()));
 
   // Modals
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
@@ -118,6 +114,8 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [editingVolunteer, setEditingVolunteer] = useState<User | null>(null);
   const [selectedEventForScale, setSelectedEventForScale] = useState<ChurchEvent | null>(null);
+  const [viewingSetlist, setViewingSetlist] = useState<Setlist | null>(null);
+  const [viewingCronograma, setViewingCronograma] = useState<Cronograma | null>(null);
 
   // Real-time listeners
   useEffect(() => {
@@ -437,660 +435,768 @@ export default function App() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="font-headline font-bold text-primary animate-pulse uppercase tracking-widest">MÍDIA IMW LAUREANO</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+    </div>
+  );
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white dark:bg-stone-900 rounded-[2.5rem] p-10 shadow-2xl border border-stone-100 dark:border-stone-800 text-center space-y-8">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary shadow-inner">
-              <CalendarIcon size={40} />
-            </div>
-            <div>
-              <h1 className="text-3xl font-headline font-extrabold text-primary tracking-tighter">MÍDIA IMW</h1>
-              <p className="text-sm font-bold text-stone-400 uppercase tracking-[0.3em]">LAUREANO</p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-on-surface">Bem-vindo ao Sanctuary</h2>
-            <p className="text-sm text-on-surface-variant leading-relaxed">Acesse sua conta para gerenciar escalas, eventos e voluntários da nossa igreja.</p>
-          </div>
-          <button 
-            onClick={login}
-            className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
-          >
-            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="" />
-            Entrar com Google
-          </button>
+  if (!user) return (
+    <div className="min-h-screen flex items-center justify-center bg-indigo-600 p-4">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-10 text-center">
+        <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-8 rotate-3">
+          <CalendarIcon size={40} />
         </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Mídia Igreja</h1>
+        <button onClick={login} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+          <UserIcon size={20} /> Entrar com Google
+        </button>
       </div>
-    );
-  }
-
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { id: 'calendar', label: 'Calendário', icon: <CalendarIcon size={20} /> },
-    { id: 'events', label: 'Eventos', icon: <CalendarDays size={20} /> },
-    { id: 'scales', label: 'Escalas', icon: <Clock size={20} /> },
-    { id: 'volunteers', label: 'Voluntários', icon: <Users size={20} /> },
-    { id: 'announcements', label: 'Anúncios', icon: <Megaphone size={20} /> },
-    { id: 'setlist', label: 'Setlist', icon: <FileText size={20} /> },
-    { id: 'cronograma', label: 'Cronograma', icon: <Clock size={20} /> },
-    { id: 'notifications', label: 'Notificações', icon: <Bell size={20} /> },
-  ];
+    </div>
+  );
 
   return (
-    <div className={cn("min-h-screen flex bg-background", isDarkMode && "dark")}>
-      <Toaster position="top-right" richColors />
+    <div className={cn("min-h-screen flex transition-colors duration-300", isDarkMode ? "bg-slate-900 text-white" : "bg-gradient-to-br from-indigo-50 via-white to-sky-50", navStyle === 'top' ? "flex-col" : "flex-col md:flex-row")}>
+      <Toaster position="top-right" theme={isDarkMode ? 'dark' : 'light'} />
       
-      {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-white dark:bg-stone-950 border-r border-stone-100 dark:border-stone-900 z-50">
-        <div className="p-8 flex items-center gap-3">
-          <div>
-            <h1 className="text-lg font-headline font-extrabold text-primary tracking-tighter leading-none">MÍDIA IMW</h1>
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">LAUREANO</p>
+      {/* Sidebar / Top Nav */}
+      <aside className={cn(
+        "bg-white border-gray-200 z-20 transition-all shrink-0 glass",
+        navStyle === 'sidebar' ? "w-full md:w-64 border-r flex flex-col" : "w-full border-b flex flex-row items-center justify-between px-8 py-4"
+      )}>
+        <button 
+          onClick={() => setActiveTab('dashboard')}
+          className={cn("flex items-center gap-3 hover:opacity-80 transition-opacity", navStyle === 'sidebar' ? "p-6 border-b border-gray-100" : "p-0")}
+        >
+          <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+            <ChristianCross size={20} />
           </div>
-        </div>
+          <div className={navStyle === 'sidebar' ? "block text-left" : "hidden sm:block text-left"}>
+            <h1 className="text-lg font-black text-gray-900 leading-none">MÍDIA IMW</h1>
+            <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase">Laureano</p>
+          </div>
+        </button>
 
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto scrollbar-hide">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
-                activeTab === item.id 
-                  ? "bg-primary/10 text-primary font-bold" 
-                  : "text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-900 hover:text-primary"
-              )}
-            >
-              <span className={cn("transition-transform group-hover:scale-110", activeTab === item.id && "text-primary")}>
-                {item.icon}
-              </span>
-              <span className="text-xs uppercase tracking-wider font-headline">{item.label}</span>
-              {item.id === 'notifications' && notifications.filter(n => !n.read).length > 0 && (
-                <span className="ml-auto w-2 h-2 bg-primary rounded-full"></span>
-              )}
-            </button>
-          ))}
+        <nav className={cn("flex gap-1 overflow-x-auto no-scrollbar", navStyle === 'sidebar' ? "flex-col p-4 flex-1" : "flex-row items-center px-4")}>
+          <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard size={20} />} label="Dashboard" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<CalendarDays size={20} />} label="Calendário" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'events'} onClick={() => setActiveTab('events')} icon={<CalendarIcon size={20} />} label="Eventos" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'scales'} onClick={() => setActiveTab('scales')} icon={<Clock size={20} />} label="Escalas" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'volunteers'} onClick={() => setActiveTab('volunteers')} icon={<Users size={20} />} label="Voluntários" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} icon={<Megaphone size={20} />} label="Anúncios" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'setlist'} onClick={() => setActiveTab('setlist')} icon={<FileText size={20} />} label="Setlist" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'cronograma'} onClick={() => setActiveTab('cronograma')} icon={<CalendarIcon size={20} />} label="Cronograma" compact={navStyle === 'top'} theme={theme} />
+          <NavItem active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={20} />} label="Notificações" compact={navStyle === 'top'} theme={theme} />
         </nav>
 
-        <div className="p-4 mt-auto space-y-2 border-t border-stone-100 dark:border-stone-900">
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-stone-50 dark:bg-stone-900 rounded-xl text-xs font-bold text-stone-500 hover:text-primary transition-all"
-          >
-            <div className="flex items-center gap-3">
-              {isDarkMode ? <Smile size={18} /> : <Sparkles size={18} />}
-              <span className="uppercase tracking-wider">Modo {isDarkMode ? 'Claro' : 'Escuro'}</span>
-            </div>
-          </button>
+        <div className={cn("border-t border-gray-100", navStyle === 'sidebar' ? "p-4" : "p-0 ml-4 flex items-center gap-4")}>
           <button 
             onClick={() => setIsProfileModalOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl transition-all"
+            className={cn("flex items-center gap-3 transition-all", navStyle === 'sidebar' ? "w-full p-3 bg-gray-50 rounded-2xl mb-4 hover:bg-gray-100" : "p-2 hover:bg-gray-50 rounded-xl")}
           >
-            <UserIcon size={18} />
-            <span className="text-xs uppercase tracking-wider font-bold">Meu Perfil</span>
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden shrink-0">
+              {user.photoURL ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : user.displayName[0]}
+            </div>
+            {navStyle === 'sidebar' && (
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm font-bold text-gray-900 truncate">{user.displayName}</p>
+                <p className="text-xs text-gray-500 truncate">{user.role}</p>
+              </div>
+            )}
+            {navStyle === 'sidebar' && <Settings size={16} className="text-gray-400" />}
           </button>
-          <button 
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-          >
-            <LogOut size={18} />
-            <span className="text-xs uppercase tracking-wider font-bold">Sair</span>
+          <button onClick={logout} className={cn("flex items-center gap-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors", navStyle === 'sidebar' ? "w-full p-3" : "p-2")}>
+            <LogOut size={20} /> {navStyle === 'sidebar' && <span className="font-medium">Sair</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col lg:ml-64 pb-24 lg:pb-0">
-        {/* Top Header - Mobile & Desktop */}
-        <header className="sticky top-0 z-40 glass-effect border-b border-stone-100 dark:border-stone-900 h-16 px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3 lg:hidden">
-            <h1 className="text-sm font-headline font-extrabold text-primary tracking-tighter leading-none">MÍDIA IMW</h1>
-          </div>
-          
-          <div className="flex-1 max-w-md mx-4 hidden sm:block">
-            <div className="relative">
-              <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Buscar no Sanctuary..." 
-                className="w-full bg-stone-100 dark:bg-stone-900 border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-            </div>
+      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">
+              {activeTab === 'dashboard' && 'Olá, ' + user.displayName.split(' ')[0] + '! 👋'}
+              {activeTab === 'calendar' && 'Calendário Mensal'}
+              {activeTab === 'events' && 'Agenda de Eventos'}
+              {activeTab === 'scales' && 'Gestão de Escalas'}
+              {activeTab === 'volunteers' && 'Equipe de Voluntários'}
+              {activeTab === 'announcements' && 'Mural de Anúncios'}
+              {activeTab === 'setlist' && 'Setlist de Louvor'}
+              {activeTab === 'cronograma' && 'Cronograma do Culto'}
+              {activeTab === 'notifications' && 'Suas Notificações'}
+            </h2>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setActiveTab('notifications')}
-              className="relative p-2 text-stone-500 hover:text-primary transition-all"
-            >
-              <Bell size={20} />
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-white dark:border-stone-900"></span>
-              )}
-            </button>
-            <div className="flex items-center gap-3 pl-4 border-l border-stone-100 dark:border-stone-800 cursor-pointer group" onClick={() => setIsProfileModalOpen(true)}>
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">{user.displayName}</p>
-                <p className="text-[10px] text-stone-400 uppercase tracking-tighter">{user.role}</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-primary/10 border-2 border-white dark:border-stone-800 overflow-hidden shadow-sm">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-primary font-bold">{user.displayName[0]}</div>
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
+              <button 
+                onClick={() => setIsDarkMode(false)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
+                  !isDarkMode ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
                 )}
+              >
+                Claro
+              </button>
+              <button 
+                onClick={() => setIsDarkMode(true)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
+                  isDarkMode ? "bg-slate-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Escuro
+              </button>
+            </div>
+
+            <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
+              <button 
+                onClick={() => setLayoutMode('modern')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
+                  layoutMode === 'modern' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Moderno
+              </button>
+              <button 
+                onClick={() => setLayoutMode('compact')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
+                  layoutMode === 'compact' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Compacto
+              </button>
+            </div>
+
+            <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
+              <button 
+                onClick={() => setNavStyle('sidebar')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
+                  navStyle === 'sidebar' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Lateral
+              </button>
+              <button 
+                onClick={() => setNavStyle('top')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
+                  navStyle === 'top' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Superior
+              </button>
+            </div>
+
+            {isAdmin && (
+              <div className="flex items-center gap-3">
+              <div className="relative group w-full md:w-96">
+                <input 
+                  type="text" 
+                  placeholder="Comando IA (Evento, Voluntário, Notif)..." 
+                  className="pl-12 pr-12 py-4 bg-white/80 backdrop-blur-sm border-2 border-indigo-100 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none w-full shadow-lg shadow-indigo-500/5 transition-all placeholder:text-gray-400 font-medium"
+                  value={aiCommand}
+                  onChange={(e) => setAiCommand(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAiCommand()}
+                />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center">
+                  <Sparkles className="text-indigo-600" size={14} />
+                </div>
+                <button 
+                  onClick={handleAiCommand} 
+                  disabled={isAiLoading} 
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shadow-md shadow-indigo-200"
+                >
+                  {isAiLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full" /> : <Plus size={20} />}
+                </button>
               </div>
             </div>
+          )}
           </div>
         </header>
 
-        <div className="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-10 overflow-y-auto">
-          {activeTab === 'dashboard' && (
-            <div className="space-y-10">
-              <header className="space-y-2">
-                <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-secondary">Dashboard Principal</p>
-                <h2 className="text-4xl lg:text-5xl font-headline font-extrabold tracking-tighter text-on-surface">Olá, {user.displayName.split(' ')[0]}!</h2>
-              </header>
-
-              {/* Bible Verse Hero */}
-              <section className="relative overflow-hidden rounded-[2.5rem] min-h-[300px] flex items-end p-8 lg:p-12 group">
-                <img 
-                  src="https://picsum.photos/seed/church/1200/600" 
-                  alt="" 
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                <div className="relative z-10 max-w-2xl space-y-4">
-                  <span className="inline-block px-3 py-1 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-full">Palavra do Dia</span>
-                  <h3 className="text-white text-2xl lg:text-4xl font-headline font-bold italic leading-tight">
+        {activeTab === 'dashboard' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {/* Mensagem Bíblica */}
+              <section className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                  <Heart size={120} />
+                </div>
+                <div className="relative z-10">
+                  <blockquote className="text-2xl font-serif italic mb-4 leading-relaxed">
                     "Servi ao Senhor com alegria; apresentai-vos diante dele com cântico."
-                  </h3>
-                  <p className="text-white/80 text-lg font-medium">— Salmos 100:2</p>
+                  </blockquote>
+                  <cite className="text-sm font-bold opacity-80">— Salmos 100:2</cite>
+                  <p className="mt-6 text-blue-100 text-sm max-w-md">
+                    Seu serviço na casa de Deus é precioso. Que seu coração se alegre ao servir hoje!
+                  </p>
                 </div>
               </section>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-8 space-y-10">
-                  {/* Next Event Card */}
-                  <section className="space-y-6">
-                    <div className="flex justify-between items-center px-2">
-                      <h4 className="text-xl font-headline font-bold text-on-surface">Sua Próxima Escala</h4>
-                      <button onClick={() => setActiveTab('calendar')} className="text-xs font-bold text-secondary hover:text-primary transition-colors uppercase tracking-widest">Ver Agenda</button>
-                    </div>
-                    {upcomingEvents.length > 0 ? (
-                      <div className="bento-card flex flex-col md:flex-row gap-8 items-center">
-                        <div className="w-24 h-24 bg-primary/5 rounded-[2rem] flex flex-col items-center justify-center text-primary shadow-inner">
-                          <span className="text-[10px] font-bold uppercase tracking-widest">{format(new Date(upcomingEvents[0].date), 'MMM', { locale: ptBR })}</span>
-                          <span className="text-4xl font-headline font-extrabold leading-none">{format(new Date(upcomingEvents[0].date), 'dd')}</span>
-                        </div>
-                        <div className="flex-1 text-center md:text-left space-y-2">
-                          <h5 className="text-2xl font-headline font-bold text-on-surface">{upcomingEvents[0].title}</h5>
-                          <div className="flex flex-wrap justify-center md:justify-start gap-4 text-stone-400 text-sm font-medium">
-                            <span className="flex items-center gap-1.5"><Clock size={16} /> {format(new Date(upcomingEvents[0].date), 'HH:mm')}h</span>
-                            <span className="flex items-center gap-1.5"><CalendarIcon size={16} /> {format(new Date(upcomingEvents[0].date), "EEEE, dd 'de' MMMM", { locale: ptBR })}</span>
+              {/* Mural de Anúncios */}
+              <section>
+                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Megaphone className="text-indigo-600" size={20} />
+                  Mural da Igreja
+                </h3>
+                <div className={cn(
+                  "grid gap-4",
+                  layoutMode === 'modern' ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+                )}>
+                  {announcements.slice(0, layoutMode === 'modern' ? 2 : 4).map(ann => (
+                    <div key={ann.id} className={cn(
+                      "bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all group",
+                      layoutMode === 'modern' ? "p-6 rounded-3xl" : "p-4 rounded-2xl flex items-center justify-between gap-4"
+                    )}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-6 h-6 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center shrink-0">
+                            <Megaphone size={12} />
                           </div>
+                          <h4 className="font-bold text-gray-900 truncate">{ann.title}</h4>
                         </div>
-                        <button 
-                          onClick={() => { setSelectedEventForScale(upcomingEvents[0]); setIsScaleModalOpen(true); }}
-                          className="btn-primary w-full md:w-auto"
-                        >
-                          <CheckCircle size={20} /> Confirmar Presença
-                        </button>
+                        <p className={cn("text-gray-600 line-clamp-1", layoutMode === 'modern' ? "text-sm mb-4" : "text-xs")}>
+                          {ann.description}
+                        </p>
+                        {layoutMode === 'modern' && ann.pdfUrl && (
+                          <a 
+                            href={ann.pdfUrl} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all"
+                          >
+                            <FileText size={14} /> Ver PDF
+                          </a>
+                        )}
                       </div>
-                    ) : (
-                      <div className="bento-card text-center py-12 space-y-4">
-                        <div className="w-16 h-16 bg-stone-50 dark:bg-stone-800 rounded-full flex items-center justify-center mx-auto text-stone-300">
-                          <Clock size={32} />
-                        </div>
-                        <p className="text-stone-400 font-medium">Nenhuma escala programada para você no momento.</p>
-                      </div>
-                    )}
-                  </section>
-
-                  {/* Setlist & Cronograma Bento Grid */}
-                  <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bento-card group cursor-pointer" onClick={() => setActiveTab('setlist')}>
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="w-12 h-12 bg-secondary/10 rounded-2xl flex items-center justify-center text-secondary">
-                          <FileText size={24} />
-                        </div>
-                        <ChevronRight className="text-stone-300 group-hover:text-secondary transition-all group-hover:translate-x-1" />
-                      </div>
-                      <h5 className="text-xl font-headline font-bold text-on-surface mb-2">Setlist de Louvor</h5>
-                      <p className="text-sm text-stone-400 leading-relaxed mb-6">Confira as músicas selecionadas para os próximos cultos e ensaios.</p>
-                      <div className="pt-6 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{setlists.length} Listas disponíveis</span>
-                        <span className="text-xs font-bold text-secondary">Ver Tudo</span>
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md uppercase tracking-wider mb-2">{ann.date}</span>
+                        {layoutMode === 'compact' && ann.pdfUrl && (
+                          <a href={ann.pdfUrl} target="_blank" rel="noreferrer" className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all">
+                            <FileText size={16} />
+                          </a>
+                        )}
                       </div>
                     </div>
-
-                    <div className="bento-card group cursor-pointer" onClick={() => setActiveTab('cronograma')}>
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="w-12 h-12 bg-tertiary/10 rounded-2xl flex items-center justify-center text-tertiary">
-                          <Clock size={24} />
-                        </div>
-                        <ChevronRight className="text-stone-300 group-hover:text-tertiary transition-all group-hover:translate-x-1" />
-                      </div>
-                      <h5 className="text-xl font-headline font-bold text-on-surface mb-2">Cronograma do Culto</h5>
-                      <p className="text-sm text-stone-400 leading-relaxed mb-6">Organização detalhada de cada momento da nossa celebração.</p>
-                      <div className="pt-6 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{cronogramas.length} Roteiros ativos</span>
-                        <span className="text-xs font-bold text-tertiary">Ver Tudo</span>
-                      </div>
-                    </div>
-                  </section>
+                  ))}
+                  {announcements.length === 0 && <p className="text-gray-400 text-sm italic">Nenhum anúncio recente.</p>}
                 </div>
+              </section>
 
-                <div className="lg:col-span-4 space-y-8">
-                  {/* Mural da Igreja */}
-                  <section className="space-y-6">
-                    <div className="flex items-center gap-2 px-2">
-                      <Megaphone size={20} className="text-primary" />
-                      <h4 className="text-xl font-headline font-bold text-on-surface">Mural da Igreja</h4>
-                    </div>
-                    <div className="space-y-4">
-                      {announcements.slice(0, 3).map(ann => (
-                        <div key={ann.id} className="bg-white dark:bg-stone-900 p-6 rounded-3xl border border-stone-100 dark:border-stone-800 shadow-sm space-y-3">
-                          <div className="flex justify-between items-start">
-                            <span className="px-2 py-1 bg-primary/5 text-primary text-[10px] font-bold rounded-lg uppercase">{ann.date}</span>
-                            <span className="text-[10px] text-stone-400 font-bold">{ann.time}</span>
-                          </div>
-                          <h6 className="font-bold text-on-surface">{ann.title}</h6>
-                          <p className="text-xs text-stone-400 line-clamp-2 leading-relaxed">{ann.description}</p>
-                        </div>
-                      ))}
-                      <button onClick={() => setActiveTab('announcements')} className="w-full py-4 rounded-2xl border-2 border-dashed border-stone-200 dark:border-stone-800 text-stone-400 text-xs font-bold uppercase tracking-widest hover:border-primary hover:text-primary transition-all">
-                        Ver Todos os Anúncios
-                      </button>
-                    </div>
-                  </section>
-
-                  {/* Impact Card */}
-                  <section className="bg-secondary rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-xl shadow-secondary/20">
-                    <Heart size={120} className="absolute -right-8 -bottom-8 text-white/10 rotate-12" />
-                    <div className="relative z-10 space-y-4">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Impacto da Semana</p>
-                      <h5 className="text-5xl font-headline font-extrabold tracking-tighter">128</h5>
-                      <p className="text-sm font-medium text-white/80 leading-relaxed">Pessoas servidas pelo seu ministério nos últimos 7 dias.</p>
-                    </div>
-                  </section>
+              {/* Próximos Eventos */}
+              <section>
+                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Clock className="text-indigo-600" size={20} />
+                  Próximos Eventos
+                </h3>
+                <div className={cn(
+                  "grid gap-4",
+                  layoutMode === 'modern' ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+                )}>
+                  {events.filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).slice(0, layoutMode === 'modern' ? 4 : 6).map(event => (
+                    <EventCard 
+                      key={event.id} 
+                      event={event} 
+                      onCheckIn={handleCheckIn}
+                      userCheckIn={checkins.find(c => c.eventId === event.id && c.userId === user.uid)}
+                      isAdmin={isAdmin}
+                      onEdit={() => { setEditingEvent(event); setIsEventModalOpen(true); }}
+                      onDelete={() => handleDeleteEvent(event.id)}
+                      onDuplicate={() => handleDuplicateEvent(event)}
+                      compact={layoutMode === 'compact'}
+                      reactions={reactions.filter(r => r.targetId === event.id)}
+                      onReaction={(emoji) => handleReaction(event.id, emoji)}
+                      currentUserId={user.uid}
+                      allUsers={allUsers}
+                      checkins={checkins}
+                    />
+                  ))}
+                  {events.filter(e => new Date(e.date) >= new Date()).length === 0 && <p className="text-gray-400 text-sm italic">Nenhum evento futuro.</p>}
                 </div>
-              </div>
-            </div>
-          )}
+              </section>
 
-          {activeTab === 'calendar' && (
-            <CalendarView 
-              events={upcomingEvents} 
-              scales={scales} 
-              allUsers={allUsers} 
-            />
-          )}
-
-          {activeTab === 'events' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-headline font-bold text-on-surface">Agenda de Eventos</h3>
-                {isAdmin && (
-                  <button 
-                    onClick={() => { setEditingEvent(null); setIsEventModalOpen(true); }}
-                    className="btn-primary"
-                  >
-                    <Plus size={20} /> Novo Evento
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {upcomingEvents.map(ev => (
-                  <div key={ev.id} className="bento-card space-y-4 border-l-4 border-l-primary">
-                    <div className="flex justify-between items-start">
-                      <span className="px-3 py-1 bg-primary/5 text-primary text-[10px] font-bold rounded-full uppercase">{ev.type}</span>
-                      {isAdmin && (
-                        <div className="flex gap-2">
-                          <button onClick={() => { setEditingEvent(ev); setIsEventModalOpen(true); }} className="p-2 text-stone-400 hover:text-primary transition-colors">
-                            <Edit size={16} />
-                          </button>
-                          <button onClick={() => handleDeleteEvent(ev.id)} className="p-2 text-stone-400 hover:text-red-600 transition-colors">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-headline font-bold text-on-surface">{ev.title}</h4>
-                      <p className="text-sm text-stone-400 mt-1">{format(new Date(ev.date), "EEEE, dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                    </div>
-                    <div className="pt-4 border-t border-stone-50 dark:border-stone-800 flex items-center justify-between">
-                      <div className="flex -space-x-2">
-                        {scales.find(s => s.eventId === ev.id)?.assignments.slice(0, 3).map(a => (
-                          <div key={a.userId} className="w-8 h-8 rounded-full border-2 border-white dark:border-stone-900 bg-stone-100 flex items-center justify-center text-[10px] font-bold">
-                            {allUsers.find(u => u.uid === a.userId)?.displayName[0]}
-                          </div>
-                        ))}
-                      </div>
-                      <button 
-                        onClick={() => { setSelectedEventForScale(ev); setIsScaleModalOpen(true); }}
-                        className="text-xs font-bold text-secondary hover:text-primary transition-colors uppercase tracking-widest"
-                      >
-                        Ver Escala
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {pastEvents.length > 0 && (
-                <div className="mt-12 space-y-6">
-                  <h3 className="text-xl font-headline font-bold text-stone-400">Eventos Passados</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
-                    {pastEvents.map(ev => (
-                      <div key={ev.id} className="bento-card space-y-4">
-                        <div className="flex justify-between items-start">
-                          <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 text-stone-500 text-[10px] font-bold rounded-full uppercase">{ev.type}</span>
-                          {isAdmin && (
-                            <div className="flex gap-2">
-                              <button onClick={() => { setEditingEvent(ev); setIsEventModalOpen(true); }} className="p-2 text-stone-400 hover:text-primary transition-colors">
-                                <Edit size={16} />
-                              </button>
-                              <button onClick={() => handleDeleteEvent(ev.id)} className="p-2 text-stone-400 hover:text-red-600 transition-colors">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="text-xl font-headline font-bold text-on-surface line-through decoration-stone-300 dark:decoration-stone-700">{ev.title}</h4>
-                          <p className="text-sm text-stone-400 mt-1">{format(new Date(ev.date), "EEEE, dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                {/* Cronograma Resumo */}
+                <section>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <CalendarIcon className="text-indigo-600" size={20} />
+                    Cronograma
+                  </h3>
+                  <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                    {cronogramas.slice(0, 2).map(c => (
+                      <div key={c.id} className="mb-4 last:mb-0 border-b last:border-0 pb-4 last:pb-0 cursor-pointer group" onClick={() => setViewingCronograma(c)}>
+                        <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{c.title}</h4>
+                        <p className="text-xs text-gray-500 mb-2">{formatDate(c.date)}</p>
+                        <button onClick={(e) => { e.stopPropagation(); setActiveTab('cronograma'); }} className="text-xs font-bold text-indigo-600 hover:underline">Ver todos</button>
                       </div>
                     ))}
+                    {cronogramas.length === 0 && <p className="text-gray-400 text-sm italic">Nenhum cronograma.</p>}
                   </div>
-                </div>
-              )}
+                </section>
+
+                {/* Setlist Resumo */}
+                <section>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FileText className="text-indigo-600" size={20} />
+                    Setlist
+                  </h3>
+                  <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                    {setlists.slice(0, 2).map(s => (
+                      <div key={s.id} className="mb-4 last:mb-0 border-b last:border-0 pb-4 last:pb-0 cursor-pointer group" onClick={() => setViewingSetlist(s)}>
+                        <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{s.title}</h4>
+                        <p className="text-xs text-gray-500 mb-2">{formatDate(s.date)}</p>
+                        <button onClick={(e) => { e.stopPropagation(); setActiveTab('setlist'); }} className="text-xs font-bold text-indigo-600 hover:underline">Ver todas</button>
+                      </div>
+                    ))}
+                    {setlists.length === 0 && <p className="text-gray-400 text-sm italic">Nenhuma setlist.</p>}
+                  </div>
+                </section>
+              </div>
             </div>
-          )}
 
-          {activeTab === 'scales' && (
             <div className="space-y-8">
-              <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-headline font-bold text-on-surface">Gestão de Escalas</h3>
-                {isAdmin && (
-                  <button onClick={handleBatchGenerateScales} className="btn-secondary">
-                    <Sparkles size={20} /> Gerar Escalas Automáticas
-                  </button>
-                )}
-              </div>
-              <div className="space-y-6">
-                {upcomingEvents.map(ev => {
-                  const scale = scales.find(s => s.eventId === ev.id);
-                  return (
-                    <div key={ev.id} className="bento-card border-l-4 border-l-secondary">
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                        <div>
-                          <h4 className="text-xl font-headline font-bold text-on-surface">{ev.title}</h4>
-                          <p className="text-sm text-stone-400">{format(new Date(ev.date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
-                        <button 
-                          onClick={() => { setSelectedEventForScale(ev); setIsScaleModalOpen(true); }}
-                          className="btn-primary"
-                        >
-                          <Edit size={18} /> {isAdmin ? 'Editar Escala' : 'Ver Detalhes'}
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {scale?.assignments.map(a => (
-                          <div key={a.userId} className="bg-stone-50 dark:bg-stone-800/50 p-4 rounded-2xl flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-white dark:bg-stone-900 flex items-center justify-center text-primary font-bold shadow-sm">
-                              {allUsers.find(u => u.uid === a.userId)?.displayName[0]}
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-on-surface">{allUsers.find(u => u.uid === a.userId)?.displayName}</p>
-                              <p className="text-[10px] text-stone-400 uppercase font-bold">{a.roles.join(', ')}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {pastEvents.length > 0 && (
-                <div className="mt-12 space-y-6">
-                  <h3 className="text-xl font-headline font-bold text-stone-400">Escalas Passadas</h3>
-                  <div className="space-y-6 opacity-60">
-                    {pastEvents.map(ev => {
-                      const scale = scales.find(s => s.eventId === ev.id);
+              {/* Destaque de Próximas Escalas */}
+              <section>
+                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Users className="text-indigo-600" size={20} />
+                  Escalados em Breve
+                </h3>
+                <div className="space-y-3">
+                  {events
+                    .filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0)))
+                    .slice(0, 3)
+                    .map(event => {
+                      const scale = scales.find(s => s.eventId === event.id);
+                      if (!scale || scale.assignments.length === 0) return null;
+                      
                       return (
-                        <div key={ev.id} className="bento-card">
-                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                        <div key={event.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                          <div className="flex items-center justify-between mb-3">
                             <div>
-                              <h4 className="text-xl font-headline font-bold text-on-surface line-through decoration-stone-300 dark:decoration-stone-700">{ev.title}</h4>
-                              <p className="text-sm text-stone-400">{format(new Date(ev.date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                              </p>
+                              <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{formatDate(event.date)}</p>
+                              <h4 className="text-sm font-bold text-gray-900">{event.title}</h4>
                             </div>
-                            <button 
-                              onClick={() => { setSelectedEventForScale(ev); setIsScaleModalOpen(true); }}
-                              className="btn-secondary"
-                            >
-                              <Edit size={18} /> Ver Detalhes
-                            </button>
+                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg">
+                              {scale.assignments.length} PESSOAS
+                            </span>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {scale?.assignments.map(a => (
-                              <div key={a.userId} className="bg-stone-50 dark:bg-stone-800/50 p-4 rounded-2xl flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-white dark:bg-stone-900 flex items-center justify-center text-stone-400 font-bold shadow-sm">
-                                  {allUsers.find(u => u.uid === a.userId)?.displayName[0]}
+                          <div className="flex flex-wrap gap-2">
+                            {scale.assignments.map(a => {
+                              const u = allUsers.find(user => user.uid === a.userId);
+                              return (
+                                <div key={a.userId} className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
+                                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                                    {u?.displayName[0] || '?'}
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-900 leading-none">{u?.displayName.split(' ')[0]}</span>
+                                    <span className="text-[8px] text-gray-500 font-medium uppercase tracking-tighter">{a.role}</span>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-sm font-bold text-stone-500">{allUsers.find(u => u.uid === a.userId)?.displayName}</p>
-                                  <p className="text-[10px] text-stone-400 uppercase font-bold">{a.roles.join(', ')}</p>
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );
                     })}
-                  </div>
                 </div>
+              </section>
+
+              <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                <p className="text-indigo-100 text-sm font-medium mb-1">Sua Próxima Escala</p>
+                <h4 className="text-2xl font-bold mb-4">
+                  {events.find(e => new Date(e.date) >= new Date() && scales.some(s => s.eventId === e.id && s.assignments.some(a => a.userId === user.uid)))?.title || 'Sem escalas'}
+                </h4>
+                <div className="flex items-center gap-2 text-indigo-100 text-sm">
+                  <CalendarIcon size={16} />
+                  <span>{events.find(e => new Date(e.date) >= new Date() && scales.some(s => s.eventId === e.id && s.assignments.some(a => a.userId === user.uid)))?.date ? formatDate(events.find(e => new Date(e.date) >= new Date() && scales.some(s => s.eventId === e.id && s.assignments.some(a => a.userId === user.uid)))!.date) : '--/--'}</span>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
+                  Notificações
+                  <button onClick={() => setActiveTab('notifications')} className="text-indigo-600 text-xs hover:underline">Ver todas</button>
+                </h3>
+                <div className="space-y-4">
+                  {notifications.slice(0, 3).map(notif => (
+                    <div key={notif.id} className="flex gap-3">
+                      <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", notif.read ? "bg-gray-300" : "bg-indigo-600")} />
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{notif.title}</p>
+                        <p className="text-xs text-gray-500 line-clamp-1">{notif.message}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'calendar' && <CalendarView events={events} scales={scales} allUsers={allUsers} />}
+
+        {activeTab === 'events' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={showPastEvents} 
+                  onChange={e => setShowPastEvents(e.target.checked)}
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="font-medium">Mostrar eventos passados</span>
+              </label>
+              {isAdmin && (
+                <button 
+                  onClick={() => { setEditingEvent(null); setIsEventModalOpen(true); }}
+                  className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                >
+                  <Plus size={20} /> Novo Evento
+                </button>
               )}
             </div>
-          )}
+            <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Evento</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Reações</th>
+                    {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Ações</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {events.filter(e => showPastEvents || new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).map(event => (
+                    <tr key={event.id} className="hover:bg-gray-50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-gray-900">{event.title}</p>
+                        <p className="text-xs text-gray-500">{event.description}</p>
+                        {checkins.filter(c => c.eventId === event.id && c.status === 'PRESENTE').length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {checkins.filter(c => c.eventId === event.id && c.status === 'PRESENTE').map(c => (
+                              <span key={c.id} className="text-[7px] font-bold px-1 py-0.5 bg-green-50 text-green-700 rounded border border-green-100">
+                                {allUsers.find(u => u.uid === c.userId)?.displayName.split(' ')[0]}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{formatDate(event.date)}</td>
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
+                          event.type === 'CULTO' ? "bg-blue-600 text-white" : 
+                          event.type === 'ENSAIO' ? "bg-sky-400 text-white" : "bg-rose-900 text-white"
+                        )}>
+                          {event.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <ReactionDisplay reactions={reactions.filter(r => r.targetId === event.id)} allUsers={allUsers} />
+                          <div className="transition-opacity">
+                            <ReactionPicker 
+                              onReact={(emoji) => handleReaction(event.id, emoji)} 
+                              currentUserId={user.uid} 
+                              reactions={reactions.filter(r => r.targetId === event.id)} 
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => handleDuplicateEvent(event)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Duplicar">
+                              <Plus size={18} />
+                            </button>
+                            <button onClick={() => { setEditingEvent(event); setIsEventModalOpen(true); }} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                              <Edit size={18} />
+                            </button>
+                            <button onClick={() => handleDeleteEvent(event.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-          {activeTab === 'announcements' && (
-            <div className="space-y-8">
-              <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-headline font-bold text-on-surface">Mural de Anúncios</h3>
-                {isAdmin && (
-                  <button 
-                    onClick={() => setIsAnnouncementModalOpen(true)}
-                    className="btn-primary"
-                  >
-                    <Plus size={20} /> Novo Anúncio
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {announcements.map(ann => (
-                  <div key={ann.id} className="bento-card space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-2">
-                        <span className="px-3 py-1 bg-primary/5 text-primary text-[10px] font-bold rounded-full uppercase">{ann.date}</span>
-                        <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 text-stone-500 text-[10px] font-bold rounded-full uppercase">{ann.time}</span>
+        {activeTab === 'scales' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={showPastEvents} 
+                  onChange={e => setShowPastEvents(e.target.checked)}
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="font-medium">Mostrar escalas passadas</span>
+              </label>
+              {isAdmin && (
+                <button 
+                  onClick={handleBatchGenerateScales}
+                  className="bg-amber-50 text-amber-700 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-amber-100 transition-colors border border-amber-100"
+                >
+                  <Sparkles size={20} /> Gerar Escalas Pendentes
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {events.filter(e => showPastEvents || new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).map(event => {
+                const scale = scales.find(s => s.eventId === event.id);
+                const scaleReactions = scale ? reactions.filter(r => r.targetId === scale.id) : [];
+                
+                return (
+                  <div key={event.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
+                    <div className={cn(
+                      "absolute top-0 left-0 w-full h-1.5",
+                      event.type === 'CULTO' ? "bg-blue-600" : event.type === 'ENSAIO' ? "bg-sky-400" : "bg-rose-900"
+                    )} />
+                    <h4 className="font-bold text-gray-900 mb-1">{event.title}</h4>
+                    <p className="text-[10px] text-gray-500 mb-4">{formatDate(event.date)}</p>
+                    <div className="space-y-2 mb-6">
+                      {scale?.assignments.map((a, i) => (
+                        <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                              {allUsers.find(u => u.uid === a.userId)?.displayName[0] || '?'}
+                            </div>
+                            <span className="text-xs font-medium text-gray-700">{allUsers.find(u => u.uid === a.userId)?.displayName || 'Desconhecido'}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 justify-end max-w-[100px]">
+                            {(a.roles || [a.role]).map((r: string) => (
+                              <span key={r} className="text-[7px] font-bold px-1 py-0.5 bg-indigo-50 text-indigo-600 rounded uppercase tracking-tighter">{r}</span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {(!scale || scale.assignments.length === 0) && <p className="text-xs text-gray-400 italic">Ninguém escalado.</p>}
+                    </div>
+                    
+                    <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-50">
+                      <div className="flex items-center gap-2">
+                        <ReactionDisplay reactions={scaleReactions} allUsers={allUsers} />
+                        {scale && (
+                          <div className="transition-opacity">
+                            <ReactionPicker 
+                              onReact={(emoji) => handleReaction(scale.id, emoji)} 
+                              currentUserId={user.uid} 
+                              reactions={scaleReactions} 
+                            />
+                          </div>
+                        )}
                       </div>
                       {isAdmin && (
                         <button 
-                          onClick={async () => { 
-                            try {
-                              await deleteDoc(doc(db, 'announcements', ann.id)); 
-                              toast.success("Anúncio excluído");
-                            } catch (error) {
-                              handleFirestoreError(error, OperationType.DELETE, 'announcements');
-                            }
-                          }} 
-                          className="p-2 text-stone-400 hover:text-red-600 transition-colors"
+                          onClick={() => { setSelectedEventForScale(event); setIsScaleModalOpen(true); }}
+                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold hover:bg-indigo-600 hover:text-white transition-all uppercase"
                         >
-                          <Trash2 size={16} />
+                          Editar
                         </button>
                       )}
                     </div>
-                    <div>
-                      <h4 className="text-xl font-headline font-bold text-on-surface">{ann.title}</h4>
-                      <p className="text-sm text-stone-400 mt-2 leading-relaxed">{ann.description}</p>
-                    </div>
-                    {ann.pdfUrl && (
-                      <div className="pt-4 border-t border-stone-50 dark:border-stone-800">
-                        <a href={ann.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-secondary hover:text-primary transition-colors uppercase tracking-widest">
-                          <FileText size={16} /> Abrir Anexo PDF
-                        </a>
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'notifications' && (
-            <div className="space-y-8 max-w-3xl mx-auto">
-              <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-headline font-bold text-on-surface">Suas Notificações</h3>
-                {isAdmin && (
-                  <button 
-                    onClick={() => setIsNotifModalOpen(true)}
-                    className="btn-primary"
-                  >
-                    <Send size={20} /> Enviar Notificação
-                  </button>
-                )}
-              </div>
-              <div className="space-y-4">
-                {notifications.map(notif => (
-                  <div key={notif.id} className={cn(
-                    "bento-card transition-all",
-                    notif.read ? "opacity-60" : "border-l-4 border-l-primary"
-                  )}>
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-lg font-headline font-bold text-on-surface">{notif.title}</h4>
-                      <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{formatDate(notif.createdAt)}</span>
-                    </div>
-                    <p className="text-sm text-stone-400 mb-6">{notif.message}</p>
-                    <div className="flex items-center gap-4 pt-4 border-t border-stone-50 dark:border-stone-800">
-                      {!notif.read && (
-                        <button onClick={() => updateDoc(doc(db, 'notifications', notif.id), { read: true })} className="text-xs font-bold text-primary hover:text-secondary transition-colors uppercase tracking-widest">
-                          Marcar como lida
-                        </button>
-                      )}
+        {activeTab === 'announcements' && (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              {isAdmin && (
+                <button 
+                  onClick={() => setIsAnnouncementModalOpen(true)}
+                  className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                >
+                  <Plus size={20} /> Novo Anúncio
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {announcements.map(ann => (
+                <div key={ann.id} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative group">
+                  <div className="flex justify-between items-start mb-4">
+                    <h4 className="text-xl font-bold text-gray-900">{ann.title}</h4>
+                    {isAdmin && (
                       <button 
-                        onClick={async () => {
+                        onClick={async () => { 
                           try {
-                            await deleteDoc(doc(db, 'notifications', notif.id));
-                            toast.success("Notificação excluída");
+                            await deleteDoc(doc(db, 'announcements', ann.id)); 
+                            toast.success("Anúncio excluído");
                           } catch (error) {
-                            handleFirestoreError(error, OperationType.DELETE, 'notifications');
+                            handleFirestoreError(error, OperationType.DELETE, 'announcements');
                           }
                         }} 
-                        className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors uppercase tracking-widest"
+                        className="p-2 text-gray-400 hover:text-red-600 transition-opacity"
                       >
-                        Excluir
+                        <Trash2 size={18} />
                       </button>
-                    </div>
-                  </div>
-                ))}
-                {notifications.length === 0 && (
-                  <div className="text-center py-12">
-                    <Bell size={48} className="mx-auto text-stone-200 dark:text-stone-800 mb-4" />
-                    <p className="text-stone-400 font-medium">Você não tem novas notificações.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'volunteers' && (
-            <div className="space-y-8">
-              <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-headline font-bold text-on-surface">Equipe de Voluntários</h3>
-                {isAdmin && (
-                  <button 
-                    onClick={() => { setEditingVolunteer(null); setIsVolunteerModalOpen(true); }}
-                    className="btn-primary"
-                  >
-                    <Plus size={20} /> Novo Voluntário
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {allUsers.map(u => (
-                  <div key={u.uid} className="bento-card flex items-center gap-4 relative">
-                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg" style={{ backgroundColor: u.color || '#ba0015' }}>
-                      {u.photoURL ? (
-                        <img src={u.photoURL} alt="" className="w-full h-full object-cover rounded-2xl" referrerPolicy="no-referrer" />
-                      ) : (
-                        u.displayName[0]
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-on-surface truncate">{u.displayName}</h4>
-                      <p className="text-xs text-stone-400 mb-2">{u.email}</p>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-md text-[10px] font-bold uppercase">{u.role}</span>
-                        {u.specialty && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold uppercase">{u.specialty}</span>}
-                      </div>
-                    </div>
-                    {isAdmin && (
-                      <div className="absolute top-4 right-4 flex gap-1">
-                        <button onClick={() => { setEditingVolunteer(u); setIsVolunteerModalOpen(true); }} className="p-1.5 text-stone-400 hover:text-primary transition-colors">
-                          <Edit size={16} />
-                        </button>
-                        <button 
-                          onClick={async () => { 
-                            try {
-                              await deleteDoc(doc(db, 'users', u.uid)); 
-                              toast.success("Voluntário excluído");
-                            } catch (error) {
-                              handleFirestoreError(error, OperationType.DELETE, 'users');
-                            }
-                          }} 
-                          className="p-1.5 text-stone-400 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
                     )}
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-4 text-gray-500 text-sm mb-4">
+                    <div className="flex items-center gap-1">
+                      <CalendarIcon size={14} /> <span>{ann.date}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock size={14} /> <span>{ann.time}</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 mb-6">{ann.description}</p>
+                  {ann.pdfUrl && (
+                    <a href={ann.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors">
+                      <FileText size={16} /> Ver PDF
+                    </a>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
+
+        {activeTab === 'notifications' && (
+          <div className="max-w-2xl mx-auto space-y-4">
+            <div className="flex justify-end mb-4">
+              {isAdmin && (
+                <button 
+                  onClick={() => setIsNotifModalOpen(true)}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm"
+                >
+                  <Send size={16} /> Enviar Notificação
+                </button>
+              )}
+            </div>
+            {notifications.map(notif => (
+              <div key={notif.id} className={cn(
+                "p-6 rounded-3xl border transition-all",
+                notif.read ? "bg-white border-gray-100 opacity-75" : "bg-indigo-50 border-indigo-100 shadow-md"
+              )}>
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-bold text-gray-900">{notif.title}</h4>
+                  <span className="text-[10px] text-gray-400">{formatDate(notif.createdAt)}</span>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">{notif.message}</p>
+                <div className="flex items-center gap-4">
+                  {!notif.read && (
+                    <button onClick={() => updateDoc(doc(db, 'notifications', notif.id), { read: true })} className="text-xs font-bold text-indigo-600 hover:underline">
+                      Marcar como lida
+                    </button>
+                  )}
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await deleteDoc(doc(db, 'notifications', notif.id));
+                        toast.success("Notificação excluída");
+                      } catch (error) {
+                        handleFirestoreError(error, OperationType.DELETE, 'notifications');
+                      }
+                    }} 
+                    className="text-xs font-bold text-red-600 hover:underline"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'volunteers' && (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              {isAdmin && (
+                <button 
+                  onClick={() => { setEditingVolunteer(null); setIsVolunteerModalOpen(true); }}
+                  className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                >
+                  <Plus size={20} /> Novo Voluntário
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {allUsers.map(u => (
+                <div key={u.uid} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center gap-4 relative group">
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg" style={{ backgroundColor: u.color || '#4F46E5' }}>
+                    {u.displayName[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-gray-900 truncate">{u.displayName}</h4>
+                    <p className="text-xs text-gray-500 mb-2">{u.email}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase">{u.role}</span>
+                      {u.specialty && <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-bold uppercase">{u.specialty}</span>}
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <div className="absolute top-4 right-4 flex gap-1 transition-opacity">
+                      <button onClick={() => { setEditingVolunteer(u); setIsVolunteerModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={async () => { 
+                          try {
+                            await deleteDoc(doc(db, 'users', u.uid)); 
+                            toast.success("Voluntário excluído");
+                          } catch (error) {
+                            handleFirestoreError(error, OperationType.DELETE, 'users');
+                          }
+                        }} 
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {activeTab === 'setlist' && (
-          <SetlistView setlists={setlists} isAdmin={isAdmin} theme={theme} />
+          <SetlistView setlists={setlists} isAdmin={isAdmin} theme={theme} setViewingSetlist={setViewingSetlist} />
         )}
 
         {activeTab === 'cronograma' && (
-          <CronogramaView cronogramas={cronogramas} isAdmin={isAdmin} theme={theme} />
+          <CronogramaView cronogramas={cronogramas} isAdmin={isAdmin} theme={theme} setViewingCronograma={setViewingCronograma} />
         )}
-        </div>
       </main>
 
       {/* Modals */}
+      {viewingSetlist && (
+        <Modal title={viewingSetlist.title} onClose={() => setViewingSetlist(null)}>
+          <div className="prose prose-sm sm:prose-base max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: viewingSetlist.content }} />
+        </Modal>
+      )}
+      {viewingCronograma && (
+        <Modal title={viewingCronograma.title} onClose={() => setViewingCronograma(null)}>
+          <div className="space-y-6">
+            {viewingCronograma.content && (
+              <div className="prose prose-sm sm:prose-base max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: viewingCronograma.content }} />
+            )}
+            {viewingCronograma.externalLink && (
+              <a href={viewingCronograma.externalLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline">
+                <ExternalLink size={20} /> Acessar Link Externo
+              </a>
+            )}
+          </div>
+        </Modal>
+      )}
       {isProfileModalOpen && (
         <Modal title="Seu Perfil" onClose={() => setIsProfileModalOpen(false)}>
           <ProfileForm user={user} onSave={() => setIsProfileModalOpen(false)} theme={theme} />
@@ -1218,6 +1324,36 @@ export default function App() {
   );
 }
 
+function NavItem({ active, onClick, icon, label, compact, theme = 'indigo' }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, compact?: boolean, theme?: string }) {
+  const themeClasses = {
+    indigo: "bg-indigo-600 shadow-indigo-100 text-white",
+    red: "bg-red-600 shadow-red-100 text-white",
+    blue: "bg-blue-600 shadow-blue-100 text-white",
+    rose: "bg-rose-900 shadow-rose-100 text-white",
+    sky: "bg-sky-400 shadow-sky-100 text-white"
+  };
+  
+  const textClasses = {
+    indigo: "text-indigo-600",
+    red: "text-red-600",
+    blue: "text-blue-600",
+    rose: "text-rose-900",
+    sky: "text-sky-400"
+  };
+
+  return (
+    <button onClick={onClick} className={cn(
+      "flex items-center gap-3 transition-all group shrink-0",
+      compact ? "p-2 rounded-lg" : "w-full p-3 rounded-xl",
+      active ? themeClasses[theme as keyof typeof themeClasses] : "text-gray-500 hover:bg-gray-100"
+    )}>
+      <span className={cn("transition-transform group-hover:scale-110", active ? "text-white" : "text-gray-400 group-hover:" + textClasses[theme as keyof typeof textClasses])}>{icon}</span>
+      {!compact && <span className="font-semibold text-sm">{label}</span>}
+      {!compact && active && <ChevronRight size={16} className="ml-auto opacity-50" />}
+    </button>
+  );
+}
+
 const REACTION_EMOJIS = ['❤️', '👍', '🙏', '🙌', '🔥'];
 
 function ReactionPicker({ onReact, currentUserId, reactions }: { onReact: (emoji: string) => void, currentUserId?: string, reactions: Reaction[] }) {
@@ -1260,6 +1396,7 @@ function ReactionDisplay({ reactions, allUsers }: { reactions: Reaction[], allUs
             <span className="text-xs">{emoji}</span>
             <span className="text-[10px] font-bold text-gray-500">{rs.length}</span>
             
+            {/* Tooltip with names */}
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
               <div className="bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-xl">
                 {rs.map(r => allUsers.find(u => u.uid === r.userId)?.displayName).join(', ')}
@@ -1341,11 +1478,11 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
           <ReactionDisplay reactions={reactions} allUsers={allUsers} />
         </div>
         <div className="flex items-center gap-2">
-          <div>
+          <div className="transition-opacity">
             <ReactionPicker onReact={onReaction} currentUserId={currentUserId} reactions={reactions} />
           </div>
           {isAdmin && onDuplicate && (
-            <button onClick={onDuplicate} className="p-2 text-stone-400 hover:text-primary transition-colors" title="Duplicar">
+            <button onClick={onDuplicate} className="p-2 text-gray-400 hover:text-indigo-600 transition-opacity" title="Duplicar">
               <Plus size={16} />
             </button>
           )}
@@ -1354,12 +1491,12 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
               <CheckCircle size={16} />
             </div>
           ) : (
-            <button onClick={() => onCheckIn(event.id, 'PRESENTE')} className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-colors">
+            <button onClick={() => onCheckIn(event.id, 'PRESENTE')} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors">
               <CheckCircle size={16} />
             </button>
           )}
           {isAdmin && (
-            <button onClick={onDelete} className="p-2 text-stone-400 hover:text-red-600 transition-colors">
+            <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-600 transition-opacity">
               <Trash2 size={16} />
             </button>
           )}
@@ -1369,7 +1506,7 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
   }
 
   return (
-    <div className="bento-card relative group overflow-hidden">
+    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group overflow-hidden">
       {/* Accent bar with wine color */}
       <div className={cn(
         "absolute top-0 left-0 w-full h-1.5",
@@ -1384,10 +1521,10 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
           {event.type}
         </span>
         {isAdmin && (
-          <div className="flex gap-1">
-            <button onClick={onDuplicate} className="p-1 text-stone-400 hover:text-primary transition-colors" title="Duplicar"><Plus size={14} /></button>
-            <button onClick={onEdit} className="p-1 text-stone-400 hover:text-primary transition-colors"><Edit size={14} /></button>
-            <button onClick={onDelete} className="p-1 text-stone-400 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+          <div className="flex gap-1 transition-opacity">
+            <button onClick={onDuplicate} className="p-1 text-gray-400 hover:text-indigo-600" title="Duplicar"><Plus size={14} /></button>
+            <button onClick={onEdit} className="p-1 text-gray-400 hover:text-indigo-600"><Edit size={14} /></button>
+            <button onClick={onDelete} className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
           </div>
         )}
       </div>
@@ -1439,10 +1576,10 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
 function Modal({ title, children, onClose }: { title: string, children: React.ReactNode, onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-stone-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="p-6 border-b border-gray-100 dark:border-stone-800 flex justify-between items-center">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-50 dark:hover:bg-stone-800 rounded-xl transition-colors"><X size={20} /></button>
+      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-50 rounded-xl"><X size={20} /></button>
         </div>
         <div className="p-6 max-h-[80vh] overflow-y-auto">
           {children}
@@ -1503,16 +1640,16 @@ function EventForm({ initialData, onSave, theme = 'indigo' }: { initialData: Chu
     <div className="space-y-4">
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label>
-        <input type="text" className="form-input" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+        <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data e Hora</label>
-          <input type="datetime-local" className="form-input focus:ring-2 focus:ring-indigo-500" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+          <input type="datetime-local" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
         </div>
         <div>
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo</label>
-          <select className="form-input outline-none focus:ring-2 focus:ring-indigo-500" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})}>
+          <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})}>
             <option value="CULTO">CULTO</option>
             <option value="ENSAIO">ENSAIO</option>
             <option value="REUNIAO">REUNIAO</option>
@@ -1544,7 +1681,7 @@ function EventForm({ initialData, onSave, theme = 'indigo' }: { initialData: Chu
             </div>
             <div>
               <label className={cn("block text-[10px] font-bold uppercase mb-1", themeText)}>Duração (meses)</label>
-              <input type="number" min="1" max="12" className="form-input text-sm p-2" value={formData.durationMonths} onChange={e => setFormData({...formData, durationMonths: parseInt(e.target.value)})} />
+              <input type="number" min="1" max="12" className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none" value={formData.durationMonths} onChange={e => setFormData({...formData, durationMonths: parseInt(e.target.value)})} />
             </div>
             <label className="flex items-center gap-2 cursor-pointer mt-2">
               <input type="checkbox" className={cn("w-4 rounded", themeText)} checked={formData.autoSchedule} onChange={e => setFormData({...formData, autoSchedule: e.target.checked})} />
@@ -1556,7 +1693,7 @@ function EventForm({ initialData, onSave, theme = 'indigo' }: { initialData: Chu
 
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
-        <textarea className="form-input" rows={2} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+        <textarea className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none" rows={2} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
       </div>
       <button onClick={() => onSave(formData)} className={cn("w-full text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2", themeBg)}>
         <Save size={20} /> Salvar Evento
@@ -1580,18 +1717,18 @@ function NotificationForm({ users, onSave, theme = 'indigo' }: { users: User[], 
     <div className="space-y-4">
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Para</label>
-        <select className="form-input" value={formData.userId} onChange={e => setFormData({...formData, userId: e.target.value})}>
+        <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none" value={formData.userId} onChange={e => setFormData({...formData, userId: e.target.value})}>
           <option value="all">Todos os Voluntários</option>
           {users.map(u => <option key={u.uid} value={u.uid}>{u.displayName}</option>)}
         </select>
       </div>
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label>
-        <input type="text" className="form-input" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+        <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
       </div>
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mensagem</label>
-        <textarea className="form-input" rows={3} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
+        <textarea className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none" rows={3} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
       </div>
       <button onClick={() => onSave(formData)} className={cn("w-full text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all", themeBg)}><Send size={20} /> Enviar</button>
     </div>
@@ -1704,12 +1841,12 @@ function AnnouncementForm({ onSave, theme = 'indigo' }: { onSave: (data: any) =>
 
   return (
     <div className="space-y-4">
-      <input placeholder="Título" className="form-input" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+      <input placeholder="Título" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
       <div className="grid grid-cols-2 gap-4">
-        <input type="date" className="form-input" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-        <input type="time" className="form-input" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
+        <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+        <input type="time" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
       </div>
-      <textarea placeholder="Descrição" className="form-input" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+      <textarea placeholder="Descrição" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
       
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Anexar PDF ou Link Externo</label>
@@ -1727,7 +1864,7 @@ function AnnouncementForm({ onSave, theme = 'indigo' }: { onSave: (data: any) =>
           </div>
           <input 
             placeholder="Link do documento (Google Drive, Dropbox, etc)" 
-            className="form-input text-sm" 
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm" 
             value={formData.externalLink} 
             onChange={e => setFormData({...formData, externalLink: e.target.value})} 
           />
@@ -1755,6 +1892,27 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
     birthDate: initialData?.birthDate || '',
     phone: initialData?.phone || ''
   });
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const toastId = toast.loading("Enviando foto...");
+    try {
+      const storageRef = ref(storage, `profiles/temp_${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setFormData(prev => ({ ...prev, photoURL: url }));
+      toast.success("Foto enviada com sucesso!", { id: toastId });
+    } catch (error) {
+      console.error("Erro ao enviar foto:", error);
+      toast.error("Erro ao enviar foto.", { id: toastId });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const themeBg = {
     imw: "bg-red-600 hover:bg-red-700",
@@ -1769,29 +1927,51 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
     <div className="space-y-4">
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label>
-        <input type="text" className="form-input" value={formData.displayName} onChange={e => setFormData({...formData, displayName: e.target.value})} />
+        <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.displayName} onChange={e => setFormData({...formData, displayName: e.target.value})} />
       </div>
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">E-mail</label>
-        <input type="email" className="form-input" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+        <input type="email" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
       </div>
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">URL da Foto</label>
-        <input type="text" className="form-input" value={formData.photoURL} onChange={e => setFormData({...formData, photoURL: e.target.value})} placeholder="https://..." />
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Foto de Perfil</label>
+        <div className="flex items-center gap-4">
+          <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
+            <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
+              <Upload size={16} /> Escolher arquivo
+            </span>
+            <input 
+              type="file" 
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+              disabled={isUploading}
+            />
+          </label>
+          {formData.photoURL && (
+            <button 
+              onClick={() => setFormData(prev => ({ ...prev, photoURL: '' }))}
+              className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+              title="Remover foto"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data de Nascimento</label>
-          <input type="date" className="form-input" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
+          <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
         </div>
         <div>
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label>
-          <input type="tel" className="form-input" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(00) 00000-0000" />
+          <input type="tel" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(00) 00000-0000" />
         </div>
       </div>
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cargo</label>
-        <select className="form-input" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})}>
+        <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})}>
           <option value="VOLUNTARIO">VOLUNTÁRIO</option>
           <option value="LIDER_II">LÍDER II</option>
           <option value="LIDER_I">LÍDER I</option>
@@ -1826,8 +2006,8 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
           })}
         </div>
       </div>
-      <button onClick={() => onSave(formData)} className={cn("w-full text-white font-bold py-4 rounded-2xl transition-all", themeBg)}>
-        {initialData ? "Atualizar" : "Cadastrar"}
+      <button onClick={() => onSave(formData)} disabled={isUploading} className={cn("w-full text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50", themeBg)}>
+        {isUploading ? "Enviando foto..." : (initialData ? "Atualizar" : "Cadastrar")}
       </button>
     </div>
   );
@@ -2092,7 +2272,7 @@ function CalendarView({ events, scales, allUsers }: { events: ChurchEvent[], sca
   );
 }
 
-function SetlistView({ setlists, isAdmin, theme }: { setlists: Setlist[], isAdmin: boolean, theme: string }) {
+function SetlistView({ setlists, isAdmin, theme, setViewingSetlist }: { setlists: Setlist[], isAdmin: boolean, theme: string, setViewingSetlist: (s: Setlist) => void }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
   const [content, setContent] = useState('');
@@ -2121,10 +2301,6 @@ function SetlistView({ setlists, isAdmin, theme }: { setlists: Setlist[], isAdmi
     }
   };
 
-  const quillEditor = React.useMemo(() => (
-    <ReactQuill theme="snow" value={content} onChange={setContent} />
-  ), [content]);
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -2141,16 +2317,16 @@ function SetlistView({ setlists, isAdmin, theme }: { setlists: Setlist[], isAdmi
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {setlists.map(s => (
-          <div key={s.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+          <div key={s.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer" onClick={() => setViewingSetlist(s)}>
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="font-bold text-gray-900 text-lg">{s.title}</h4>
+                <h4 className="font-bold text-gray-900 text-lg group-hover:text-indigo-600 transition-colors">{s.title}</h4>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Atualizado em {new Date(s.updatedAt).toLocaleDateString()}</p>
               </div>
               {isAdmin && (
                 <button 
-                  onClick={() => { setEditingSetlist(s); setTitle(s.title); setContent(s.content); setIsModalOpen(true); }}
-                  className="p-2 text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setEditingSetlist(s); setTitle(s.title); setContent(s.content); setIsModalOpen(true); }}
+                  className="p-2 text-gray-400 hover:bg-gray-50 rounded-xl transition-opacity"
                 >
                   <Edit size={16} />
                 </button>
@@ -2168,7 +2344,7 @@ function SetlistView({ setlists, isAdmin, theme }: { setlists: Setlist[], isAdmi
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título do Setlist</label>
               <input 
                 type="text" 
-                className="form-input"
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Ex: Culto de Domingo - 15/10"
@@ -2177,7 +2353,7 @@ function SetlistView({ setlists, isAdmin, theme }: { setlists: Setlist[], isAdmi
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Conteúdo</label>
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                {quillEditor}
+                <ReactQuill theme="snow" value={content} onChange={setContent} />
               </div>
             </div>
             <button 
@@ -2193,7 +2369,7 @@ function SetlistView({ setlists, isAdmin, theme }: { setlists: Setlist[], isAdmi
   );
 }
 
-function CronogramaView({ cronogramas, isAdmin, theme }: { cronogramas: Cronograma[], isAdmin: boolean, theme: string }) {
+function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: { cronogramas: Cronograma[], isAdmin: boolean, theme: string, setViewingCronograma: (c: Cronograma) => void }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCronograma, setEditingCronograma] = useState<Cronograma | null>(null);
   const [content, setContent] = useState('');
@@ -2255,10 +2431,6 @@ function CronogramaView({ cronogramas, isAdmin, theme }: { cronogramas: Cronogra
     }
   };
 
-  const quillEditor = React.useMemo(() => (
-    <ReactQuill theme="snow" value={content} onChange={setContent} />
-  ), [content]);
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -2275,32 +2447,32 @@ function CronogramaView({ cronogramas, isAdmin, theme }: { cronogramas: Cronogra
 
       <div className="grid grid-cols-1 gap-4">
         {cronogramas.map(c => (
-          <div key={c.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+          <div key={c.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer" onClick={() => setViewingCronograma(c)}>
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="font-bold text-gray-900 text-lg">{c.title}</h4>
+                <h4 className="font-bold text-gray-900 text-lg group-hover:text-indigo-600 transition-colors">{c.title}</h4>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Atualizado em {new Date(c.updatedAt).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => generatePDF(c)}
+                  onClick={(e) => { e.stopPropagation(); generatePDF(c); }}
                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors flex items-center gap-2 text-xs font-bold"
                 >
                   <Download size={16} /> PDF
                 </button>
                 {isAdmin && (
                   <button 
-                    onClick={() => { setEditingCronograma(c); setTitle(c.title); setContent(c.content || ''); setExternalLink(c.externalLink || ''); setIsModalOpen(true); }}
-                    className="p-2 text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setEditingCronograma(c); setTitle(c.title); setContent(c.content || ''); setExternalLink(c.externalLink || ''); setIsModalOpen(true); }}
+                    className="p-2 text-gray-400 hover:bg-gray-50 rounded-xl transition-opacity"
                   >
                     <Edit size={16} />
                   </button>
                 )}
               </div>
             </div>
-            {c.content && <div className="prose prose-sm max-w-none text-gray-600 mb-4" dangerouslySetInnerHTML={{ __html: c.content }} />}
+            {c.content && <div className="prose prose-sm max-w-none text-gray-600 mb-4 line-clamp-3" dangerouslySetInnerHTML={{ __html: c.content }} />}
             {c.externalLink && (
-              <a href={c.externalLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline">
+              <a href={c.externalLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline">
                 <ExternalLink size={16} /> Ver Link Externo
               </a>
             )}
@@ -2315,7 +2487,7 @@ function CronogramaView({ cronogramas, isAdmin, theme }: { cronogramas: Cronogra
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título do Cronograma</label>
               <input 
                 type="text" 
-                className="form-input"
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Ex: Culto da Vitória - 22/10"
@@ -2324,14 +2496,14 @@ function CronogramaView({ cronogramas, isAdmin, theme }: { cronogramas: Cronogra
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Conteúdo (Opcional se houver link)</label>
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                {quillEditor}
+                <ReactQuill theme="snow" value={content} onChange={setContent} />
               </div>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Link Externo (Opcional)</label>
               <input 
                 type="text" 
-                className="form-input"
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                 value={externalLink}
                 onChange={e => setExternalLink(e.target.value)}
                 placeholder="https://..."
@@ -2358,38 +2530,21 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
     phone: user.phone || ''
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Por favor, selecione uma imagem válida.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('A imagem deve ter no máximo 5MB.');
-      return;
-    }
-
-    setUploading(true);
-    const toastId = toast.loading('Enviando foto...');
-
+    const toastId = toast.loading("Enviando foto...");
     try {
-      const storageRef = ref(storage, `profile_photos/${user.uid}_${Date.now()}`);
+      const storageRef = ref(storage, `profiles/${user.uid}/${file.name}`);
       await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      
-      setFormData(prev => ({ ...prev, photoURL: downloadURL }));
-      toast.success('Foto enviada com sucesso!', { id: toastId });
+      const url = await getDownloadURL(storageRef);
+      setFormData(prev => ({ ...prev, photoURL: url }));
+      toast.success("Foto enviada com sucesso!", { id: toastId });
     } catch (error) {
-      console.error('Erro ao enviar foto:', error);
-      toast.error('Erro ao enviar foto.', { id: toastId });
-    } finally {
-      setUploading(false);
+      console.error("Erro ao enviar foto:", error);
+      toast.error("Erro ao enviar foto.", { id: toastId });
     }
   };
 
@@ -2402,7 +2557,10 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
     setIsSaving(true);
     try {
       await updateDoc(doc(db, 'users', user.uid), {
-        ...formData,
+        displayName: formData.displayName,
+        photoURL: formData.photoURL,
+        birthDate: formData.birthDate,
+        phone: formData.phone,
         updatedAt: new Date().toISOString()
       });
       toast.success("Perfil atualizado com sucesso!");
@@ -2425,21 +2583,8 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
               {formData.displayName[0]}
             </div>
           )}
-          <div 
-            className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <span className="text-white text-xs font-bold">Alterar</span>
-          </div>
         </div>
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sua Foto de Perfil</p>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          onChange={handlePhotoUpload} 
-          accept="image/*" 
-          className="hidden" 
-        />
       </div>
 
       <div className="grid grid-cols-1 gap-4">
@@ -2447,17 +2592,42 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label>
           <input 
             type="text" 
-            className="form-input"
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
             value={formData.displayName}
             onChange={e => setFormData({...formData, displayName: e.target.value})}
           />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Foto de Perfil</label>
+          <div className="flex items-center gap-4">
+            <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
+              <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
+                <Upload size={16} /> Escolher arquivo
+              </span>
+              <input 
+                type="file" 
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+            </label>
+            {formData.photoURL && (
+              <button 
+                onClick={() => setFormData(prev => ({ ...prev, photoURL: '' }))}
+                className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                title="Remover foto"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data de Nascimento</label>
             <input 
               type="date" 
-              className="form-input"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
               value={formData.birthDate}
               onChange={e => setFormData({...formData, birthDate: e.target.value})}
             />
@@ -2466,7 +2636,7 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label>
             <input 
               type="tel" 
-              className="form-input"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
               placeholder="(00) 00000-0000"
@@ -2477,7 +2647,7 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
 
       <button 
         onClick={handleSave}
-        disabled={isSaving || uploading}
+        disabled={isSaving}
         className="w-full bg-red-600 text-white font-bold py-4 rounded-2xl hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {isSaving ? "Salvando..." : <><Save size={20} /> Salvar Alterações</>}
