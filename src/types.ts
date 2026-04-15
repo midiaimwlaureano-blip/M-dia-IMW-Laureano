@@ -18,6 +18,7 @@ export interface User {
   displayName: string;
   email: string;
   role: UserRole;
+  status?: 'pending' | 'approved';
   specialty?: string;
   color?: string;
   createdAt: string;

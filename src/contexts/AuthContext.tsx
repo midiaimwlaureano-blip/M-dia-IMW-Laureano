@@ -55,11 +55,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(newUser);
           } else {
             // New user registration
+            const isAdminEmail = ['midiaimwlaureano@gmail.com', 'melolucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(firebaseUser.email || '');
             const newUser: User = {
               uid: firebaseUser.uid,
               displayName: firebaseUser.displayName || 'Usuário',
               email: firebaseUser.email || '',
-              role: 'VOLUNTARIO',
+              role: isAdminEmail ? 'LIDER_I' : 'VOLUNTARIO',
+              status: isAdminEmail ? 'approved' : 'pending',
               createdAt: new Date().toISOString(),
               color: '#4F46E5', // Default indigo
             };
@@ -92,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isAdmin = user?.role === 'LIDER_I' || user?.role === 'LIDER_II' || user?.email === 'midiaimwlaureano@gmail.com';
+  const isAdmin = user?.role === 'LIDER_I' || user?.role === 'LIDER_II' || ['midiaimwlaureano@gmail.com', 'melholucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(user?.email || '');
   const isCoordinator = isAdmin;
 
   return (

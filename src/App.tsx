@@ -460,6 +460,26 @@ export default function App() {
     </div>
   );
 
+  if (user.status === 'pending') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-indigo-50 p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Clock size={32} />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Aprovação Pendente</h2>
+          <p className="text-gray-600 mb-8">
+            Sua conta foi criada com sucesso! Para acessar o sistema, por favor, complete seu perfil abaixo e aguarde a aprovação de um líder.
+          </p>
+          <ProfileForm user={user} onSave={() => toast.success('Perfil atualizado! Aguarde a aprovação.')} theme={theme} />
+          <button onClick={logout} className="mt-6 text-gray-500 hover:text-gray-700 text-sm font-medium">
+            Sair e tentar com outra conta
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("min-h-screen flex transition-colors duration-300", isDarkMode ? "bg-slate-900 text-white" : "bg-gradient-to-br from-indigo-50 via-white to-sky-50", navStyle === 'top' ? "flex-col" : "flex-col md:flex-row")}>
       <Toaster position="top-right" theme={isDarkMode ? 'dark' : 'light'} />
@@ -467,7 +487,7 @@ export default function App() {
       {/* Sidebar / Top Nav */}
       <aside className={cn(
         "bg-white border-gray-200 z-20 transition-all shrink-0 glass",
-        navStyle === 'sidebar' ? (isSidebarCollapsed ? "w-full md:w-20 md:border-r border-b flex flex-col" : "w-full md:w-64 md:border-r border-b flex flex-col") : "w-full border-b flex flex-row items-center justify-between px-4 md:px-8 py-4"
+        navStyle === 'sidebar' ? (isSidebarCollapsed ? "w-full md:w-20 md:border-r border-b flex flex-col md:sticky md:top-0 md:h-screen" : "w-full md:w-64 md:border-r border-b flex flex-col md:sticky md:top-0 md:h-screen") : "w-full border-b flex flex-row items-center justify-between px-4 md:px-8 py-4 sticky top-0"
       )}>
         <div className={cn("flex items-center justify-between", navStyle === 'sidebar' ? "border-b border-gray-100 p-4 md:p-6" : "")}>
           <button 
@@ -504,7 +524,7 @@ export default function App() {
           <NavItem active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} icon={<Megaphone size={20} />} label="Anúncios" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
           <NavItem active={activeTab === 'setlist'} onClick={() => setActiveTab('setlist')} icon={<FileText size={20} />} label="Setlist" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
           <NavItem active={activeTab === 'cronograma'} onClick={() => setActiveTab('cronograma')} icon={<CalendarIcon size={20} />} label="Cronograma" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={20} />} label="Notificações" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+          <NavItem active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={20} />} label="Notificações" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} badgeCount={notifications.filter(n => !n.read).length} />
         </nav>
 
         <div className={cn("border-t border-gray-100 hidden md:flex", navStyle === 'sidebar' ? "p-4 flex-col" : "p-0 ml-4 items-center gap-4")}>
@@ -1186,19 +1206,36 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {allUsers.map(u => (
                 <div key={u.uid} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center gap-4 relative group">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg" style={{ backgroundColor: u.color || '#4F46E5' }}>
-                    {u.displayName[0]}
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shrink-0" style={{ backgroundColor: u.color || '#4F46E5' }}>
+                    {u.photoURL ? <img src={u.photoURL} alt="" className="w-full h-full object-cover rounded-2xl" referrerPolicy="no-referrer" /> : u.displayName[0]}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-gray-900 truncate">{u.displayName}</h4>
                     <p className="text-xs text-gray-500 mb-2">{u.email}</p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase">{u.role}</span>
                       {u.specialty && <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-bold uppercase">{u.specialty}</span>}
+                      {u.status === 'pending' && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-md text-[10px] font-bold uppercase">Pendente</span>}
                     </div>
                   </div>
                   {isAdmin && (
                     <div className="absolute top-4 right-4 flex gap-1 transition-opacity">
+                      {u.status === 'pending' && (
+                        <button 
+                          onClick={async () => {
+                            try {
+                              await updateDoc(doc(db, 'users', u.uid), { status: 'approved' });
+                              toast.success("Usuário aprovado!");
+                            } catch (error) {
+                              handleFirestoreError(error, OperationType.UPDATE, 'users');
+                            }
+                          }}
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
+                          title="Aprovar usuário"
+                        >
+                          <CheckCircle size={16} />
+                        </button>
+                      )}
                       <button onClick={() => { setEditingVolunteer(u); setIsVolunteerModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
                         <Edit size={16} />
                       </button>
@@ -1238,15 +1275,15 @@ export default function App() {
 
       {/* Modals */}
       {viewingSetlist && (
-        <Modal title={viewingSetlist.title} onClose={() => setViewingSetlist(null)}>
-          <div className="prose prose-sm sm:prose-base max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: viewingSetlist.content }} />
+        <Modal title={viewingSetlist.title} onClose={() => setViewingSetlist(null)} isDarkMode={isDarkMode}>
+          <div className={cn("prose prose-sm sm:prose-base max-w-none", isDarkMode ? "text-gray-200 prose-invert" : "text-gray-800")} dangerouslySetInnerHTML={{ __html: viewingSetlist.content }} />
         </Modal>
       )}
       {viewingCronograma && (
-        <Modal title={viewingCronograma.title} onClose={() => setViewingCronograma(null)}>
+        <Modal title={viewingCronograma.title} onClose={() => setViewingCronograma(null)} isDarkMode={isDarkMode}>
           <div className="space-y-6">
             {viewingCronograma.content && (
-              <div className="prose prose-sm sm:prose-base max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: viewingCronograma.content }} />
+              <div className={cn("prose prose-sm sm:prose-base max-w-none", isDarkMode ? "text-gray-200 prose-invert" : "text-gray-800")} dangerouslySetInnerHTML={{ __html: viewingCronograma.content }} />
             )}
             {viewingCronograma.externalLink && (
               <a href={viewingCronograma.externalLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline">
@@ -1257,12 +1294,12 @@ export default function App() {
         </Modal>
       )}
       {isProfileModalOpen && (
-        <Modal title="Seu Perfil" onClose={() => setIsProfileModalOpen(false)}>
+        <Modal title="Seu Perfil" onClose={() => setIsProfileModalOpen(false)} isDarkMode={isDarkMode}>
           <ProfileForm user={user} onSave={() => setIsProfileModalOpen(false)} theme={theme} />
         </Modal>
       )}
       {isEventModalOpen && (
-        <Modal title={editingEvent ? "Editar Evento" : "Novo Evento"} onClose={() => setIsEventModalOpen(false)}>
+        <Modal title={editingEvent ? "Editar Evento" : "Novo Evento"} onClose={() => setIsEventModalOpen(false)} isDarkMode={isDarkMode}>
           <EventForm 
             initialData={editingEvent} 
             theme={theme}
@@ -1294,7 +1331,7 @@ export default function App() {
       )}
 
       {isNotifModalOpen && (
-        <Modal title="Enviar Notificação" onClose={() => setIsNotifModalOpen(false)}>
+        <Modal title="Enviar Notificação" onClose={() => setIsNotifModalOpen(false)} isDarkMode={isDarkMode}>
           <NotificationForm 
             users={allUsers}
             theme={theme}
@@ -1317,7 +1354,7 @@ export default function App() {
       )}
 
       {isAnnouncementModalOpen && (
-        <Modal title="Novo Anúncio" onClose={() => setIsAnnouncementModalOpen(false)}>
+        <Modal title="Novo Anúncio" onClose={() => setIsAnnouncementModalOpen(false)} isDarkMode={isDarkMode}>
           <AnnouncementForm 
             theme={theme}
             onSave={async (data) => {
@@ -1330,7 +1367,7 @@ export default function App() {
       )}
 
       {isScaleModalOpen && selectedEventForScale && (
-        <Modal title={`Escala: ${selectedEventForScale.title}`} onClose={() => setIsScaleModalOpen(false)}>
+        <Modal title={`Escala: ${selectedEventForScale.title}`} onClose={() => setIsScaleModalOpen(false)} isDarkMode={isDarkMode}>
           <ScaleForm 
             event={selectedEventForScale}
             users={allUsers}
@@ -1353,7 +1390,7 @@ export default function App() {
       )}
 
       {isVolunteerModalOpen && (
-        <Modal title={editingVolunteer ? "Editar Voluntário" : "Novo Voluntário"} onClose={() => setIsVolunteerModalOpen(false)}>
+        <Modal title={editingVolunteer ? "Editar Voluntário" : "Novo Voluntário"} onClose={() => setIsVolunteerModalOpen(false)} isDarkMode={isDarkMode}>
           <VolunteerForm 
             initialData={editingVolunteer}
             theme={theme}
@@ -1383,13 +1420,14 @@ export default function App() {
   );
 }
 
-function NavItem({ active, onClick, icon, label, compact, theme = 'indigo' }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, compact?: boolean, theme?: string }) {
+function NavItem({ active, onClick, icon, label, compact, theme = 'indigo', badgeCount }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, compact?: boolean, theme?: string, badgeCount?: number }) {
   const themeClasses = {
     indigo: "bg-indigo-600 shadow-indigo-100 text-white",
     red: "bg-red-600 shadow-red-100 text-white",
     blue: "bg-blue-600 shadow-blue-100 text-white",
     rose: "bg-rose-900 shadow-rose-100 text-white",
-    sky: "bg-sky-400 shadow-sky-100 text-white"
+    sky: "bg-sky-400 shadow-sky-100 text-white",
+    imw: "bg-indigo-600 shadow-indigo-100 text-white"
   };
   
   const textClasses = {
@@ -1397,17 +1435,24 @@ function NavItem({ active, onClick, icon, label, compact, theme = 'indigo' }: { 
     red: "text-red-600",
     blue: "text-blue-600",
     rose: "text-rose-900",
-    sky: "text-sky-400"
+    sky: "text-sky-400",
+    imw: "text-indigo-600"
   };
 
   return (
     <button onClick={onClick} className={cn(
-      "flex items-center gap-3 transition-all group shrink-0",
+      "flex items-center gap-3 transition-all group shrink-0 relative",
       compact ? "p-3 rounded-xl" : "px-4 py-3 md:w-full md:p-3 rounded-xl",
       active ? themeClasses[theme as keyof typeof themeClasses] : "text-gray-500 hover:bg-gray-100"
     )}>
       <span className={cn("transition-transform group-hover:scale-110", active ? "text-white" : "text-gray-400 group-hover:" + textClasses[theme as keyof typeof textClasses])}>{icon}</span>
       {!compact && <span className="font-semibold text-sm">{label}</span>}
+      {badgeCount && badgeCount > 0 && (
+        <span className="absolute top-2 right-2 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+        </span>
+      )}
       {!compact && active && <ChevronRight size={16} className="ml-auto opacity-50 hidden md:block" />}
     </button>
   );
@@ -1632,13 +1677,13 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
   );
 }
 
-function Modal({ title, children, onClose }: { title: string, children: React.ReactNode, onClose: () => void }) {
+function Modal({ title, children, onClose, isDarkMode = false }: { title: string, children: React.ReactNode, onClose: () => void, isDarkMode?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-50 rounded-xl"><X size={20} /></button>
+      <div className={cn("w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200", isDarkMode ? "bg-slate-800 text-white" : "bg-white")}>
+        <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "border-slate-700" : "border-gray-100")}>
+          <h3 className={cn("text-xl font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{title}</h3>
+          <button onClick={onClose} className={cn("p-2 rounded-xl", isDarkMode ? "text-gray-400 hover:bg-slate-700" : "text-gray-400 hover:bg-gray-50")}><X size={20} /></button>
         </div>
         <div className="p-6 max-h-[80vh] overflow-y-auto">
           {children}
