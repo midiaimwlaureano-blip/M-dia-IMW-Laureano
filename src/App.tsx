@@ -1168,7 +1168,16 @@ export default function App() {
                 <p className="text-sm text-gray-600 mb-4">{notif.message}</p>
                 <div className="flex items-center gap-4">
                   {!notif.read && (
-                    <button onClick={() => updateDoc(doc(db, 'notifications', notif.id), { read: true })} className="text-xs font-bold text-indigo-600 hover:underline">
+                    <button 
+                      onClick={async () => {
+                        try {
+                          await updateDoc(doc(db, 'notifications', notif.id), { read: true });
+                        } catch (error) {
+                          handleFirestoreError(error, OperationType.UPDATE, 'notifications');
+                        }
+                      }} 
+                      className="text-xs font-bold text-indigo-600 hover:underline"
+                    >
                       Marcar como lida
                     </button>
                   )}
@@ -1336,18 +1345,22 @@ export default function App() {
             users={allUsers}
             theme={theme}
             onSave={async (data) => {
-              const targetUsers = data.userId === 'all' ? allUsers : [allUsers.find(u => u.uid === data.userId)!];
-              for (const u of targetUsers) {
-                await addDoc(collection(db, 'notifications'), {
-                  userId: u.uid,
-                  title: data.title,
-                  message: data.message,
-                  read: false,
-                  createdAt: new Date().toISOString()
-                });
+              try {
+                const targetUsers = data.userId === 'all' ? allUsers : [allUsers.find(u => u.uid === data.userId)!];
+                for (const u of targetUsers) {
+                  await addDoc(collection(db, 'notifications'), {
+                    userId: u.uid,
+                    title: data.title,
+                    message: data.message,
+                    read: false,
+                    createdAt: new Date().toISOString()
+                  });
+                }
+                toast.success("Notificação enviada!");
+                setIsNotifModalOpen(false);
+              } catch (error) {
+                handleFirestoreError(error, OperationType.CREATE, 'notifications');
               }
-              toast.success("Notificação enviada!");
-              setIsNotifModalOpen(false);
             }}
           />
         </Modal>
@@ -2428,12 +2441,28 @@ function SetlistView({ setlists, isAdmin, theme, setViewingSetlist }: { setlists
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Atualizado em {new Date(s.updatedAt).toLocaleDateString()}</p>
               </div>
               {isAdmin && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setEditingSetlist(s); setTitle(s.title); setContent(s.content); setIsModalOpen(true); }}
-                  className="p-2 text-gray-400 hover:bg-gray-50 rounded-xl transition-opacity"
-                >
-                  <Edit size={16} />
-                </button>
+                <div className="flex gap-1">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setEditingSetlist(s); setTitle(s.title); setContent(s.content); setIsModalOpen(true); }}
+                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button 
+                    onClick={async (e) => { 
+                      e.stopPropagation();
+                      try {
+                        await deleteDoc(doc(db, 'setlists', s.id));
+                        toast.success("Setlist excluído");
+                      } catch (error) {
+                        handleFirestoreError(error, OperationType.DELETE, 'setlists');
+                      }
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               )}
             </div>
             <div className="prose prose-sm max-w-none text-gray-600 line-clamp-3" dangerouslySetInnerHTML={{ __html: s.content }} />
@@ -2565,12 +2594,28 @@ function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: {
                   <Download size={16} /> PDF
                 </button>
                 {isAdmin && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setEditingCronograma(c); setTitle(c.title); setContent(c.content || ''); setExternalLink(c.externalLink || ''); setIsModalOpen(true); }}
-                    className="p-2 text-gray-400 hover:bg-gray-50 rounded-xl transition-opacity"
-                  >
-                    <Edit size={16} />
-                  </button>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setEditingCronograma(c); setTitle(c.title); setContent(c.content || ''); setExternalLink(c.externalLink || ''); setIsModalOpen(true); }}
+                      className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button 
+                      onClick={async (e) => { 
+                        e.stopPropagation();
+                        try {
+                          await deleteDoc(doc(db, 'cronogramas', c.id));
+                          toast.success("Cronograma excluído");
+                        } catch (error) {
+                          handleFirestoreError(error, OperationType.DELETE, 'cronogramas');
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -2631,7 +2676,8 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
     displayName: user.displayName || '',
     photoURL: user.photoURL || '',
     birthDate: user.birthDate || '',
-    phone: user.phone || ''
+    phone: user.phone || '',
+    specialty: user.specialty || ''
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -2665,6 +2711,7 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
         photoURL: formData.photoURL,
         birthDate: formData.birthDate,
         phone: formData.phone,
+        specialty: formData.specialty,
         updatedAt: new Date().toISOString()
       });
       toast.success("Perfil atualizado com sucesso!");
@@ -2699,6 +2746,16 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
             className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
             value={formData.displayName}
             onChange={e => setFormData({...formData, displayName: e.target.value})}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Função / Especialidade</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Fotografia, Transmissão, Som..."
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+            value={formData.specialty}
+            onChange={e => setFormData({...formData, specialty: e.target.value})}
           />
         </div>
         <div>

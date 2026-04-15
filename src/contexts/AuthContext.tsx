@@ -23,51 +23,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Try to find user by UID first
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser({ uid: userDoc.id, ...userDoc.data() } as User);
-        } else {
-          // Check if user was pre-registered by email
-          const q = query(collection(db, 'users'), where('email', '==', firebaseUser.email));
-          const querySnapshot = await getDocs(q);
-          
-          if (!querySnapshot.empty) {
-            // Found pre-registered user. We should ideally move this to the UID-based doc
-            // but for simplicity let's just update the existing doc with the UID field
-            // and use its ID. Actually, it's better to have the UID as the document ID.
-            const existingDoc = querySnapshot.docs[0];
-            const existingData = existingDoc.data();
-            
-            const newUser: User = {
-              ...existingData,
-              uid: firebaseUser.uid,
-              displayName: firebaseUser.displayName || existingData.displayName || 'Usuário',
-              email: firebaseUser.email || existingData.email || '',
-            } as User;
-
-            // Create new doc with UID as ID
-            await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-            // Delete the old pre-registered doc (with random ID)
-            if (existingDoc.id !== firebaseUser.uid) {
-              await deleteDoc(existingDoc.ref);
-            }
-            setUser(newUser);
+        try {
+          // Try to find user by UID first
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            setUser({ uid: userDoc.id, ...userDoc.data() } as User);
           } else {
-            // New user registration
-            const isAdminEmail = ['midiaimwlaureano@gmail.com', 'melolucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(firebaseUser.email || '');
-            const newUser: User = {
-              uid: firebaseUser.uid,
-              displayName: firebaseUser.displayName || 'Usuário',
-              email: firebaseUser.email || '',
-              role: isAdminEmail ? 'LIDER_I' : 'VOLUNTARIO',
-              status: isAdminEmail ? 'approved' : 'pending',
-              createdAt: new Date().toISOString(),
-              color: '#4F46E5', // Default indigo
-            };
-            await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-            setUser(newUser);
+            // Check if user was pre-registered by email
+            const q = query(collection(db, 'users'), where('email', '==', firebaseUser.email));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+              const existingDoc = querySnapshot.docs[0];
+              const existingData = existingDoc.data();
+              
+              const newUser: User = {
+                ...existingData,
+                uid: firebaseUser.uid,
+                displayName: firebaseUser.displayName || existingData.displayName || 'Usuário',
+                email: firebaseUser.email || existingData.email || '',
+              } as User;
+
+              await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+              if (existingDoc.id !== firebaseUser.uid) {
+                await deleteDoc(existingDoc.ref);
+              }
+              setUser(newUser);
+            } else {
+              // New user registration
+              const isAdminEmail = ['midiaimwlaureano@gmail.com', 'melolucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(firebaseUser.email || '');
+              const newUser: User = {
+                uid: firebaseUser.uid,
+                displayName: firebaseUser.displayName || 'Usuário',
+                email: firebaseUser.email || '',
+                role: isAdminEmail ? 'LIDER_I' : 'VOLUNTARIO',
+                status: isAdminEmail ? 'approved' : 'pending',
+                createdAt: new Date().toISOString(),
+                color: '#4F46E5', // Default indigo
+              };
+              await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+              setUser(newUser);
+            }
           }
+        } catch (error) {
+          console.error("Error fetching or creating user:", error);
+          // If there's an error (like permission denied), we should sign out to prevent a broken state
+          await signOut(auth);
+          setUser(null);
         }
       } else {
         setUser(null);
