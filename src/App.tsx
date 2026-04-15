@@ -99,6 +99,7 @@ export default function App() {
     }
   }, [isDarkMode]);
   const [scales, setScales] = useState<Scale[]>([]);
+  const [scaleFilterVolunteer, setScaleFilterVolunteer] = useState<string>('all');
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -1011,7 +1012,7 @@ export default function App() {
 
         {activeTab === 'scales' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -1021,17 +1022,33 @@ export default function App() {
                 />
                 <span className="font-medium">Mostrar escalas passadas</span>
               </label>
-              {isAdmin && (
-                <button 
-                  onClick={handleBatchGenerateScales}
-                  className="bg-amber-50 text-amber-700 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-amber-100 transition-colors border border-amber-100"
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <select 
+                  className="p-2 bg-white border border-gray-200 rounded-xl outline-none text-sm w-full sm:w-auto"
+                  value={scaleFilterVolunteer}
+                  onChange={e => setScaleFilterVolunteer(e.target.value)}
                 >
-                  <Sparkles size={20} /> Gerar Escalas Pendentes
-                </button>
-              )}
+                  <option value="all">Todos os Voluntários</option>
+                  {allUsers.map(u => (
+                    <option key={u.uid} value={u.uid}>{u.displayName}</option>
+                  ))}
+                </select>
+                {isAdmin && (
+                  <button 
+                    onClick={handleBatchGenerateScales}
+                    className="bg-amber-50 text-amber-700 px-6 py-2 rounded-2xl font-bold flex items-center gap-2 hover:bg-amber-100 transition-colors border border-amber-100 shrink-0"
+                  >
+                    <Sparkles size={20} /> Gerar Escalas
+                  </button>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.filter(e => showPastEvents || new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).map(event => {
+              {events.filter(e => showPastEvents || new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).filter(event => {
+                if (scaleFilterVolunteer === 'all') return true;
+                const scale = scales.find(s => s.eventId === event.id);
+                return scale?.assignments.some(a => a.userId === scaleFilterVolunteer);
+              }).map(event => {
                 const scale = scales.find(s => s.eventId === event.id);
                 const scaleReactions = scale ? reactions.filter(r => r.targetId === scale.id) : [];
                 
@@ -1159,13 +1176,15 @@ export default function App() {
             {notifications.map(notif => (
               <div key={notif.id} className={cn(
                 "p-6 rounded-3xl border transition-all",
-                notif.read ? "bg-white border-gray-100 opacity-75" : "bg-indigo-50 border-indigo-100 shadow-md"
+                notif.read 
+                  ? (isDarkMode ? "bg-slate-800 border-slate-700 opacity-75" : "bg-white border-gray-100 opacity-75") 
+                  : (isDarkMode ? "bg-indigo-900/30 border-indigo-500/30 shadow-md" : "bg-indigo-50 border-indigo-100 shadow-md")
               )}>
                 <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-gray-900">{notif.title}</h4>
+                  <h4 className={cn("font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{notif.title}</h4>
                   <span className="text-[10px] text-gray-400">{formatDate(notif.createdAt)}</span>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">{notif.message}</p>
+                <p className={cn("text-sm mb-4", isDarkMode ? "text-gray-300" : "text-gray-600")}>{notif.message}</p>
                 <div className="flex items-center gap-4">
                   {!notif.read && (
                     <button 
@@ -1176,7 +1195,7 @@ export default function App() {
                           handleFirestoreError(error, OperationType.UPDATE, 'notifications');
                         }
                       }} 
-                      className="text-xs font-bold text-indigo-600 hover:underline"
+                      className={cn("text-xs font-bold hover:underline", isDarkMode ? "text-indigo-400" : "text-indigo-600")}
                     >
                       Marcar como lida
                     </button>
@@ -1190,7 +1209,7 @@ export default function App() {
                         handleFirestoreError(error, OperationType.DELETE, 'notifications');
                       }
                     }} 
-                    className="text-xs font-bold text-red-600 hover:underline"
+                    className={cn("text-xs font-bold hover:underline", isDarkMode ? "text-red-400" : "text-red-600")}
                   >
                     Excluir
                   </button>
@@ -2005,6 +2024,7 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
     email: initialData?.email || '',
     role: initialData?.role || 'VOLUNTARIO',
     specialty: initialData?.specialty || '',
+    status: initialData?.status || 'pending',
     photoURL: initialData?.photoURL || '',
     birthDate: initialData?.birthDate || '',
     phone: initialData?.phone || ''
@@ -2051,6 +2071,10 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
         <input type="email" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
       </div>
       <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Função / Especialidade</label>
+        <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} placeholder="Ex: Fotografia, Transmissão, Som..." />
+      </div>
+      <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Foto de Perfil</label>
         <div className="flex items-center gap-4">
           <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
@@ -2086,13 +2110,22 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
           <input type="tel" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(00) 00000-0000" />
         </div>
       </div>
-      <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cargo</label>
-        <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})}>
-          <option value="VOLUNTARIO">VOLUNTÁRIO</option>
-          <option value="LIDER_II">LÍDER II</option>
-          <option value="LIDER_I">LÍDER I</option>
-        </select>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cargo</label>
+          <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})}>
+            <option value="VOLUNTARIO">VOLUNTÁRIO</option>
+            <option value="LIDER_II">LÍDER II</option>
+            <option value="LIDER_I">LÍDER I</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+          <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
+            <option value="pending">Pendente</option>
+            <option value="approved">Aprovado</option>
+          </select>
+        </div>
       </div>
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Especialidade / Funções</label>
