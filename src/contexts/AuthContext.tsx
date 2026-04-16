@@ -24,10 +24,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
+          const isAdminEmail = ['midiaimwlaureano@gmail.com', 'melolucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(firebaseUser.email || '');
+          
           // Try to find user by UID first
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
-            setUser({ uid: userDoc.id, ...userDoc.data() } as User);
+            const userData = userDoc.data() as User;
+            if (isAdminEmail && (userData.role !== 'LIDER_I' || userData.status !== 'approved')) {
+              await updateDoc(doc(db, 'users', firebaseUser.uid), { role: 'LIDER_I', status: 'approved' });
+              userData.role = 'LIDER_I';
+              userData.status = 'approved';
+            }
+            setUser({ uid: userDoc.id, ...userData });
           } else {
             // Check if user was pre-registered by email
             const q = query(collection(db, 'users'), where('email', '==', firebaseUser.email));
@@ -44,6 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email: firebaseUser.email || existingData.email || '',
               } as User;
 
+              if (isAdminEmail) {
+                newUser.role = 'LIDER_I';
+                newUser.status = 'approved';
+              }
+
               await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
               if (existingDoc.id !== firebaseUser.uid) {
                 await deleteDoc(existingDoc.ref);
@@ -51,7 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUser(newUser);
             } else {
               // New user registration
-              const isAdminEmail = ['midiaimwlaureano@gmail.com', 'melolucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(firebaseUser.email || '');
               const newUser: User = {
                 uid: firebaseUser.uid,
                 displayName: firebaseUser.displayName || 'Usuário',
@@ -96,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isAdmin = user?.role === 'LIDER_I' || user?.role === 'LIDER_II' || ['midiaimwlaureano@gmail.com', 'melholucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(user?.email || '');
+  const isAdmin = user?.role === 'LIDER_I' || user?.role === 'LIDER_II' || ['midiaimwlaureano@gmail.com', 'melolucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(user?.email || '');
   const isCoordinator = isAdmin;
 
   return (

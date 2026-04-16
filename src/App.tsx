@@ -525,7 +525,6 @@ export default function App() {
           <NavItem active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} icon={<Megaphone size={20} />} label="Anúncios" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
           <NavItem active={activeTab === 'setlist'} onClick={() => setActiveTab('setlist')} icon={<FileText size={20} />} label="Setlist" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
           <NavItem active={activeTab === 'cronograma'} onClick={() => setActiveTab('cronograma')} icon={<CalendarIcon size={20} />} label="Cronograma" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={20} />} label="Notificações" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} badgeCount={notifications.filter(n => !n.read).length} />
         </nav>
 
         <div className={cn("border-t border-gray-100 hidden md:flex", navStyle === 'sidebar' ? "p-4 flex-col" : "p-0 ml-4 items-center gap-4")}>
@@ -603,6 +602,22 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setActiveTab('notifications')}
+              className={cn(
+                "relative p-3 rounded-full transition-all flex items-center justify-center",
+                activeTab === 'notifications' 
+                  ? "bg-indigo-100 text-indigo-600" 
+                  : (isDarkMode ? "bg-slate-800 text-gray-300 hover:bg-slate-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200")
+              )}
+              title="Notificações"
+            >
+              <Bell size={20} />
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+              )}
+            </button>
+
             <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
               <button 
                 onClick={() => setIsDarkMode(false)}
@@ -2030,6 +2045,16 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
     phone: initialData?.phone || ''
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const PROFILE_EMOJIS = ['🧑','👩','👱‍♂️','👱‍♀️','🧔','👨‍🦲','👩‍🦲','👨‍🦳','👩‍🦳','🐼','🦊','🦁','🐵','🦄','👽','👾','🤖','😎','🤓','🤠','🎸','🥁','🎹','🎤','🎧','📷','🎥','✝️','🔥','🕊️'];
+
+  const handleEmojiSelect = (emoji: string) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${emoji}</text></svg>`;
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    setFormData(prev => ({ ...prev, photoURL: url }));
+    setShowEmojiPicker(false);
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2076,27 +2101,53 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
       </div>
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Foto de Perfil</label>
-        <div className="flex items-center gap-4">
-          <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
-            <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
-              <Upload size={16} /> Escolher arquivo
-            </span>
-            <input 
-              type="file" 
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoUpload}
-              disabled={isUploading}
-            />
-          </label>
-          {formData.photoURL && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-4">
+            <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
+              <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
+                <Upload size={16} /> Escolher arquivo
+              </span>
+              <input 
+                type="file" 
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+                disabled={isUploading}
+              />
+            </label>
             <button 
-              onClick={() => setFormData(prev => ({ ...prev, photoURL: '' }))}
-              className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-              title="Remover foto"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+              title="Escolher Emoji"
             >
-              <Trash2 size={16} />
+              😀
             </button>
+            {formData.photoURL && (
+              <button 
+                onClick={() => setFormData(prev => ({ ...prev, photoURL: '' }))}
+                className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                title="Remover foto"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+          
+          {showEmojiPicker && (
+            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+              <p className="text-xs font-bold text-gray-400 uppercase mb-2">Escolha um emoji</p>
+              <div className="flex flex-wrap gap-2">
+                {PROFILE_EMOJIS.map(emoji => (
+                  <button 
+                    key={emoji}
+                    onClick={() => handleEmojiSelect(emoji)}
+                    className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-50 rounded-lg transition-colors border border-gray-100"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -2713,6 +2764,16 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
     specialty: user.specialty || ''
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const PROFILE_EMOJIS = ['🧑','👩','👱‍♂️','👱‍♀️','🧔','👨‍🦲','👩‍🦲','👨‍🦳','👩‍🦳','🐼','🦊','🦁','🐵','🦄','👽','👾','🤖','😎','🤓','🤠','🎸','🥁','🎹','🎤','🎧','📷','🎥','✝️','🔥','🕊️'];
+
+  const handleEmojiSelect = (emoji: string) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${emoji}</text></svg>`;
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    setFormData(prev => ({ ...prev, photoURL: url }));
+    setShowEmojiPicker(false);
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2768,6 +2829,24 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
             </div>
           )}
         </div>
+        
+        {showEmojiPicker && (
+          <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-lg w-full max-w-sm absolute z-10 top-32">
+            <p className="text-xs font-bold text-gray-400 uppercase mb-2">Escolha um emoji</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {PROFILE_EMOJIS.map(emoji => (
+                <button 
+                  key={emoji}
+                  onClick={() => handleEmojiSelect(emoji)}
+                  className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-50 rounded-lg transition-colors border border-gray-100"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sua Foto de Perfil</p>
       </div>
 
@@ -2793,27 +2872,36 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
         </div>
         <div>
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Foto de Perfil</label>
-          <div className="flex items-center gap-4">
-            <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
-              <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
-                <Upload size={16} /> Escolher arquivo
-              </span>
-              <input 
-                type="file" 
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-            </label>
-            {formData.photoURL && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-4">
+              <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
+                <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
+                  <Upload size={16} /> Escolher arquivo
+                </span>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
+              </label>
               <button 
-                onClick={() => setFormData(prev => ({ ...prev, photoURL: '' }))}
-                className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-                title="Remover foto"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+                title="Escolher Emoji"
               >
-                <Trash2 size={16} />
+                😀
               </button>
-            )}
+              {formData.photoURL && (
+                <button 
+                  onClick={() => setFormData(prev => ({ ...prev, photoURL: '' }))}
+                  className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                  title="Remover foto"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
