@@ -1,21 +1,17 @@
 {
-  "name": "Mídia Igreja",
-  "short_name": "Mídia",
+  "name": "EPI Igreja",
+  "short_name": "EPI",
   "description": "Gestão de Voluntários e Escalas",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "theme_color": "#0047AB",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/church/192/192",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "https://picsum.photos/seed/church/512/512",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

@@ -1,33 +1,48 @@
-import * as React from 'react';
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  collection, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  addDoc, 
-  deleteDoc, 
-  doc, 
+import * as React from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  deleteDoc,
+  doc,
   updateDoc,
   where,
   limit,
   setDoc,
-  getDocs
-} from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType, storage } from './firebase';
-import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
-import { useAuth } from './contexts/AuthContext';
-import { ChurchEvent, Scale, User, CheckIn, Notification, Announcement, Reaction, Setlist, Cronograma } from './types';
-import { 
-  Calendar as CalendarIcon, 
-  Users, 
-  CheckCircle, 
-  Bell, 
-  Plus, 
-  Trash2, 
-  Edit, 
-  LogOut, 
+  getDocs,
+} from "firebase/firestore";
+import { db, handleFirestoreError, OperationType, storage } from "./firebase";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  uploadBytesResumable,
+} from "firebase/storage";
+import { useAuth } from "./contexts/AuthContext";
+import {
+  ChurchEvent,
+  Scale,
+  User,
+  CheckIn,
+  Notification,
+  Announcement,
+  Reaction,
+  Setlist,
+  Cronograma,
+} from "./types";
+import {
+  Calendar as CalendarIcon,
+  Users,
+  CheckCircle,
+  Bell,
+  Plus,
+  Trash2,
+  Edit,
+  LogOut,
   LayoutDashboard,
   Sparkles,
   Clock,
@@ -50,56 +65,75 @@ import {
   Upload,
   PanelLeftClose,
   PanelLeftOpen,
-  AlertTriangle
-} from 'lucide-react';
+  AlertTriangle,
+} from "lucide-react";
 
-const ChristianCross = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+const ChristianCross = ({
+  size = 24,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <path d="M12 3v18" />
     <path d="M8 8h8" />
   </svg>
 );
-import { formatDate, cn } from './lib/utils';
-import { parseCommand } from './services/aiService';
-import { Toaster, toast } from 'sonner';
-import { 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  eachDayOfInterval, 
-  format, 
-  isSameMonth, 
-  isSameDay, 
-  addMonths, 
-  subMonths 
-} from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import { formatDate, cn } from "./lib/utils";
+import { parseCommand } from "./services/aiService";
+import { Toaster, toast } from "sonner";
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  format,
+  isSameMonth,
+  isSameDay,
+  addMonths,
+  subMonths,
+} from "date-fns";
+import { ptBR } from "date-fns/locale";
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 export default function App() {
   const { user, loading, login, logout, isAdmin, isCoordinator } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<'modern' | 'compact'>('modern');
-  const [navStyle, setNavStyle] = useState<'sidebar' | 'top'>('sidebar');
+  const [layoutMode, setLayoutMode] = useState<"modern" | "compact">("modern");
+  const [navStyle, setNavStyle] = useState<"sidebar" | "top">("sidebar");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [theme, setTheme] = useState<'indigo' | 'red' | 'blue' | 'rose' | 'sky' | 'imw'>('imw');
+  const [theme, setTheme] = useState<
+    "indigo" | "red" | "blue" | "rose" | "sky" | "imw"
+  >("imw");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [events, setEvents] = useState<ChurchEvent[]>([]);
 
   useEffect(() => {
     if (isDarkMode) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
   }, [isDarkMode]);
   const [scales, setScales] = useState<Scale[]>([]);
-  const [scaleFilterVolunteer, setScaleFilterVolunteer] = useState<string>('all');
+  const [scaleFilterVolunteer, setScaleFilterVolunteer] =
+    useState<string>("all");
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -107,7 +141,7 @@ export default function App() {
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [setlists, setSetlists] = useState<Setlist[]>([]);
   const [cronogramas, setCronogramas] = useState<Cronograma[]>([]);
-  const [aiCommand, setAiCommand] = useState('');
+  const [aiCommand, setAiCommand] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   // Modals
@@ -119,52 +153,139 @@ export default function App() {
   const [isVolunteerModalOpen, setIsVolunteerModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [editingVolunteer, setEditingVolunteer] = useState<User | null>(null);
-  const [selectedEventForScale, setSelectedEventForScale] = useState<ChurchEvent | null>(null);
+  const [selectedEventForScale, setSelectedEventForScale] =
+    useState<ChurchEvent | null>(null);
   const [viewingSetlist, setViewingSetlist] = useState<Setlist | null>(null);
   const [viewingCronograma, setViewingCronograma] = useState<Cronograma | null>(null);
+  const [isDateScheduleModalOpen, setIsDateScheduleModalOpen] = useState(false);
+  const [dateScheduleUser, setDateScheduleUser] = useState("");
+  const [dateScheduleRole, setDateScheduleRole] = useState("");
+  const [dateScheduleEvents, setDateScheduleEvents] = useState<string[]>([]);
+
+  // New Filters
+  const [eventFilterType, setEventFilterType] = useState('all');
+  const [eventFilterStatus, setEventFilterStatus] = useState('all');
+  const [scaleFilterRole, setScaleFilterRole] = useState('all');
+  const [scaleViewMode, setScaleViewMode] = useState<'cards' | 'weekly'>('cards');
 
   // Real-time listeners
   useEffect(() => {
     if (!user) return;
 
-    const qEvents = query(collection(db, 'events'), orderBy('date', 'asc'));
-    const unsubEvents = onSnapshot(qEvents, (snapshot) => {
-      setEvents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchEvent)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'events'));
+    const qEvents = query(collection(db, "events"), orderBy("date", "asc"));
+    const unsubEvents = onSnapshot(
+      qEvents,
+      (snapshot) => {
+        setEvents(
+          snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as ChurchEvent,
+          ),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "events"),
+    );
 
-    const unsubScales = onSnapshot(collection(db, 'scales'), (snapshot) => {
-      setScales(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Scale)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'scales'));
+    const unsubScales = onSnapshot(
+      collection(db, "scales"),
+      (snapshot) => {
+        setScales(
+          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Scale),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "scales"),
+    );
 
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      setAllUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'users'));
+    const unsubUsers = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        setAllUsers(
+          snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }) as User),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "users"),
+    );
 
-    const unsubCheckins = onSnapshot(collection(db, 'checkins'), (snapshot) => {
-      setCheckins(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CheckIn)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'checkins'));
+    const unsubCheckins = onSnapshot(
+      collection(db, "checkins"),
+      (snapshot) => {
+        setCheckins(
+          snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as CheckIn,
+          ),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "checkins"),
+    );
 
-    const qNotifs = query(collection(db, 'notifications'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(20));
-    const unsubNotifs = onSnapshot(qNotifs, (snapshot) => {
-      setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'notifications'));
+    const qNotifs = query(
+      collection(db, "notifications"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc"),
+      limit(20),
+    );
+    const unsubNotifs = onSnapshot(
+      qNotifs,
+      (snapshot) => {
+        setNotifications(
+          snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as Notification,
+          ),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "notifications"),
+    );
 
-    const qAnnouncements = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
-    const unsubAnnouncements = onSnapshot(qAnnouncements, (snapshot) => {
-      setAnnouncements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'announcements'));
+    const qAnnouncements = query(
+      collection(db, "announcements"),
+      orderBy("createdAt", "desc"),
+    );
+    const unsubAnnouncements = onSnapshot(
+      qAnnouncements,
+      (snapshot) => {
+        setAnnouncements(
+          snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as Announcement,
+          ),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "announcements"),
+    );
 
-    const unsubReactions = onSnapshot(collection(db, 'reactions'), (snapshot) => {
-      setReactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reaction)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'reactions'));
+    const unsubReactions = onSnapshot(
+      collection(db, "reactions"),
+      (snapshot) => {
+        setReactions(
+          snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as Reaction,
+          ),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "reactions"),
+    );
 
-    const unsubSetlists = onSnapshot(collection(db, 'setlists'), (snapshot) => {
-      setSetlists(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Setlist)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'setlists'));
+    const unsubSetlists = onSnapshot(
+      collection(db, "setlists"),
+      (snapshot) => {
+        setSetlists(
+          snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as Setlist,
+          ),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "setlists"),
+    );
 
-    const unsubCronogramas = onSnapshot(collection(db, 'cronogramas'), (snapshot) => {
-      setCronogramas(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Cronograma)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'cronogramas'));
+    const unsubCronogramas = onSnapshot(
+      collection(db, "cronogramas"),
+      (snapshot) => {
+        setCronogramas(
+          snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as Cronograma,
+          ),
+        );
+      },
+      (err) => handleFirestoreError(err, OperationType.LIST, "cronogramas"),
+    );
 
     return () => {
       unsubEvents();
@@ -185,11 +306,13 @@ export default function App() {
 
     const updatePastEvents = async () => {
       const now = new Date();
-      const pastEvents = events.filter(e => e.status !== 'CONCLUIDO' && new Date(e.date) < now);
-      
+      const pastEvents = events.filter(
+        (e) => e.status !== "CONCLUIDO" && new Date(e.date) < now,
+      );
+
       for (const event of pastEvents) {
         try {
-          await updateDoc(doc(db, 'events', event.id), { status: 'CONCLUIDO' });
+          await updateDoc(doc(db, "events", event.id), { status: "CONCLUIDO" });
         } catch (error) {
           console.error("Error updating event status:", error);
         }
@@ -200,64 +323,114 @@ export default function App() {
     const interval = setInterval(updatePastEvents, 1000 * 60 * 60); // Check every hour
     return () => clearInterval(interval);
   }, [events, isAdmin]);
-  const performAutoSchedule = async (eventId: string, currentScales: Scale[], currentUsers: User[]) => {
-    const roles = ['Som', 'Câmera', 'Projeção', 'Mídia', 'Vídeo', 'Fotos', 'Cantina', 'Doces', 'Iluminação', 'Recepção', 'Café', 'Placas', 'Anúncios']; 
+  const performAutoSchedule = async (
+    eventId: string,
+    currentScales: Scale[],
+    currentUsers: User[],
+  ) => {
+    const roles = [
+      "Som",
+      "Câmera",
+      "Projeção",
+      "Mídia",
+      "Vídeo",
+      "Fotos",
+      "Cantina",
+      "Doces",
+      "Iluminação",
+      "Recepção",
+      "Café",
+      "Placas",
+      "Anúncios",
+    ];
     const newAssignments: any[] = [];
     const usedUserIds = new Set<string>();
-    
+
+    // Get existing scale for this event to preserve manual assignments
+    const scaleRef = collection(db, "scales");
+    const q = query(scaleRef, where("eventId", "==", eventId));
+    const snap = await getDocs(q);
+    const existingAssignments = snap.empty
+      ? []
+      : snap.docs[0].data().assignments || [];
+
+    // Pre-populate with existing manual assignments (where userId is an actual user)
+    existingAssignments.forEach((a: any) => {
+      if (a.userId && a.userId !== "EMPTY") {
+        newAssignments.push(a);
+        usedUserIds.add(a.userId);
+      }
+    });
+
     const userParticipation: Record<string, number> = {};
-    currentUsers.forEach(u => {
-      userParticipation[u.uid] = currentScales.reduce((acc, s) => 
-        acc + s.assignments.filter(a => a.userId === u.uid).length, 0
+    currentUsers.forEach((u) => {
+      userParticipation[u.uid] = currentScales.reduce(
+        (acc, s) =>
+          acc + s.assignments.filter((a) => a.userId === u.uid).length,
+        0,
       );
     });
 
-    roles.forEach(role => {
-      let eligibleUsers = currentUsers.filter(u => 
-        !usedUserIds.has(u.uid) && 
-        (u.specialty?.toLowerCase().includes(role.toLowerCase()))
-      );
-      
-      if (eligibleUsers.length === 0) {
-        // Fallback to anyone if no one has the specialty, but still prefer those with fewer assignments
-        eligibleUsers = currentUsers.filter(u => !usedUserIds.has(u.uid));
+    roles.forEach((role) => {
+      // Skip if this role is already assigned manually
+      if (
+        newAssignments.some(
+          (a) => (a.roles || []).includes(role) || a.role === role,
+        )
+      ) {
+        return;
       }
-      
-      // Add some randomness to avoid same people every time
-      eligibleUsers.sort((a, b) => {
-        const diff = (userParticipation[a.uid] || 0) - (userParticipation[b.uid] || 0);
-        if (diff === 0) return Math.random() - 0.5;
-        return diff;
-      });
+
+      let eligibleUsers = currentUsers.filter(
+        (u) =>
+          u.status === "approved" &&
+          !usedUserIds.has(u.uid) &&
+          u.specialty?.toLowerCase().includes(role.toLowerCase()),
+      );
 
       if (eligibleUsers.length > 0) {
+        // Add some randomness to avoid same people every time
+        eligibleUsers.sort((a, b) => {
+          const diff =
+            (userParticipation[a.uid] || 0) - (userParticipation[b.uid] || 0);
+          if (diff === 0) return Math.random() - 0.5;
+          return diff;
+        });
+
         const selected = eligibleUsers[0];
         newAssignments.push({ userId: selected.uid, roles: [role] });
         usedUserIds.add(selected.uid);
+      } else {
+        newAssignments.push({ userId: "EMPTY", roles: [role] });
       }
     });
 
-    const scaleRef = collection(db, 'scales');
-    const q = query(scaleRef, where('eventId', '==', eventId));
-    const snap = await getDocs(q);
-    
     if (!snap.empty) {
-      await updateDoc(doc(db, 'scales', snap.docs[0].id), { assignments: newAssignments });
+      await updateDoc(doc(db, "scales", snap.docs[0].id), {
+        assignments: newAssignments,
+      });
     } else {
-      await addDoc(collection(db, 'scales'), { eventId, assignments: newAssignments });
+      await addDoc(collection(db, "scales"), {
+        eventId,
+        assignments: newAssignments,
+      });
     }
   };
 
-  const generateRecurringEvents = async (baseEvent: any, durationMonths: number = 3, autoSchedule: boolean = false) => {
+  const generateRecurringEvents = async (
+    baseEvent: any,
+    durationMonths: number = 3,
+    autoSchedule: boolean = false,
+  ) => {
     if (!baseEvent.isRecurring || !baseEvent.daysOfWeek) return;
-    
+
     const eventsToCreate = [];
     const startDate = new Date(baseEvent.date);
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + durationMonths);
-    
+
     const recurrenceId = Math.random().toString(36).substr(2, 9);
-    
+
     let currentDate = new Date(startDate);
     // Skip the first one if it's already being created manually
     currentDate.setDate(currentDate.getDate() + 1);
@@ -268,18 +441,21 @@ export default function App() {
           ...baseEvent,
           date: currentDate.toISOString(),
           recurrenceId,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         });
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
     for (const ev of eventsToCreate) {
-      const docRef = await addDoc(collection(db, 'events'), ev);
+      const docRef = await addDoc(collection(db, "events"), ev);
       if (autoSchedule) {
         await performAutoSchedule(docRef.id, scales, allUsers);
       } else {
-        await addDoc(collection(db, 'scales'), { eventId: docRef.id, assignments: [] });
+        await addDoc(collection(db, "scales"), {
+          eventId: docRef.id,
+          assignments: [],
+        });
       }
     }
     return eventsToCreate.length;
@@ -292,20 +468,28 @@ export default function App() {
         ...event,
         id: undefined,
         title: `${event.title} (Cópia)`,
-        date: new Date(new Date(event.date).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(), // +1 week
-        createdAt: new Date().toISOString()
+        date: new Date(
+          new Date(event.date).getTime() + 7 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // +1 week
+        createdAt: new Date().toISOString(),
       };
       delete (newEvent as any).id;
-      const docRef = await addDoc(collection(db, 'events'), newEvent);
-      
+      const docRef = await addDoc(collection(db, "events"), newEvent);
+
       // Also duplicate scale if it exists
-      const existingScale = scales.find(s => s.eventId === event.id);
+      const existingScale = scales.find((s) => s.eventId === event.id);
       if (existingScale) {
-        await addDoc(collection(db, 'scales'), { eventId: docRef.id, assignments: existingScale.assignments });
+        await addDoc(collection(db, "scales"), {
+          eventId: docRef.id,
+          assignments: existingScale.assignments,
+        });
       } else {
-        await addDoc(collection(db, 'scales'), { eventId: docRef.id, assignments: [] });
+        await addDoc(collection(db, "scales"), {
+          eventId: docRef.id,
+          assignments: [],
+        });
       }
-      
+
       toast.success("Evento duplicado para a próxima semana!", { id: toastId });
     } catch (error) {
       toast.error("Erro ao duplicar evento.", { id: toastId });
@@ -314,17 +498,20 @@ export default function App() {
 
   const handleReaction = async (targetId: string, emoji: string) => {
     if (!user) return;
-    
-    const existingReaction = reactions.find(r => r.targetId === targetId && r.userId === user.uid && r.emoji === emoji);
-    
+
+    const existingReaction = reactions.find(
+      (r) =>
+        r.targetId === targetId && r.userId === user.uid && r.emoji === emoji,
+    );
+
     if (existingReaction) {
-      await deleteDoc(doc(db, 'reactions', existingReaction.id));
+      await deleteDoc(doc(db, "reactions", existingReaction.id));
     } else {
-      await addDoc(collection(db, 'reactions'), {
+      await addDoc(collection(db, "reactions"), {
         targetId,
         userId: user.uid,
         emoji,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   };
@@ -332,19 +519,72 @@ export default function App() {
   const handleBatchGenerateScales = async () => {
     const toastId = toast.loading("Gerando escalas para eventos futuros...");
     try {
-      const futureEvents = events.filter(e => new Date(e.date) > new Date());
+      const futureEvents = events.filter((e) => new Date(e.date) > new Date());
       let count = 0;
-      
+
       for (const event of futureEvents) {
-        const scale = scales.find(s => s.eventId === event.id);
+        const scale = scales.find((s) => s.eventId === event.id);
         if (!scale || scale.assignments.length === 0) {
           await performAutoSchedule(event.id, scales, allUsers);
           count++;
         }
       }
-      toast.success(`${count} escalas geradas automaticamente!`, { id: toastId });
+      toast.success(`${count} escalas geradas automaticamente!`, {
+        id: toastId,
+      });
     } catch (error) {
       toast.error("Erro ao gerar escalas em lote.", { id: toastId });
+    }
+  };
+
+  const handleDateScheduleSave = async () => {
+    if (
+      !dateScheduleUser ||
+      !dateScheduleRole ||
+      dateScheduleEvents.length === 0
+    ) {
+      toast.error("Preencha todos os campos e selecione pelo menos um evento.");
+      return;
+    }
+
+    const toastId = toast.loading("Agendando voluntário...");
+    try {
+      for (const eventId of dateScheduleEvents) {
+        const scaleRef = collection(db, "scales");
+        const q = query(scaleRef, where("eventId", "==", eventId));
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+          const docId = snap.docs[0].id;
+          const currentScale = snap.docs[0].data() as Scale;
+          // Check if already in scale
+          if (
+            !currentScale.assignments.some((a) => a.userId === dateScheduleUser)
+          ) {
+            const newAssignments = [
+              ...currentScale.assignments,
+              { userId: dateScheduleUser, roles: [dateScheduleRole] },
+            ];
+            await updateDoc(doc(db, "scales", docId), {
+              assignments: newAssignments,
+            });
+          }
+        } else {
+          await addDoc(collection(db, "scales"), {
+            eventId,
+            assignments: [
+              { userId: dateScheduleUser, roles: [dateScheduleRole] },
+            ],
+          });
+        }
+      }
+      toast.success("Voluntário agendado com sucesso!", { id: toastId });
+      setIsDateScheduleModalOpen(false);
+      setDateScheduleUser("");
+      setDateScheduleRole("");
+      setDateScheduleEvents([]);
+    } catch (error) {
+      toast.error("Erro ao agendar voluntário.", { id: toastId });
     }
   };
 
@@ -354,86 +594,111 @@ export default function App() {
     const toastId = toast.loading("Processando comando...");
     try {
       const result = await parseCommand(aiCommand);
-      
-      if (result.action === 'CREATE_EVENT') {
+
+      if (result.action === "CREATE_EVENT") {
         const eventData = {
           ...result.event,
           createdBy: user?.uid,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         };
-        const docRef = await addDoc(collection(db, 'events'), eventData);
-        await addDoc(collection(db, 'scales'), { eventId: docRef.id, assignments: [] });
-        
+        const docRef = await addDoc(collection(db, "events"), eventData);
+        await addDoc(collection(db, "scales"), {
+          eventId: docRef.id,
+          assignments: [],
+        });
+
         if (result.event.isRecurring) {
-          const count = await generateRecurringEvents(eventData, result.event.durationMonths || 3);
-          toast.success(`Evento "${result.event.title}" e mais ${count} ocorrências criadas!`, { id: toastId });
+          const count = await generateRecurringEvents(
+            eventData,
+            result.event.durationMonths || 3,
+          );
+          toast.success(
+            `Evento "${result.event.title}" e mais ${count} ocorrências criadas!`,
+            { id: toastId },
+          );
         } else {
-          toast.success(`Evento "${result.event.title}" criado!`, { id: toastId });
+          toast.success(`Evento "${result.event.title}" criado!`, {
+            id: toastId,
+          });
         }
-      } 
-      else if (result.action === 'CREATE_VOLUNTEER') {
+      } else if (result.action === "CREATE_VOLUNTEER") {
         const newUser = {
           ...result.volunteer,
           createdAt: new Date().toISOString(),
-          color: '#'+Math.floor(Math.random()*16777215).toString(16)
+          color: "#" + Math.floor(Math.random() * 16777215).toString(16),
         };
-        await addDoc(collection(db, 'users'), newUser);
-        toast.success(`Voluntário "${result.volunteer.displayName}" cadastrado!`, { id: toastId });
-      }
-      else if (result.action === 'CREATE_NOTIFICATION') {
-        const targetUsers = result.notification.targetUserEmail 
-          ? allUsers.filter(u => u.email === result.notification.targetUserEmail)
+        await addDoc(collection(db, "users"), newUser);
+        toast.success(
+          `Voluntário "${result.volunteer.displayName}" cadastrado!`,
+          { id: toastId },
+        );
+      } else if (result.action === "CREATE_NOTIFICATION") {
+        const targetUsers = result.notification.targetUserEmail
+          ? allUsers.filter(
+              (u) => u.email === result.notification.targetUserEmail,
+            )
           : allUsers;
-        
+
         for (const u of targetUsers) {
-          await addDoc(collection(db, 'notifications'), {
+          await addDoc(collection(db, "notifications"), {
             userId: u.uid,
             title: result.notification.title,
             message: result.notification.message,
             read: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
           });
         }
         toast.success("Notificações enviadas!", { id: toastId });
-      }
-      else if (result.action === 'CREATE_ANNOUNCEMENT') {
-        await addDoc(collection(db, 'announcements'), {
+      } else if (result.action === "CREATE_ANNOUNCEMENT") {
+        await addDoc(collection(db, "announcements"), {
           ...result.announcement,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         });
-        toast.success(`Anúncio "${result.announcement.title}" criado!`, { id: toastId });
+        toast.success(`Anúncio "${result.announcement.title}" criado!`, {
+          id: toastId,
+        });
       }
-      setAiCommand('');
+      setAiCommand("");
     } catch (error) {
       console.error("Erro no comando IA:", error);
-      toast.error("Erro ao processar comando. Tente ser mais específico.", { id: toastId });
+      toast.error("Erro ao processar comando. Tente ser mais específico.", {
+        id: toastId,
+      });
     } finally {
       setIsAiLoading(false);
     }
   };
 
-  const handleCheckIn = async (eventId: string, status: 'PRESENTE' | 'AUSENTE' | 'ATRASADO') => {
+  const handleCheckIn = async (
+    eventId: string,
+    status: "PRESENTE" | "AUSENTE" | "ATRASADO",
+  ) => {
     try {
-      const existing = checkins.find(c => c.eventId === eventId && c.userId === user?.uid);
+      const existing = checkins.find(
+        (c) => c.eventId === eventId && c.userId === user?.uid,
+      );
       if (existing) {
-        await updateDoc(doc(db, 'checkins', existing.id), { status, timestamp: new Date().toISOString() });
+        await updateDoc(doc(db, "checkins", existing.id), {
+          status,
+          timestamp: new Date().toISOString(),
+        });
       } else {
-        await addDoc(collection(db, 'checkins'), {
+        await addDoc(collection(db, "checkins"), {
           eventId,
           userId: user?.uid,
           status,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
       toast.success("Check-in realizado!");
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'checkins');
+      handleFirestoreError(error, OperationType.WRITE, "checkins");
     }
   };
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
-      await deleteDoc(doc(db, 'events', eventId));
+      await deleteDoc(doc(db, "events", eventId));
       toast.success("Evento excluído com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir evento:", error);
@@ -441,39 +706,58 @@ export default function App() {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-    </div>
-  );
-
-  if (!user) return (
-    <div className="min-h-screen flex items-center justify-center bg-indigo-600 p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-10 text-center">
-        <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-8 rotate-3">
-          <CalendarIcon size={40} />
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Mídia Igreja</h1>
-        <button onClick={login} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
-          <UserIcon size={20} /> Entrar com Google
-        </button>
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
       </div>
-    </div>
-  );
+    );
 
-  if (user.status === 'pending') {
+  if (!user)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-indigo-600 p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-10 text-center">
+          <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-8 rotate-3">
+            <CalendarIcon size={40} />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Mídia Igreja
+          </h1>
+          <button
+            onClick={login}
+            className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3"
+          >
+            <UserIcon size={20} /> Entrar com Google
+          </button>
+        </div>
+      </div>
+    );
+
+  if (user.status === "pending") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-indigo-50 p-4">
         <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center">
           <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <Clock size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Aprovação Pendente</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Aprovação Pendente
+          </h2>
           <p className="text-gray-600 mb-8">
-            Sua conta foi criada com sucesso! Para acessar o sistema, por favor, complete seu perfil abaixo e aguarde a aprovação de um líder.
+            Sua conta foi criada com sucesso! Para acessar o sistema, por favor,
+            complete seu perfil abaixo e aguarde a aprovação de um líder.
           </p>
-          <ProfileForm user={user} onSave={() => toast.success('Perfil atualizado! Aguarde a aprovação.')} theme={theme} />
-          <button onClick={logout} className="mt-6 text-gray-500 hover:text-gray-700 text-sm font-medium">
+          <ProfileForm
+            user={user}
+            onSave={() =>
+              toast.success("Perfil atualizado! Aguarde a aprovação.")
+            }
+            theme={theme}
+          />
+          <button
+            onClick={logout}
+            className="mt-6 text-gray-500 hover:text-gray-700 text-sm font-medium"
+          >
             Sair e tentar com outra conta
           </button>
         </div>
@@ -482,79 +766,218 @@ export default function App() {
   }
 
   return (
-    <div className={cn("min-h-screen flex transition-colors duration-300", isDarkMode ? "bg-slate-900 text-white" : "bg-gradient-to-br from-indigo-50 via-white to-sky-50", navStyle === 'top' ? "flex-col" : "flex-col md:flex-row")}>
-      <Toaster position="top-right" theme={isDarkMode ? 'dark' : 'light'} />
-      
+    <div
+      className={cn(
+        "min-h-screen flex transition-colors duration-300",
+        isDarkMode
+          ? "bg-slate-900 text-white"
+          : "bg-gradient-to-br from-indigo-50 via-white to-sky-50",
+        navStyle === "top" ? "flex-col" : "flex-col md:flex-row",
+      )}
+    >
+      <Toaster position="top-right" theme={isDarkMode ? "dark" : "light"} />
+
       {/* Sidebar / Top Nav */}
-      <aside className={cn(
-        "bg-white border-gray-200 z-20 transition-all shrink-0 glass",
-        navStyle === 'sidebar' ? (isSidebarCollapsed ? "w-full md:w-20 md:border-r border-b flex flex-col md:sticky md:top-0 md:h-screen" : "w-full md:w-64 md:border-r border-b flex flex-col md:sticky md:top-0 md:h-screen") : "w-full border-b flex flex-row items-center justify-between px-4 md:px-8 py-4 sticky top-0"
-      )}>
-        <div className={cn("flex items-center justify-between", navStyle === 'sidebar' ? "border-b border-gray-100 p-4 md:p-6" : "")}>
-          <button 
-            onClick={() => setActiveTab('dashboard')}
+      <aside
+        className={cn(
+          "bg-white border-gray-200 z-20 transition-all shrink-0 glass",
+          navStyle === "sidebar"
+            ? isSidebarCollapsed
+              ? "w-full md:w-20 md:border-r border-b flex flex-col md:sticky md:top-0 md:h-screen"
+              : "w-full md:w-64 md:border-r border-b flex flex-col md:sticky md:top-0 md:h-screen"
+            : "w-full border-b flex flex-row items-center justify-between px-4 md:px-8 py-4 sticky top-0",
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center justify-between",
+            navStyle === "sidebar" ? "border-b border-gray-100 p-4 md:p-6" : "",
+          )}
+        >
+          <button
+            onClick={() => setActiveTab("dashboard")}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
             <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
               <ChristianCross size={20} />
             </div>
-            <div className={cn(
-              navStyle === 'sidebar' ? "block text-left" : "hidden sm:block text-left",
-              navStyle === 'sidebar' && isSidebarCollapsed ? "md:hidden" : ""
-            )}>
-              <h1 className="text-lg font-black text-gray-900 leading-none">MÍDIA IMW</h1>
-              <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase">Laureano</p>
+            <div
+              className={cn(
+                navStyle === "sidebar"
+                  ? "block text-left"
+                  : "hidden sm:block text-left",
+                navStyle === "sidebar" && isSidebarCollapsed ? "md:hidden" : "",
+              )}
+            >
+              <h1 className="text-lg font-black text-gray-900 leading-none">
+                MÍDIA IMW
+              </h1>
+              <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase">
+                Laureano
+              </p>
             </div>
           </button>
-          
+
           {/* Mobile Profile Button */}
-          <button 
+          <button
             onClick={() => setIsProfileModalOpen(true)}
             className="md:hidden w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden shrink-0"
           >
-            {user.photoURL ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : user.displayName[0]}
+            {user.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt=""
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              user.displayName[0]
+            )}
           </button>
         </div>
 
-        <nav className={cn("flex gap-2 overflow-x-auto no-scrollbar", navStyle === 'sidebar' ? "flex-row md:flex-col p-4 flex-none md:flex-1" : "flex-row items-center px-4")}>
-          <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard size={20} />} label="Dashboard" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<CalendarDays size={20} />} label="Calendário" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'events'} onClick={() => setActiveTab('events')} icon={<CalendarIcon size={20} />} label="Eventos" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'scales'} onClick={() => setActiveTab('scales')} icon={<Clock size={20} />} label="Escalas" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'volunteers'} onClick={() => setActiveTab('volunteers')} icon={<Users size={20} />} label="Voluntários" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} icon={<Megaphone size={20} />} label="Anúncios" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'setlist'} onClick={() => setActiveTab('setlist')} icon={<FileText size={20} />} label="Setlist" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
-          <NavItem active={activeTab === 'cronograma'} onClick={() => setActiveTab('cronograma')} icon={<CalendarIcon size={20} />} label="Cronograma" compact={navStyle === 'top' || isSidebarCollapsed} theme={theme} />
+        <nav
+          className={cn(
+            "flex gap-2 overflow-x-auto no-scrollbar",
+            navStyle === "sidebar"
+              ? "flex-row md:flex-col p-4 flex-none md:flex-1"
+              : "flex-row items-center px-4",
+          )}
+        >
+          <NavItem
+            active={activeTab === "dashboard"}
+            onClick={() => setActiveTab("dashboard")}
+            icon={<LayoutDashboard size={20} />}
+            label="Dashboard"
+            compact={navStyle === "top" || isSidebarCollapsed}
+            theme={theme}
+          />
+          <NavItem
+            active={activeTab === "calendar"}
+            onClick={() => setActiveTab("calendar")}
+            icon={<CalendarDays size={20} />}
+            label="Calendário"
+            compact={navStyle === "top" || isSidebarCollapsed}
+            theme={theme}
+          />
+          <NavItem
+            active={activeTab === "events"}
+            onClick={() => setActiveTab("events")}
+            icon={<CalendarIcon size={20} />}
+            label="Eventos"
+            compact={navStyle === "top" || isSidebarCollapsed}
+            theme={theme}
+          />
+          <NavItem
+            active={activeTab === "scales"}
+            onClick={() => setActiveTab("scales")}
+            icon={<Clock size={20} />}
+            label="Escalas"
+            compact={navStyle === "top" || isSidebarCollapsed}
+            theme={theme}
+          />
+          <NavItem
+            active={activeTab === "volunteers"}
+            onClick={() => setActiveTab("volunteers")}
+            icon={<Users size={20} />}
+            label="Voluntários"
+            compact={navStyle === "top" || isSidebarCollapsed}
+            theme={theme}
+          />
+          <NavItem
+            active={activeTab === "announcements"}
+            onClick={() => setActiveTab("announcements")}
+            icon={<Megaphone size={20} />}
+            label="Anúncios"
+            compact={navStyle === "top" || isSidebarCollapsed}
+            theme={theme}
+          />
+          <NavItem
+            active={activeTab === "setlist"}
+            onClick={() => setActiveTab("setlist")}
+            icon={<FileText size={20} />}
+            label="Setlist"
+            compact={navStyle === "top" || isSidebarCollapsed}
+            theme={theme}
+          />
+          <NavItem
+            active={activeTab === "cronograma"}
+            onClick={() => setActiveTab("cronograma")}
+            icon={<CalendarIcon size={20} />}
+            label="Cronograma"
+            compact={navStyle === "top" || isSidebarCollapsed}
+            theme={theme}
+          />
         </nav>
 
-        <div className={cn("border-t border-gray-100 hidden md:flex", navStyle === 'sidebar' ? "p-4 flex-col" : "p-0 ml-4 items-center gap-4")}>
-          {navStyle === 'sidebar' && (
+        <div
+          className={cn(
+            "border-t border-gray-100 hidden md:flex",
+            navStyle === "sidebar"
+              ? "p-4 flex-col"
+              : "p-0 ml-4 items-center gap-4",
+          )}
+        >
+          {navStyle === "sidebar" && (
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
               className="flex items-center justify-center gap-3 w-full p-3 text-gray-500 hover:bg-gray-100 rounded-xl mb-4 transition-colors"
               title={isSidebarCollapsed ? "Expandir menu" : "Recolher menu"}
             >
-              {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
-              {!isSidebarCollapsed && <span className="font-medium text-sm">Recolher</span>}
+              {isSidebarCollapsed ? (
+                <PanelLeftOpen size={20} />
+              ) : (
+                <PanelLeftClose size={20} />
+              )}
+              {!isSidebarCollapsed && (
+                <span className="font-medium text-sm">Recolher</span>
+              )}
             </button>
           )}
-          <button 
+          <button
             onClick={() => setIsProfileModalOpen(true)}
-            className={cn("flex items-center gap-3 transition-all", navStyle === 'sidebar' ? "w-full p-3 bg-gray-50 rounded-2xl mb-4 hover:bg-gray-100" : "p-2 hover:bg-gray-50 rounded-xl")}
+            className={cn(
+              "flex items-center gap-3 transition-all",
+              navStyle === "sidebar"
+                ? "w-full p-3 bg-gray-50 rounded-2xl mb-4 hover:bg-gray-100"
+                : "p-2 hover:bg-gray-50 rounded-xl",
+            )}
           >
             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden shrink-0">
-              {user.photoURL ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : user.displayName[0]}
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                user.displayName[0]
+              )}
             </div>
-            {navStyle === 'sidebar' && !isSidebarCollapsed && (
+            {navStyle === "sidebar" && !isSidebarCollapsed && (
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-sm font-bold text-gray-900 truncate">{user.displayName}</p>
+                <p className="text-sm font-bold text-gray-900 truncate">
+                  {user.displayName}
+                </p>
                 <p className="text-xs text-gray-500 truncate">{user.role}</p>
               </div>
             )}
-            {navStyle === 'sidebar' && !isSidebarCollapsed && <Settings size={16} className="text-gray-400" />}
+            {navStyle === "sidebar" && !isSidebarCollapsed && (
+              <Settings size={16} className="text-gray-400" />
+            )}
           </button>
-          <button onClick={logout} className={cn("flex items-center gap-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors", navStyle === 'sidebar' ? "w-full p-3" : "p-2")}>
-            <LogOut size={20} /> {navStyle === 'sidebar' && !isSidebarCollapsed && <span className="font-medium">Sair</span>}
+          <button
+            onClick={logout}
+            className={cn(
+              "flex items-center gap-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors",
+              navStyle === "sidebar" ? "w-full p-3" : "p-2",
+            )}
+          >
+            <LogOut size={20} />{" "}
+            {navStyle === "sidebar" && !isSidebarCollapsed && (
+              <span className="font-medium">Sair</span>
+            )}
           </button>
         </div>
       </aside>
@@ -570,15 +993,27 @@ export default function App() {
             transition={{ duration: 0.2 }}
             className="h-full"
           >
-            {!['dashboard', 'calendar', 'events', 'scales', 'volunteers', 'announcements', 'setlist', 'cronograma', 'notifications'].includes(activeTab) ? (
+            {![
+              "dashboard",
+              "calendar",
+              "events",
+              "scales",
+              "volunteers",
+              "announcements",
+              "setlist",
+              "cronograma",
+              "notifications",
+            ].includes(activeTab) ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
                 <div className="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 mx-auto">
                   <AlertTriangle size={48} />
                 </div>
                 <h2 className="text-4xl font-black text-gray-900 mb-4">404</h2>
-                <p className="text-xl text-gray-600 mb-8">Página não encontrada ou em construção.</p>
-                <button 
-                  onClick={() => setActiveTab('dashboard')}
+                <p className="text-xl text-gray-600 mb-8">
+                  Página não encontrada ou em construção.
+                </p>
+                <button
+                  onClick={() => setActiveTab("dashboard")}
                   className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 mx-auto"
                 >
                   Voltar para o Início
@@ -587,729 +1022,1399 @@ export default function App() {
             ) : (
               <>
                 <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900">
-              {activeTab === 'dashboard' && 'Olá, ' + user.displayName.split(' ')[0] + '! 👋'}
-              {activeTab === 'calendar' && 'Calendário Mensal'}
-              {activeTab === 'events' && 'Agenda de Eventos'}
-              {activeTab === 'scales' && 'Gestão de Escalas'}
-              {activeTab === 'volunteers' && 'Equipe de Voluntários'}
-              {activeTab === 'announcements' && 'Mural de Anúncios'}
-              {activeTab === 'setlist' && 'Setlist de Louvor'}
-              {activeTab === 'cronograma' && 'Cronograma do Culto'}
-              {activeTab === 'notifications' && 'Suas Notificações'}
-            </h2>
-          </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900">
+                      {activeTab === "dashboard" &&
+                        "Olá, " + user.displayName.split(" ")[0] + "! 👋"}
+                      {activeTab === "calendar" && "Calendário Mensal"}
+                      {activeTab === "events" && "Agenda de Eventos"}
+                      {activeTab === "scales" && "Gestão de Escalas"}
+                      {activeTab === "volunteers" && "Equipe de Voluntários"}
+                      {activeTab === "announcements" && "Mural de Anúncios"}
+                      {activeTab === "setlist" && "Setlist de Louvor"}
+                      {activeTab === "cronograma" && "Cronograma do Culto"}
+                      {activeTab === "notifications" && "Suas Notificações"}
+                    </h2>
+                  </div>
 
-          <div className="flex items-center gap-6">
-            <button 
-              onClick={() => setActiveTab('notifications')}
-              className={cn(
-                "relative p-3 rounded-full transition-all flex items-center justify-center",
-                activeTab === 'notifications' 
-                  ? "bg-indigo-100 text-indigo-600" 
-                  : (isDarkMode ? "bg-slate-800 text-gray-300 hover:bg-slate-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200")
-              )}
-              title="Notificações"
-            >
-              <Bell size={20} />
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-              )}
-            </button>
+                  <div className="flex items-center gap-6">
+                    <button
+                      onClick={() => setActiveTab("notifications")}
+                      className={cn(
+                        "relative p-3 rounded-full transition-all flex items-center justify-center",
+                        activeTab === "notifications"
+                          ? "bg-indigo-100 text-indigo-600"
+                          : isDarkMode
+                            ? "bg-slate-800 text-gray-300 hover:bg-slate-700"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+                      )}
+                      title="Notificações"
+                    >
+                      <Bell size={20} />
+                      {notifications.filter((n) => !n.read).length > 0 && (
+                        <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                      )}
+                    </button>
 
-            <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
-              <button 
-                onClick={() => setIsDarkMode(false)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
-                  !isDarkMode ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Claro
-              </button>
-              <button 
-                onClick={() => setIsDarkMode(true)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
-                  isDarkMode ? "bg-slate-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Escuro
-              </button>
-            </div>
+                    <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
+                      <button
+                        onClick={() => setIsDarkMode(false)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
+                          !isDarkMode
+                            ? "bg-white text-indigo-600 shadow-sm"
+                            : "text-gray-500 hover:text-gray-700",
+                        )}
+                      >
+                        Claro
+                      </button>
+                      <button
+                        onClick={() => setIsDarkMode(true)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
+                          isDarkMode
+                            ? "bg-slate-800 text-white shadow-sm"
+                            : "text-gray-500 hover:text-gray-700",
+                        )}
+                      >
+                        Escuro
+                      </button>
+                    </div>
 
-            <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
-              <button 
-                onClick={() => setLayoutMode('modern')}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
-                  layoutMode === 'modern' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Moderno
-              </button>
-              <button 
-                onClick={() => setLayoutMode('compact')}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
-                  layoutMode === 'compact' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Compacto
-              </button>
-            </div>
+                    <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
+                      <button
+                        onClick={() => setLayoutMode("modern")}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
+                          layoutMode === "modern"
+                            ? "bg-white text-indigo-600 shadow-sm"
+                            : "text-gray-500 hover:text-gray-700",
+                        )}
+                      >
+                        Moderno
+                      </button>
+                      <button
+                        onClick={() => setLayoutMode("compact")}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
+                          layoutMode === "compact"
+                            ? "bg-white text-indigo-600 shadow-sm"
+                            : "text-gray-500 hover:text-gray-700",
+                        )}
+                      >
+                        Compacto
+                      </button>
+                    </div>
 
-            <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
-              <button 
-                onClick={() => setNavStyle('sidebar')}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
-                  navStyle === 'sidebar' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Lateral
-              </button>
-              <button 
-                onClick={() => setNavStyle('top')}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider", 
-                  navStyle === 'top' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Superior
-              </button>
-            </div>
+                    <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
+                      <button
+                        onClick={() => setNavStyle("sidebar")}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
+                          navStyle === "sidebar"
+                            ? "bg-white text-indigo-600 shadow-sm"
+                            : "text-gray-500 hover:text-gray-700",
+                        )}
+                      >
+                        Lateral
+                      </button>
+                      <button
+                        onClick={() => setNavStyle("top")}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
+                          navStyle === "top"
+                            ? "bg-white text-indigo-600 shadow-sm"
+                            : "text-gray-500 hover:text-gray-700",
+                        )}
+                      >
+                        Superior
+                      </button>
+                    </div>
 
-            {isAdmin && (
-              <div className="flex items-center gap-3">
-              <div className="relative group w-full md:w-96">
-                <input 
-                  type="text" 
-                  placeholder="Comando IA (Evento, Voluntário, Notif)..." 
-                  className="pl-12 pr-12 py-4 bg-white/80 backdrop-blur-sm border-2 border-indigo-100 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none w-full shadow-lg shadow-indigo-500/5 transition-all placeholder:text-gray-400 font-medium"
-                  value={aiCommand}
-                  onChange={(e) => setAiCommand(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAiCommand()}
-                />
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center">
-                  <Sparkles className="text-indigo-600" size={14} />
-                </div>
-                <button 
-                  onClick={handleAiCommand} 
-                  disabled={isAiLoading} 
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shadow-md shadow-indigo-200"
-                >
-                  {isAiLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full" /> : <Plus size={20} />}
-                </button>
-              </div>
-            </div>
-          )}
-          </div>
-        </header>
-
-        {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              {/* Mensagem Bíblica */}
-              <section className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                  <Heart size={120} />
-                </div>
-                <div className="relative z-10">
-                  <blockquote className="text-2xl font-serif italic mb-4 leading-relaxed">
-                    "Servi ao Senhor com alegria; apresentai-vos diante dele com cântico."
-                  </blockquote>
-                  <cite className="text-sm font-bold opacity-80">— Salmos 100:2</cite>
-                  <p className="mt-6 text-blue-100 text-sm max-w-md">
-                    Seu serviço na casa de Deus é precioso. Que seu coração se alegre ao servir hoje!
-                  </p>
-                </div>
-              </section>
-
-              {/* Mural de Anúncios */}
-              <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Megaphone className="text-indigo-600" size={20} />
-                  Mural da Igreja
-                </h3>
-                <div className={cn(
-                  "grid gap-4",
-                  layoutMode === 'modern' ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
-                )}>
-                  {announcements.slice(0, layoutMode === 'modern' ? 2 : 4).map(ann => (
-                    <div key={ann.id} className={cn(
-                      "bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all group",
-                      layoutMode === 'modern' ? "p-6 rounded-3xl" : "p-4 rounded-2xl flex items-center justify-between gap-4"
-                    )}>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-6 h-6 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center shrink-0">
-                            <Megaphone size={12} />
+                    {isAdmin && (
+                      <div className="flex items-center gap-3">
+                        <div className="relative group w-full md:w-96">
+                          <input
+                            type="text"
+                            placeholder="Comando IA (Evento, Voluntário, Notif)..."
+                            className="pl-12 pr-12 py-4 bg-white/80 backdrop-blur-sm border-2 border-indigo-100 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none w-full shadow-lg shadow-indigo-500/5 transition-all placeholder:text-gray-400 font-medium"
+                            value={aiCommand}
+                            onChange={(e) => setAiCommand(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && handleAiCommand()
+                            }
+                          />
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-indigo-50 rounded-lg flex items-center justify-center">
+                            <Sparkles className="text-indigo-600" size={14} />
                           </div>
-                          <h4 className="font-bold text-gray-900 truncate">{ann.title}</h4>
-                        </div>
-                        <p className={cn("text-gray-600 line-clamp-1", layoutMode === 'modern' ? "text-sm mb-4" : "text-xs")}>
-                          {ann.description}
-                        </p>
-                        {layoutMode === 'modern' && ann.pdfUrl && (
-                          <a 
-                            href={ann.pdfUrl} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all"
+                          <button
+                            onClick={handleAiCommand}
+                            disabled={isAiLoading}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shadow-md shadow-indigo-200"
                           >
-                            <FileText size={14} /> Ver PDF
-                          </a>
-                        )}
+                            {isAiLoading ? (
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                            ) : (
+                              <Plus size={20} />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end shrink-0">
-                        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md uppercase tracking-wider mb-2">{ann.date}</span>
-                        {layoutMode === 'compact' && ann.pdfUrl && (
-                          <a href={ann.pdfUrl} target="_blank" rel="noreferrer" className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all">
-                            <FileText size={16} />
-                          </a>
-                        )}
+                    )}
+                  </div>
+                </header>
+
+                {activeTab === "dashboard" && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                      {/* Mensagem Bíblica */}
+                      <section className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                          <Heart size={120} />
+                        </div>
+                        <div className="relative z-10">
+                          <blockquote className="text-2xl font-serif italic mb-4 leading-relaxed">
+                            "Servi ao Senhor com alegria; apresentai-vos diante
+                            dele com cântico."
+                          </blockquote>
+                          <cite className="text-sm font-bold opacity-80">
+                            — Salmos 100:2
+                          </cite>
+                          <p className="mt-6 text-blue-100 text-sm max-w-md">
+                            Seu serviço na casa de Deus é precioso. Que seu
+                            coração se alegre ao servir hoje!
+                          </p>
+                        </div>
+                      </section>
+
+                      {/* Mural de Anúncios */}
+                      <section>
+                        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                          <Megaphone className="text-indigo-600" size={20} />
+                          Mural da Igreja
+                        </h3>
+                        <div
+                          className={cn(
+                            "grid gap-4",
+                            layoutMode === "modern"
+                              ? "grid-cols-1 md:grid-cols-2"
+                              : "grid-cols-1",
+                          )}
+                        >
+                          {announcements
+                            .slice(0, layoutMode === "modern" ? 2 : 4)
+                            .map((ann) => (
+                              <div
+                                key={ann.id}
+                                className={cn(
+                                  "bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all group",
+                                  layoutMode === "modern"
+                                    ? "p-6 rounded-3xl"
+                                    : "p-4 rounded-2xl flex items-center justify-between gap-4",
+                                )}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-6 h-6 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center shrink-0">
+                                      <Megaphone size={12} />
+                                    </div>
+                                    <h4 className="font-bold text-gray-900 truncate">
+                                      {ann.title}
+                                    </h4>
+                                  </div>
+                                  <p
+                                    className={cn(
+                                      "text-gray-600 line-clamp-1",
+                                      layoutMode === "modern"
+                                        ? "text-sm mb-4"
+                                        : "text-xs",
+                                    )}
+                                  >
+                                    {ann.description}
+                                  </p>
+                                  {layoutMode === "modern" && ann.pdfUrl && (
+                                    <a
+                                      href={ann.pdfUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                      <FileText size={14} /> Ver PDF
+                                    </a>
+                                  )}
+                                </div>
+                                <div className="flex flex-col items-end shrink-0">
+                                  <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md uppercase tracking-wider mb-2">
+                                    {ann.date}
+                                  </span>
+                                  {layoutMode === "compact" && ann.pdfUrl && (
+                                    <a
+                                      href={ann.pdfUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                      <FileText size={16} />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          {announcements.length === 0 && (
+                            <p className="text-gray-400 text-sm italic">
+                              Nenhum anúncio recente.
+                            </p>
+                          )}
+                        </div>
+                      </section>
+
+                      {/* Próximos Eventos */}
+                      <section>
+                        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                          <Clock className="text-indigo-600" size={20} />
+                          Próximos Eventos
+                        </h3>
+                        <div
+                          className={cn(
+                            "grid gap-4",
+                            layoutMode === "modern"
+                              ? "grid-cols-1 md:grid-cols-2"
+                              : "grid-cols-1",
+                          )}
+                        >
+                          {events
+                            .filter(
+                              (e) =>
+                                new Date(e.date) >=
+                                new Date(new Date().setHours(0, 0, 0, 0)),
+                            )
+                            .slice(0, layoutMode === "modern" ? 4 : 6)
+                            .map((event) => (
+                              <EventCard
+                                key={event.id}
+                                event={event}
+                                onCheckIn={handleCheckIn}
+                                userCheckIn={checkins.find(
+                                  (c) =>
+                                    c.eventId === event.id &&
+                                    c.userId === user.uid,
+                                )}
+                                isAdmin={isAdmin}
+                                onEdit={() => {
+                                  setEditingEvent(event);
+                                  setIsEventModalOpen(true);
+                                }}
+                                onDelete={() => handleDeleteEvent(event.id)}
+                                onDuplicate={() => handleDuplicateEvent(event)}
+                                compact={layoutMode === "compact"}
+                                reactions={reactions.filter(
+                                  (r) => r.targetId === event.id,
+                                )}
+                                onReaction={(emoji) =>
+                                  handleReaction(event.id, emoji)
+                                }
+                                currentUserId={user.uid}
+                                allUsers={allUsers}
+                                checkins={checkins}
+                              />
+                            ))}
+                          {events.filter((e) => new Date(e.date) >= new Date())
+                            .length === 0 && (
+                            <p className="text-gray-400 text-sm italic">
+                              Nenhum evento futuro.
+                            </p>
+                          )}
+                        </div>
+                      </section>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                        {/* Cronograma Resumo */}
+                        <section>
+                          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <CalendarIcon
+                              className="text-indigo-600"
+                              size={20}
+                            />
+                            Cronograma
+                          </h3>
+                          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                            {cronogramas.slice(0, 2).map((c) => (
+                              <div
+                                key={c.id}
+                                className="mb-4 last:mb-0 border-b last:border-0 pb-4 last:pb-0 cursor-pointer group"
+                                onClick={() => setViewingCronograma(c)}
+                              >
+                                <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                  {c.title}
+                                </h4>
+                                <p className="text-xs text-gray-500 mb-2">
+                                  {formatDate(c.date)}
+                                </p>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveTab("cronograma");
+                                  }}
+                                  className="text-xs font-bold text-indigo-600 hover:underline"
+                                >
+                                  Ver todos
+                                </button>
+                              </div>
+                            ))}
+                            {cronogramas.length === 0 && (
+                              <p className="text-gray-400 text-sm italic">
+                                Nenhum cronograma.
+                              </p>
+                            )}
+                          </div>
+                        </section>
+
+                        {/* Setlist Resumo */}
+                        <section>
+                          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <FileText className="text-indigo-600" size={20} />
+                            Setlist
+                          </h3>
+                          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                            {setlists.slice(0, 2).map((s) => (
+                              <div
+                                key={s.id}
+                                className="mb-4 last:mb-0 border-b last:border-0 pb-4 last:pb-0 cursor-pointer group"
+                                onClick={() => setViewingSetlist(s)}
+                              >
+                                <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                  {s.title}
+                                </h4>
+                                <p className="text-xs text-gray-500 mb-2">
+                                  {formatDate(s.date)}
+                                </p>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveTab("setlist");
+                                  }}
+                                  className="text-xs font-bold text-indigo-600 hover:underline"
+                                >
+                                  Ver todas
+                                </button>
+                              </div>
+                            ))}
+                            {setlists.length === 0 && (
+                              <p className="text-gray-400 text-sm italic">
+                                Nenhuma setlist.
+                              </p>
+                            )}
+                          </div>
+                        </section>
                       </div>
                     </div>
-                  ))}
-                  {announcements.length === 0 && <p className="text-gray-400 text-sm italic">Nenhum anúncio recente.</p>}
-                </div>
-              </section>
 
-              {/* Próximos Eventos */}
-              <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Clock className="text-indigo-600" size={20} />
-                  Próximos Eventos
-                </h3>
-                <div className={cn(
-                  "grid gap-4",
-                  layoutMode === 'modern' ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
-                )}>
-                  {events.filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).slice(0, layoutMode === 'modern' ? 4 : 6).map(event => (
-                    <EventCard 
-                      key={event.id} 
-                      event={event} 
-                      onCheckIn={handleCheckIn}
-                      userCheckIn={checkins.find(c => c.eventId === event.id && c.userId === user.uid)}
-                      isAdmin={isAdmin}
-                      onEdit={() => { setEditingEvent(event); setIsEventModalOpen(true); }}
-                      onDelete={() => handleDeleteEvent(event.id)}
-                      onDuplicate={() => handleDuplicateEvent(event)}
-                      compact={layoutMode === 'compact'}
-                      reactions={reactions.filter(r => r.targetId === event.id)}
-                      onReaction={(emoji) => handleReaction(event.id, emoji)}
-                      currentUserId={user.uid}
-                      allUsers={allUsers}
-                      checkins={checkins}
-                    />
-                  ))}
-                  {events.filter(e => new Date(e.date) >= new Date()).length === 0 && <p className="text-gray-400 text-sm italic">Nenhum evento futuro.</p>}
-                </div>
-              </section>
+                    <div className="space-y-8">
+                      {/* Destaque de Próximas Escalas */}
+                      <section>
+                        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                          <Users className="text-indigo-600" size={20} />
+                          Escalados em Breve
+                        </h3>
+                        <div className="space-y-3">
+                          {events
+                            .filter(
+                              (e) =>
+                                new Date(e.date) >=
+                                new Date(new Date().setHours(0, 0, 0, 0)),
+                            )
+                            .slice(0, 3)
+                            .map((event) => {
+                              const scale = scales.find(
+                                (s) => s.eventId === event.id,
+                              );
+                              if (!scale || scale.assignments.length === 0)
+                                return null;
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                {/* Cronograma Resumo */}
-                <section>
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <CalendarIcon className="text-indigo-600" size={20} />
-                    Cronograma
-                  </h3>
-                  <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                    {cronogramas.slice(0, 2).map(c => (
-                      <div key={c.id} className="mb-4 last:mb-0 border-b last:border-0 pb-4 last:pb-0 cursor-pointer group" onClick={() => setViewingCronograma(c)}>
-                        <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{c.title}</h4>
-                        <p className="text-xs text-gray-500 mb-2">{formatDate(c.date)}</p>
-                        <button onClick={(e) => { e.stopPropagation(); setActiveTab('cronograma'); }} className="text-xs font-bold text-indigo-600 hover:underline">Ver todos</button>
-                      </div>
-                    ))}
-                    {cronogramas.length === 0 && <p className="text-gray-400 text-sm italic">Nenhum cronograma.</p>}
-                  </div>
-                </section>
-
-                {/* Setlist Resumo */}
-                <section>
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FileText className="text-indigo-600" size={20} />
-                    Setlist
-                  </h3>
-                  <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                    {setlists.slice(0, 2).map(s => (
-                      <div key={s.id} className="mb-4 last:mb-0 border-b last:border-0 pb-4 last:pb-0 cursor-pointer group" onClick={() => setViewingSetlist(s)}>
-                        <h4 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{s.title}</h4>
-                        <p className="text-xs text-gray-500 mb-2">{formatDate(s.date)}</p>
-                        <button onClick={(e) => { e.stopPropagation(); setActiveTab('setlist'); }} className="text-xs font-bold text-indigo-600 hover:underline">Ver todas</button>
-                      </div>
-                    ))}
-                    {setlists.length === 0 && <p className="text-gray-400 text-sm italic">Nenhuma setlist.</p>}
-                  </div>
-                </section>
-              </div>
-            </div>
-
-            <div className="space-y-8">
-              {/* Destaque de Próximas Escalas */}
-              <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Users className="text-indigo-600" size={20} />
-                  Escalados em Breve
-                </h3>
-                <div className="space-y-3">
-                  {events
-                    .filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0)))
-                    .slice(0, 3)
-                    .map(event => {
-                      const scale = scales.find(s => s.eventId === event.id);
-                      if (!scale || scale.assignments.length === 0) return null;
-                      
-                      return (
-                        <div key={event.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{formatDate(event.date)}</p>
-                              <h4 className="text-sm font-bold text-gray-900">{event.title}</h4>
-                            </div>
-                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg">
-                              {scale.assignments.length} PESSOAS
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {scale.assignments.map(a => {
-                              const u = allUsers.find(user => user.uid === a.userId);
                               return (
-                                <div key={a.userId} className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
-                                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
-                                    {u?.displayName[0] || '?'}
+                                <div
+                                  key={event.id}
+                                  className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm"
+                                >
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                      <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+                                        {formatDate(event.date)}
+                                      </p>
+                                      <h4 className="text-sm font-bold text-gray-900">
+                                        {event.title}
+                                      </h4>
+                                    </div>
+                                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg">
+                                      {scale.assignments.length} PESSOAS
+                                    </span>
                                   </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-gray-900 leading-none">{u?.displayName.split(' ')[0]}</span>
-                                    <span className="text-[8px] text-gray-500 font-medium uppercase tracking-tighter">{a.role}</span>
+                                  <div className="flex flex-wrap gap-2">
+                                    {scale.assignments.map((a, idx) => {
+                                      const isMissing = a.userId === "EMPTY";
+                                      const u = isMissing
+                                        ? null
+                                        : allUsers.find(
+                                            (user) => user.uid === a.userId,
+                                          );
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className={cn(
+                                            "flex items-center gap-2 px-3 py-1.5 rounded-xl border",
+                                            isMissing
+                                              ? "bg-red-50 border-red-100"
+                                              : "bg-gray-50 border-gray-100",
+                                          )}
+                                        >
+                                          <div
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                              isMissing
+                                                ? "bg-red-100 text-red-600"
+                                                : "bg-indigo-100 text-indigo-600",
+                                            )}
+                                          >
+                                            {isMissing
+                                              ? "!"
+                                              : u?.displayName[0] || "?"}
+                                          </div>
+                                          <div className="flex flex-col">
+                                            <span
+                                              className={cn(
+                                                "text-[10px] font-bold leading-none",
+                                                isMissing
+                                                  ? "text-red-700"
+                                                  : "text-gray-900",
+                                              )}
+                                            >
+                                              {isMissing
+                                                ? "Pendente"
+                                                : u?.displayName.split(" ")[0]}
+                                            </span>
+                                            <span className="text-[8px] text-gray-500 font-medium uppercase tracking-tighter">
+                                              {(a.roles || [a.role])
+                                                .filter(Boolean)
+                                                .join(", ")}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );
                             })}
-                          </div>
                         </div>
-                      );
-                    })}
-                </div>
-              </section>
+                      </section>
 
-              <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-                <p className="text-indigo-100 text-sm font-medium mb-1">Sua Próxima Escala</p>
-                <h4 className="text-2xl font-bold mb-4">
-                  {events.find(e => new Date(e.date) >= new Date() && scales.some(s => s.eventId === e.id && s.assignments.some(a => a.userId === user.uid)))?.title || 'Sem escalas'}
-                </h4>
-                <div className="flex items-center gap-2 text-indigo-100 text-sm">
-                  <CalendarIcon size={16} />
-                  <span>{events.find(e => new Date(e.date) >= new Date() && scales.some(s => s.eventId === e.id && s.assignments.some(a => a.userId === user.uid)))?.date ? formatDate(events.find(e => new Date(e.date) >= new Date() && scales.some(s => s.eventId === e.id && s.assignments.some(a => a.userId === user.uid)))!.date) : '--/--'}</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
-                  Notificações
-                  <button onClick={() => setActiveTab('notifications')} className="text-indigo-600 text-xs hover:underline">Ver todas</button>
-                </h3>
-                <div className="space-y-4">
-                  {notifications.slice(0, 3).map(notif => (
-                    <div key={notif.id} className="flex gap-3">
-                      <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", notif.read ? "bg-gray-300" : "bg-indigo-600")} />
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{notif.title}</p>
-                        <p className="text-xs text-gray-500 line-clamp-1">{notif.message}</p>
+                      <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                        <p className="text-indigo-100 text-sm font-medium mb-1">
+                          Sua Próxima Escala
+                        </p>
+                        <h4 className="text-2xl font-bold mb-4">
+                          {events.find(
+                            (e) =>
+                              new Date(e.date) >= new Date() &&
+                              scales.some(
+                                (s) =>
+                                  s.eventId === e.id &&
+                                  s.assignments.some(
+                                    (a) => a.userId === user.uid,
+                                  ),
+                              ),
+                          )?.title || "Sem escalas"}
+                        </h4>
+                        <div className="flex items-center gap-2 text-indigo-100 text-sm">
+                          <CalendarIcon size={16} />
+                          <span>
+                            {events.find(
+                              (e) =>
+                                new Date(e.date) >= new Date() &&
+                                scales.some(
+                                  (s) =>
+                                    s.eventId === e.id &&
+                                    s.assignments.some(
+                                      (a) => a.userId === user.uid,
+                                    ),
+                                ),
+                            )?.date
+                              ? formatDate(
+                                  events.find(
+                                    (e) =>
+                                      new Date(e.date) >= new Date() &&
+                                      scales.some(
+                                        (s) =>
+                                          s.eventId === e.id &&
+                                          s.assignments.some(
+                                            (a) => a.userId === user.uid,
+                                          ),
+                                      ),
+                                  )!.date,
+                                )
+                              : "--/--"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'calendar' && <CalendarView events={events} scales={scales} allUsers={allUsers} />}
-
-        {activeTab === 'events' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={showPastEvents} 
-                  onChange={e => setShowPastEvents(e.target.checked)}
-                  className="rounded text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="font-medium">Mostrar eventos passados</span>
-              </label>
-              {isAdmin && (
-                <button 
-                  onClick={() => { setEditingEvent(null); setIsEventModalOpen(true); }}
-                  className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
-                >
-                  <Plus size={20} /> Novo Evento
-                </button>
-              )}
-            </div>
-            <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left min-w-[600px]">
-                  <thead className="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Evento</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Data</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Reações</th>
-                    {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Ações</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {events.filter(e => showPastEvents || new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).map(event => (
-                    <tr key={event.id} className="hover:bg-gray-50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-900">{event.title}</p>
-                        <p className="text-xs text-gray-500">{event.description}</p>
-                        {checkins.filter(c => c.eventId === event.id && c.status === 'PRESENTE').length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {checkins.filter(c => c.eventId === event.id && c.status === 'PRESENTE').map(c => (
-                              <span key={c.id} className="text-[7px] font-bold px-1 py-0.5 bg-green-50 text-green-700 rounded border border-green-100">
-                                {allUsers.find(u => u.uid === c.userId)?.displayName.split(' ')[0]}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{formatDate(event.date)}</td>
-                      <td className="px-6 py-4">
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
-                          event.type === 'CULTO' ? "bg-blue-600 text-white" : 
-                          event.type === 'ENSAIO' ? "bg-sky-400 text-white" : "bg-rose-900 text-white"
-                        )}>
-                          {event.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <ReactionDisplay reactions={reactions.filter(r => r.targetId === event.id)} allUsers={allUsers} />
-                          <div className="transition-opacity">
-                            <ReactionPicker 
-                              onReact={(emoji) => handleReaction(event.id, emoji)} 
-                              currentUserId={user.uid} 
-                              reactions={reactions.filter(r => r.targetId === event.id)} 
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      {isAdmin && (
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => handleDuplicateEvent(event)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Duplicar">
-                              <Plus size={18} />
-                            </button>
-                            <button onClick={() => { setEditingEvent(event); setIsEventModalOpen(true); }} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
-                              <Edit size={18} />
-                            </button>
-                            <button onClick={() => handleDeleteEvent(event.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'scales' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={showPastEvents} 
-                  onChange={e => setShowPastEvents(e.target.checked)}
-                  className="rounded text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="font-medium">Mostrar escalas passadas</span>
-              </label>
-              <div className="flex items-center gap-4 w-full sm:w-auto">
-                <select 
-                  className="p-2 bg-white border border-gray-200 rounded-xl outline-none text-sm w-full sm:w-auto"
-                  value={scaleFilterVolunteer}
-                  onChange={e => setScaleFilterVolunteer(e.target.value)}
-                >
-                  <option value="all">Todos os Voluntários</option>
-                  {allUsers.map(u => (
-                    <option key={u.uid} value={u.uid}>{u.displayName}</option>
-                  ))}
-                </select>
-                {isAdmin && (
-                  <button 
-                    onClick={handleBatchGenerateScales}
-                    className="bg-amber-50 text-amber-700 px-6 py-2 rounded-2xl font-bold flex items-center gap-2 hover:bg-amber-100 transition-colors border border-amber-100 shrink-0"
-                  >
-                    <Sparkles size={20} /> Gerar Escalas
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.filter(e => showPastEvents || new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).filter(event => {
-                if (scaleFilterVolunteer === 'all') return true;
-                const scale = scales.find(s => s.eventId === event.id);
-                return scale?.assignments.some(a => a.userId === scaleFilterVolunteer);
-              }).map(event => {
-                const scale = scales.find(s => s.eventId === event.id);
-                const scaleReactions = scale ? reactions.filter(r => r.targetId === scale.id) : [];
-                
-                return (
-                  <div key={event.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
-                    <div className={cn(
-                      "absolute top-0 left-0 w-full h-1.5",
-                      event.type === 'CULTO' ? "bg-blue-600" : event.type === 'ENSAIO' ? "bg-sky-400" : "bg-rose-900"
-                    )} />
-                    <h4 className="font-bold text-gray-900 mb-1">{event.title}</h4>
-                    <p className="text-[10px] text-gray-500 mb-4">{formatDate(event.date)}</p>
-                    <div className="space-y-2 mb-6">
-                      {scale?.assignments.map((a, i) => (
-                        <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
-                              {allUsers.find(u => u.uid === a.userId)?.displayName[0] || '?'}
+                      <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                        <h3 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
+                          Notificações
+                          <button
+                            onClick={() => setActiveTab("notifications")}
+                            className="text-indigo-600 text-xs hover:underline"
+                          >
+                            Ver todas
+                          </button>
+                        </h3>
+                        <div className="space-y-4">
+                          {notifications.slice(0, 3).map((notif) => (
+                            <div key={notif.id} className="flex gap-3">
+                              <div
+                                className={cn(
+                                  "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                                  notif.read ? "bg-gray-300" : "bg-indigo-600",
+                                )}
+                              />
+                              <div>
+                                <p className="text-sm font-bold text-gray-900">
+                                  {notif.title}
+                                </p>
+                                <p className="text-xs text-gray-500 line-clamp-1">
+                                  {notif.message}
+                                </p>
+                              </div>
                             </div>
-                            <span className="text-xs font-medium text-gray-700">{allUsers.find(u => u.uid === a.userId)?.displayName || 'Desconhecido'}</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1 justify-end max-w-[100px]">
-                            {(a.roles || [a.role]).map((r: string) => (
-                              <span key={r} className="text-[7px] font-bold px-1 py-0.5 bg-indigo-50 text-indigo-600 rounded uppercase tracking-tighter">{r}</span>
-                            ))}
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                      {(!scale || scale.assignments.length === 0) && <p className="text-xs text-gray-400 italic">Ninguém escalado.</p>}
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-50">
-                      <div className="flex items-center gap-2">
-                        <ReactionDisplay reactions={scaleReactions} allUsers={allUsers} />
-                        {scale && (
-                          <div className="transition-opacity">
-                            <ReactionPicker 
-                              onReact={(emoji) => handleReaction(scale.id, emoji)} 
-                              currentUserId={user.uid} 
-                              reactions={scaleReactions} 
-                            />
-                          </div>
-                        )}
+                  </div>
+                )}
+
+                {activeTab === "calendar" && (
+                  <CalendarView
+                    events={events}
+                    scales={scales}
+                    allUsers={allUsers}
+                  />
+                )}
+
+                {activeTab === "events" && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showPastEvents}
+                            onChange={(e) => setShowPastEvents(e.target.checked)}
+                            className="rounded text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="font-medium">
+                            Incluir anteriores
+                          </span>
+                        </label>
+                        <select 
+                          className="text-sm p-2 bg-white border border-gray-200 rounded-xl outline-none"
+                          value={eventFilterType}
+                          onChange={(e) => setEventFilterType(e.target.value)}
+                        >
+                          <option value="all">Todos os Tipos</option>
+                          <option value="CULTO">Culto</option>
+                          <option value="ENSAIO">Ensaio</option>
+                          <option value="REUNIAO">Reunião</option>
+                        </select>
+                        <select 
+                          className="text-sm p-2 bg-white border border-gray-200 rounded-xl outline-none"
+                          value={eventFilterStatus}
+                          onChange={(e) => setEventFilterStatus(e.target.value)}
+                        >
+                          <option value="all">Qualquer Status</option>
+                          <option value="AGENDADO">Agendado</option>
+                          <option value="CONCLUIDO">Concluído</option>
+                        </select>
                       </div>
                       {isAdmin && (
-                        <button 
-                          onClick={() => { setSelectedEventForScale(event); setIsScaleModalOpen(true); }}
-                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold hover:bg-indigo-600 hover:text-white transition-all uppercase"
+                        <button
+                          onClick={() => {
+                            setEditingEvent(null);
+                            setIsEventModalOpen(true);
+                          }}
+                          className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors w-full sm:w-auto justify-center"
                         >
-                          Editar
+                          <Plus size={20} /> Novo Evento
                         </button>
                       )}
                     </div>
+                    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left min-w-[600px]">
+                          <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Evento
+                              </th>
+                              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Data
+                              </th>
+                              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Tipo
+                              </th>
+                              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Reações
+                              </th>
+                              {isAdmin && (
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
+                                  Ações
+                                </th>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {events
+                              .filter(
+                                (e) =>
+                                  showPastEvents ||
+                                  new Date(e.date) >=
+                                    new Date(new Date().setHours(0, 0, 0, 0)),
+                              )
+                              .filter((e) => eventFilterType === 'all' || e.type === eventFilterType)
+                              .filter((e) => {
+                                if (eventFilterStatus === 'all') return true;
+                                const isPast = new Date(e.date) < new Date(new Date().setHours(0, 0, 0, 0));
+                                if (eventFilterStatus === 'CONCLUIDO') return isPast;
+                                if (eventFilterStatus === 'AGENDADO') return !isPast;
+                                return true;
+                              })
+                              .map((event) => (
+                                <tr
+                                  key={event.id}
+                                  className="hover:bg-gray-50 transition-colors group"
+                                >
+                                  <td className="px-6 py-4">
+                                    <p className="font-bold text-gray-900">
+                                      {event.title}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {event.description}
+                                    </p>
+                                    {checkins.filter(
+                                      (c) =>
+                                        c.eventId === event.id &&
+                                        c.status === "PRESENTE",
+                                    ).length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {checkins
+                                          .filter(
+                                            (c) =>
+                                              c.eventId === event.id &&
+                                              c.status === "PRESENTE",
+                                          )
+                                          .map((c) => (
+                                            <span
+                                              key={c.id}
+                                              className="text-[7px] font-bold px-1 py-0.5 bg-green-50 text-green-700 rounded border border-green-100"
+                                            >
+                                              {
+                                                allUsers
+                                                  .find(
+                                                    (u) => u.uid === c.userId,
+                                                  )
+                                                  ?.displayName.split(" ")[0]
+                                              }
+                                            </span>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-gray-600">
+                                    {formatDate(event.date)}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span
+                                      className={cn(
+                                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
+                                        event.type === "CULTO"
+                                          ? "bg-blue-600 text-white"
+                                          : event.type === "ENSAIO"
+                                            ? "bg-sky-400 text-white"
+                                            : "bg-rose-900 text-white",
+                                      )}
+                                    >
+                                      {event.type}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                      <ReactionDisplay
+                                        reactions={reactions.filter(
+                                          (r) => r.targetId === event.id,
+                                        )}
+                                        allUsers={allUsers}
+                                      />
+                                      <div className="transition-opacity">
+                                        <ReactionPicker
+                                          onReact={(emoji) =>
+                                            handleReaction(event.id, emoji)
+                                          }
+                                          currentUserId={user.uid}
+                                          reactions={reactions.filter(
+                                            (r) => r.targetId === event.id,
+                                          )}
+                                        />
+                                      </div>
+                                    </div>
+                                  </td>
+                                  {isAdmin && (
+                                    <td className="px-6 py-4 text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                        <button
+                                          onClick={() =>
+                                            handleDuplicateEvent(event)
+                                          }
+                                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                          title="Duplicar"
+                                        >
+                                          <Plus size={18} />
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setEditingEvent(event);
+                                            setIsEventModalOpen(true);
+                                          }}
+                                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                        >
+                                          <Edit size={18} />
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleDeleteEvent(event.id)
+                                          }
+                                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                        >
+                                          <Trash2 size={18} />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                )}
 
-        {activeTab === 'announcements' && (
-          <div className="space-y-6">
-            <div className="flex justify-end">
-              {isAdmin && (
-                <button 
-                  onClick={() => setIsAnnouncementModalOpen(true)}
-                  className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
-                >
-                  <Plus size={20} /> Novo Anúncio
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {announcements.map(ann => (
-                <div key={ann.id} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative group">
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="text-xl font-bold text-gray-900">{ann.title}</h4>
-                    {isAdmin && (
-                      <button 
-                        onClick={async () => { 
-                          try {
-                            await deleteDoc(doc(db, 'announcements', ann.id)); 
-                            toast.success("Anúncio excluído");
-                          } catch (error) {
-                            handleFirestoreError(error, OperationType.DELETE, 'announcements');
+                {activeTab === "scales" && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex flex-col gap-4 w-full sm:w-auto">
+                        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showPastEvents}
+                            onChange={(e) => setShowPastEvents(e.target.checked)}
+                            className="rounded text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="font-medium">
+                            Mostrar escalas passadas
+                          </span>
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setScaleViewMode('cards')}
+                            className={cn("text-xs font-bold px-3 py-1.5 rounded-lg border uppercase", scaleViewMode === 'cards' ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-500 border-gray-200")}
+                          >
+                            Visualização Cards
+                          </button>
+                          <button
+                            onClick={() => setScaleViewMode('weekly')}
+                            className={cn("text-xs font-bold px-3 py-1.5 rounded-lg border uppercase", scaleViewMode === 'weekly' ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-500 border-gray-200")}
+                          >
+                            Resumo Semanal
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+                        <select
+                          className="p-2 bg-white border border-gray-200 rounded-xl outline-none text-sm w-full sm:w-auto"
+                          value={scaleFilterRole}
+                          onChange={(e) => setScaleFilterRole(e.target.value)}
+                        >
+                          <option value="all">Todas as Funções</option>
+                          {ROLES.map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                        <select
+                          className="p-2 bg-white border border-gray-200 rounded-xl outline-none text-sm w-full sm:w-auto"
+                          value={scaleFilterVolunteer}
+                          onChange={(e) =>
+                            setScaleFilterVolunteer(e.target.value)
                           }
-                        }} 
-                        className="p-2 text-gray-400 hover:text-red-600 transition-opacity"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                        >
+                          <option value="all">Todos os Voluntários</option>
+                          {allUsers.map((u) => (
+                            <option key={u.uid} value={u.uid}>
+                              {u.displayName}
+                            </option>
+                          ))}
+                        </select>
+                        
+                        {isAdmin && (
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <button
+                              onClick={() => setIsDateScheduleModalOpen(true)}
+                              className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-2xl font-bold flex flex-1 sm:flex-none items-center justify-center gap-2 hover:bg-indigo-100 transition-colors border border-indigo-100"
+                            >
+                              <CalendarDays size={18} /> Agendar
+                            </button>
+                            <button
+                              onClick={handleBatchGenerateScales}
+                              className="bg-amber-50 text-amber-700 px-4 py-2 rounded-2xl font-bold flex flex-1 sm:flex-none items-center justify-center gap-2 hover:bg-amber-100 transition-colors border border-amber-100"
+                            >
+                              <Sparkles size={18} /> IA
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {scaleViewMode === 'cards' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {events
+                          .filter(
+                            (e) =>
+                              showPastEvents ||
+                              new Date(e.date) >=
+                                new Date(new Date().setHours(0, 0, 0, 0)),
+                          )
+                          .filter((event) => {
+                            const scale = scales.find((s) => s.eventId === event.id);
+                            let include = true;
+                            if (scaleFilterVolunteer !== "all") {
+                              include = include && !!scale?.assignments.some((a) => a.userId === scaleFilterVolunteer);
+                            }
+                            if (scaleFilterRole !== "all") {
+                              // Se estiver filtrando por função, checamos se aquela ROLE está em alguma das assignments
+                              include = include && !!scale?.assignments.some((a) => (a.roles || [a.role]).includes(scaleFilterRole));
+                            }
+                            return include;
+                          })
+                        .map((event) => {
+                          const scale = scales.find(
+                            (s) => s.eventId === event.id,
+                          );
+                          const scaleReactions = scale
+                            ? reactions.filter((r) => r.targetId === scale.id)
+                            : [];
+
+                          return (
+                            <div
+                              key={event.id}
+                              className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group"
+                            >
+                              <div
+                                className={cn(
+                                  "absolute top-0 left-0 w-full h-1.5",
+                                  event.type === "CULTO"
+                                    ? "bg-blue-600"
+                                    : event.type === "ENSAIO"
+                                      ? "bg-sky-400"
+                                      : "bg-rose-900",
+                                )}
+                              />
+                              <h4 className="font-bold text-gray-900 mb-1">
+                                {event.title}
+                              </h4>
+                              <p className="text-[10px] text-gray-500 mb-4">
+                                {formatDate(event.date)}
+                              </p>
+                              <div className="space-y-2 mb-6">
+                                {scale?.assignments.map((a, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center justify-between p-2 bg-gray-50 rounded-xl"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className={cn(
+                                          "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                          a.userId === "EMPTY"
+                                            ? "bg-red-100 text-red-600"
+                                            : "bg-indigo-100 text-indigo-600",
+                                        )}
+                                      >
+                                        {a.userId === "EMPTY"
+                                          ? "!"
+                                          : allUsers.find(
+                                              (u) => u.uid === a.userId,
+                                            )?.displayName[0] || "?"}
+                                      </div>
+                                      <span
+                                        className={cn(
+                                          "text-xs font-medium",
+                                          a.userId === "EMPTY"
+                                            ? "text-red-600"
+                                            : "text-gray-700",
+                                        )}
+                                      >
+                                        {a.userId === "EMPTY"
+                                          ? "Sem voluntários disponíveis"
+                                          : allUsers.find(
+                                              (u) => u.uid === a.userId,
+                                            )?.displayName || "Desconhecido"}
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 justify-end max-w-[100px]">
+                                      {(a.roles || [a.role])
+                                        .filter(Boolean)
+                                        .map((r: string) => (
+                                          <span
+                                            key={r}
+                                            className={cn(
+                                              "text-[7px] font-bold px-1 py-0.5 rounded uppercase tracking-tighter",
+                                              a.userId === "EMPTY"
+                                                ? "bg-red-50 text-red-600"
+                                                : "bg-indigo-50 text-indigo-600",
+                                            )}
+                                          >
+                                            {r}
+                                          </span>
+                                        ))}
+                                    </div>
+                                  </div>
+                                ))}
+                                {(!scale || scale.assignments.length === 0) && (
+                                  <p className="text-xs text-gray-400 italic">
+                                    Ninguém escalado.
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-50">
+                                <div className="flex items-center gap-2">
+                                  <ReactionDisplay
+                                    reactions={scaleReactions}
+                                    allUsers={allUsers}
+                                  />
+                                  {scale && (
+                                    <div className="transition-opacity">
+                                      <ReactionPicker
+                                        onReact={(emoji) =>
+                                          handleReaction(scale.id, emoji)
+                                        }
+                                        currentUserId={user.uid}
+                                        reactions={scaleReactions}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedEventForScale(event);
+                                      setIsScaleModalOpen(true);
+                                    }}
+                                    className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold hover:bg-indigo-600 hover:text-white transition-all uppercase"
+                                  >
+                                    Editar
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                    ) : (
+                      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm p-6 overflow-x-auto">
+                        <table className="w-full text-left min-w-[800px]">
+                          <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Evento</th>
+                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Data</th>
+                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Equipe</th>
+                              {isAdmin && <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Ação</th>}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {events
+                              .filter(
+                                (e) =>
+                                  showPastEvents ||
+                                  new Date(e.date) >=
+                                    new Date(new Date().setHours(0, 0, 0, 0)),
+                              )
+                              .filter((event) => {
+                                const scale = scales.find((s) => s.eventId === event.id);
+                                let include = true;
+                                if (scaleFilterVolunteer !== "all") {
+                                  include = include && !!scale?.assignments.some((a) => a.userId === scaleFilterVolunteer);
+                                }
+                                if (scaleFilterRole !== "all") {
+                                  include = include && !!scale?.assignments.some((a) => (a.roles || [a.role]).includes(scaleFilterRole));
+                                }
+                                return include;
+                              })
+                              .map(event => {
+                                const scale = scales.find((s) => s.eventId === event.id);
+                                return (
+                                  <tr key={event.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-3 font-bold text-gray-900">{event.title}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(event.date)}</td>
+                                    <td className="px-4 py-3">
+                                      <div className="flex flex-wrap gap-2">
+                                        {scale?.assignments.map((a, i) => {
+                                          const isMissing = a.userId === "EMPTY";
+                                          return (
+                                            <div key={i} className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-lg">
+                                              <div className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold", isMissing ? "bg-red-100 text-red-600" : "bg-indigo-100 text-indigo-600")}>
+                                                {isMissing ? "!" : allUsers.find(u => u.uid === a.userId)?.displayName[0] || "?"}
+                                              </div>
+                                              <span className={cn("text-[10px] font-medium max-w-[80px] truncate", isMissing ? "text-red-600" : "text-gray-700")}>
+                                                {isMissing ? "Pendente" : allUsers.find(u => u.uid === a.userId)?.displayName.split(' ')[0] || "Desconh."}
+                                              </span>
+                                              <span className="text-[8px] text-gray-500 uppercase font-bold tracking-tighter mix-blend-multiply">
+                                                {(a.roles || [a.role]).filter(Boolean).join(',')}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                        {(!scale || scale.assignments.length === 0) && <span className="text-xs text-gray-400 italic">Sem equipe</span>}
+                                      </div>
+                                    </td>
+                                    {isAdmin && (
+                                      <td className="px-4 py-3 text-right">
+                                        <button
+                                          onClick={() => {
+                                            setSelectedEventForScale(event);
+                                            setIsScaleModalOpen(true);
+                                          }}
+                                          className="text-indigo-600 hover:text-indigo-900 text-xs font-bold uppercase"
+                                        >
+                                          Editar
+                                        </button>
+                                      </td>
+                                    )}
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-gray-500 text-sm mb-4">
-                    <div className="flex items-center gap-1">
-                      <CalendarIcon size={14} /> <span>{ann.date}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock size={14} /> <span>{ann.time}</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mb-6">{ann.description}</p>
-                  {ann.pdfUrl && (
-                    <a href={ann.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors">
-                      <FileText size={16} /> Ver PDF
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                )}
 
-        {activeTab === 'notifications' && (
-          <div className="max-w-2xl mx-auto space-y-4">
-            <div className="flex justify-end mb-4">
-              {isAdmin && (
-                <button 
-                  onClick={() => setIsNotifModalOpen(true)}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm"
-                >
-                  <Send size={16} /> Enviar Notificação
-                </button>
-              )}
-            </div>
-            {notifications.map(notif => (
-              <div key={notif.id} className={cn(
-                "p-6 rounded-3xl border transition-all",
-                notif.read 
-                  ? (isDarkMode ? "bg-slate-800 border-slate-700 opacity-75" : "bg-white border-gray-100 opacity-75") 
-                  : (isDarkMode ? "bg-indigo-900/30 border-indigo-500/30 shadow-md" : "bg-indigo-50 border-indigo-100 shadow-md")
-              )}>
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className={cn("font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{notif.title}</h4>
-                  <span className="text-[10px] text-gray-400">{formatDate(notif.createdAt)}</span>
-                </div>
-                <p className={cn("text-sm mb-4", isDarkMode ? "text-gray-300" : "text-gray-600")}>{notif.message}</p>
-                <div className="flex items-center gap-4">
-                  {!notif.read && (
-                    <button 
-                      onClick={async () => {
-                        try {
-                          await updateDoc(doc(db, 'notifications', notif.id), { read: true });
-                        } catch (error) {
-                          handleFirestoreError(error, OperationType.UPDATE, 'notifications');
-                        }
-                      }} 
-                      className={cn("text-xs font-bold hover:underline", isDarkMode ? "text-indigo-400" : "text-indigo-600")}
-                    >
-                      Marcar como lida
-                    </button>
-                  )}
-                  <button 
-                    onClick={async () => {
-                      try {
-                        await deleteDoc(doc(db, 'notifications', notif.id));
-                        toast.success("Notificação excluída");
-                      } catch (error) {
-                        handleFirestoreError(error, OperationType.DELETE, 'notifications');
-                      }
-                    }} 
-                    className={cn("text-xs font-bold hover:underline", isDarkMode ? "text-red-400" : "text-red-600")}
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'volunteers' && (
-          <div className="space-y-6">
-            <div className="flex justify-end">
-              {isAdmin && (
-                <button 
-                  onClick={() => { setEditingVolunteer(null); setIsVolunteerModalOpen(true); }}
-                  className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
-                >
-                  <Plus size={20} /> Novo Voluntário
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allUsers.map(u => (
-                <div key={u.uid} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center gap-4 relative group">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shrink-0" style={{ backgroundColor: u.color || '#4F46E5' }}>
-                    {u.photoURL ? <img src={u.photoURL} alt="" className="w-full h-full object-cover rounded-2xl" referrerPolicy="no-referrer" /> : u.displayName[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-gray-900 truncate">{u.displayName}</h4>
-                    <p className="text-xs text-gray-500 mb-2">{u.email}</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase">{u.role}</span>
-                      {u.specialty && <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-bold uppercase">{u.specialty}</span>}
-                      {u.status === 'pending' && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-md text-[10px] font-bold uppercase">Pendente</span>}
-                    </div>
-                  </div>
-                  {isAdmin && (
-                    <div className="absolute top-4 right-4 flex gap-1 transition-opacity">
-                      {u.status === 'pending' && (
-                        <button 
-                          onClick={async () => {
-                            try {
-                              await updateDoc(doc(db, 'users', u.uid), { status: 'approved' });
-                              toast.success("Usuário aprovado!");
-                            } catch (error) {
-                              handleFirestoreError(error, OperationType.UPDATE, 'users');
-                            }
-                          }}
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
-                          title="Aprovar usuário"
+                {activeTab === "announcements" && (
+                  <div className="space-y-6">
+                    <div className="flex justify-end">
+                      {isAdmin && (
+                        <button
+                          onClick={() => setIsAnnouncementModalOpen(true)}
+                          className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
                         >
-                          <CheckCircle size={16} />
+                          <Plus size={20} /> Novo Anúncio
                         </button>
                       )}
-                      <button onClick={() => { setEditingVolunteer(u); setIsVolunteerModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
-                        <Edit size={16} />
-                      </button>
-                      <button 
-                        onClick={async () => { 
-                          try {
-                            await deleteDoc(doc(db, 'users', u.uid)); 
-                            toast.success("Voluntário excluído");
-                          } catch (error) {
-                            handleFirestoreError(error, OperationType.DELETE, 'users');
-                          }
-                        }} 
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                      >
-                        <Trash2 size={16} />
-                      </button>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {announcements.map((ann) => (
+                        <div
+                          key={ann.id}
+                          className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative group"
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className="text-xl font-bold text-gray-900">
+                              {ann.title}
+                            </h4>
+                            {isAdmin && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await deleteDoc(
+                                      doc(db, "announcements", ann.id),
+                                    );
+                                    toast.success("Anúncio excluído");
+                                  } catch (error) {
+                                    handleFirestoreError(
+                                      error,
+                                      OperationType.DELETE,
+                                      "announcements",
+                                    );
+                                  }
+                                }}
+                                className="p-2 text-gray-400 hover:text-red-600 transition-opacity"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-gray-500 text-sm mb-4">
+                            <div className="flex items-center gap-1">
+                              <CalendarIcon size={14} /> <span>{ann.date}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock size={14} /> <span>{ann.time}</span>
+                            </div>
+                          </div>
+                          <p className="text-gray-600 mb-6">
+                            {ann.description}
+                          </p>
+                          {ann.pdfUrl && (
+                            <a
+                              href={ann.pdfUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors"
+                            >
+                              <FileText size={16} /> Ver PDF
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-        {activeTab === 'setlist' && (
-          <SetlistView setlists={setlists} isAdmin={isAdmin} theme={theme} setViewingSetlist={setViewingSetlist} />
-        )}
+                {activeTab === "notifications" && (
+                  <div className="max-w-2xl mx-auto space-y-4">
+                    <div className="flex justify-end mb-4">
+                      {isAdmin && (
+                        <button
+                          onClick={() => setIsNotifModalOpen(true)}
+                          className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm"
+                        >
+                          <Send size={16} /> Enviar Notificação
+                        </button>
+                      )}
+                    </div>
+                    {notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        className={cn(
+                          "p-6 rounded-3xl border transition-all",
+                          notif.read
+                            ? isDarkMode
+                              ? "bg-slate-800 border-slate-700 opacity-75"
+                              : "bg-white border-gray-100 opacity-75"
+                            : isDarkMode
+                              ? "bg-indigo-900/30 border-indigo-500/30 shadow-md"
+                              : "bg-indigo-50 border-indigo-100 shadow-md",
+                        )}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h4
+                            className={cn(
+                              "font-bold",
+                              isDarkMode ? "text-white" : "text-gray-900",
+                            )}
+                          >
+                            {notif.title}
+                          </h4>
+                          <span className="text-[10px] text-gray-400">
+                            {formatDate(notif.createdAt)}
+                          </span>
+                        </div>
+                        <p
+                          className={cn(
+                            "text-sm mb-4",
+                            isDarkMode ? "text-gray-300" : "text-gray-600",
+                          )}
+                        >
+                          {notif.message}
+                        </p>
+                        <div className="flex items-center gap-4">
+                          {!notif.read && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await updateDoc(
+                                    doc(db, "notifications", notif.id),
+                                    { read: true },
+                                  );
+                                } catch (error) {
+                                  handleFirestoreError(
+                                    error,
+                                    OperationType.UPDATE,
+                                    "notifications",
+                                  );
+                                }
+                              }}
+                              className={cn(
+                                "text-xs font-bold hover:underline",
+                                isDarkMode
+                                  ? "text-indigo-400"
+                                  : "text-indigo-600",
+                              )}
+                            >
+                              Marcar como lida
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              try {
+                                await deleteDoc(
+                                  doc(db, "notifications", notif.id),
+                                );
+                                toast.success("Notificação excluída");
+                              } catch (error) {
+                                handleFirestoreError(
+                                  error,
+                                  OperationType.DELETE,
+                                  "notifications",
+                                );
+                              }
+                            }}
+                            className={cn(
+                              "text-xs font-bold hover:underline",
+                              isDarkMode ? "text-red-400" : "text-red-600",
+                            )}
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-        {activeTab === 'cronograma' && (
-          <CronogramaView cronogramas={cronogramas} isAdmin={isAdmin} theme={theme} setViewingCronograma={setViewingCronograma} />
-        )}
+                {activeTab === "volunteers" && (
+                  <div className="space-y-6">
+                    <div className="flex justify-end">
+                      {isAdmin && (
+                        <button
+                          onClick={() => {
+                            setEditingVolunteer(null);
+                            setIsVolunteerModalOpen(true);
+                          }}
+                          className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                        >
+                          <Plus size={20} /> Novo Voluntário
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {allUsers.map((u) => (
+                        <div
+                          key={u.uid}
+                          className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center gap-4 relative group"
+                        >
+                          <div
+                            className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shrink-0"
+                            style={{ backgroundColor: u.color || "#4F46E5" }}
+                          >
+                            {u.photoURL ? (
+                              <img
+                                src={u.photoURL}
+                                alt=""
+                                className="w-full h-full object-cover rounded-2xl"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              u.displayName[0]
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 truncate">
+                              {u.displayName}
+                            </h4>
+                            <p className="text-xs text-gray-500 mb-2">
+                              {u.email}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase">
+                                {u.role}
+                              </span>
+                              {u.specialty && (
+                                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-bold uppercase">
+                                  {u.specialty}
+                                </span>
+                              )}
+                              {u.status === "pending" && (
+                                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-md text-[10px] font-bold uppercase">
+                                  Pendente
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {isAdmin && (
+                            <div className="absolute top-4 right-4 flex gap-1 transition-opacity">
+                              {u.status === "pending" && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await updateDoc(doc(db, "users", u.uid), {
+                                        status: "approved",
+                                      });
+                                      toast.success("Usuário aprovado!");
+                                    } catch (error) {
+                                      handleFirestoreError(
+                                        error,
+                                        OperationType.UPDATE,
+                                        "users",
+                                      );
+                                    }
+                                  }}
+                                  className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
+                                  title="Aprovar usuário"
+                                >
+                                  <CheckCircle size={16} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setEditingVolunteer(u);
+                                  setIsVolunteerModalOpen(true);
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await deleteDoc(doc(db, "users", u.uid));
+                                    toast.success("Voluntário excluído");
+                                  } catch (error) {
+                                    handleFirestoreError(
+                                      error,
+                                      OperationType.DELETE,
+                                      "users",
+                                    );
+                                  }
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "setlist" && (
+                  <SetlistView
+                    setlists={setlists}
+                    isAdmin={isAdmin}
+                    theme={theme}
+                    setViewingSetlist={setViewingSetlist}
+                  />
+                )}
+
+                {activeTab === "cronograma" && (
+                  <CronogramaView
+                    cronogramas={cronogramas}
+                    isAdmin={isAdmin}
+                    theme={theme}
+                    setViewingCronograma={setViewingCronograma}
+                  />
+                )}
               </>
             )}
           </motion.div>
@@ -1318,18 +2423,43 @@ export default function App() {
 
       {/* Modals */}
       {viewingSetlist && (
-        <Modal title={viewingSetlist.title} onClose={() => setViewingSetlist(null)} isDarkMode={isDarkMode}>
-          <div className={cn("prose prose-sm sm:prose-base max-w-none", isDarkMode ? "text-gray-200 prose-invert" : "text-gray-800")} dangerouslySetInnerHTML={{ __html: viewingSetlist.content }} />
+        <Modal
+          title={viewingSetlist.title}
+          onClose={() => setViewingSetlist(null)}
+          isDarkMode={isDarkMode}
+        >
+          <div
+            className={cn(
+              "prose prose-sm sm:prose-base max-w-none",
+              isDarkMode ? "text-gray-200 prose-invert" : "text-gray-800",
+            )}
+            dangerouslySetInnerHTML={{ __html: viewingSetlist.content }}
+          />
         </Modal>
       )}
       {viewingCronograma && (
-        <Modal title={viewingCronograma.title} onClose={() => setViewingCronograma(null)} isDarkMode={isDarkMode}>
+        <Modal
+          title={viewingCronograma.title}
+          onClose={() => setViewingCronograma(null)}
+          isDarkMode={isDarkMode}
+        >
           <div className="space-y-6">
             {viewingCronograma.content && (
-              <div className={cn("prose prose-sm sm:prose-base max-w-none", isDarkMode ? "text-gray-200 prose-invert" : "text-gray-800")} dangerouslySetInnerHTML={{ __html: viewingCronograma.content }} />
+              <div
+                className={cn(
+                  "prose prose-sm sm:prose-base max-w-none",
+                  isDarkMode ? "text-gray-200 prose-invert" : "text-gray-800",
+                )}
+                dangerouslySetInnerHTML={{ __html: viewingCronograma.content }}
+              />
             )}
             {viewingCronograma.externalLink && (
-              <a href={viewingCronograma.externalLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline">
+              <a
+                href={viewingCronograma.externalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-blue-600 font-bold hover:underline"
+              >
                 <ExternalLink size={20} /> Acessar Link Externo
               </a>
             )}
@@ -1337,29 +2467,60 @@ export default function App() {
         </Modal>
       )}
       {isProfileModalOpen && (
-        <Modal title="Seu Perfil" onClose={() => setIsProfileModalOpen(false)} isDarkMode={isDarkMode}>
-          <ProfileForm user={user} onSave={() => setIsProfileModalOpen(false)} theme={theme} />
+        <Modal
+          title="Seu Perfil"
+          onClose={() => setIsProfileModalOpen(false)}
+          isDarkMode={isDarkMode}
+        >
+          <ProfileForm
+            user={user}
+            onSave={() => setIsProfileModalOpen(false)}
+            theme={theme}
+          />
         </Modal>
       )}
       {isEventModalOpen && (
-        <Modal title={editingEvent ? "Editar Evento" : "Novo Evento"} onClose={() => setIsEventModalOpen(false)} isDarkMode={isDarkMode}>
-          <EventForm 
-            initialData={editingEvent} 
+        <Modal
+          title={editingEvent ? "Editar Evento" : "Novo Evento"}
+          onClose={() => setIsEventModalOpen(false)}
+          isDarkMode={isDarkMode}
+        >
+          <EventForm
+            initialData={editingEvent}
             theme={theme}
             onSave={async (data) => {
-              const toastId = toast.loading(editingEvent ? "Atualizando..." : "Criando...");
+              const toastId = toast.loading(
+                editingEvent ? "Atualizando..." : "Criando...",
+              );
               try {
                 if (editingEvent) {
-                  await updateDoc(doc(db, 'events', editingEvent.id), data);
+                  await updateDoc(doc(db, "events", editingEvent.id), data);
                   toast.success("Evento atualizado!", { id: toastId });
                 } else {
-                  const eventData = { ...data, createdBy: user.uid, createdAt: new Date().toISOString() };
-                  const docRef = await addDoc(collection(db, 'events'), eventData);
-                  await addDoc(collection(db, 'scales'), { eventId: docRef.id, assignments: [] });
-                  
+                  const eventData = {
+                    ...data,
+                    createdBy: user.uid,
+                    createdAt: new Date().toISOString(),
+                  };
+                  const docRef = await addDoc(
+                    collection(db, "events"),
+                    eventData,
+                  );
+                  await addDoc(collection(db, "scales"), {
+                    eventId: docRef.id,
+                    assignments: [],
+                  });
+
                   if (data.isRecurring) {
-                    const count = await generateRecurringEvents(eventData, data.durationMonths || 3, data.autoSchedule);
-                    toast.success(`Evento criado com mais ${count} ocorrências!`, { id: toastId });
+                    const count = await generateRecurringEvents(
+                      eventData,
+                      data.durationMonths || 3,
+                      data.autoSchedule,
+                    );
+                    toast.success(
+                      `Evento criado com mais ${count} ocorrências!`,
+                      { id: toastId },
+                    );
                   } else {
                     toast.success("Evento criado!", { id: toastId });
                   }
@@ -1368,32 +2529,43 @@ export default function App() {
               } catch (error) {
                 toast.error("Erro ao salvar evento.", { id: toastId });
               }
-            }} 
+            }}
           />
         </Modal>
       )}
 
       {isNotifModalOpen && (
-        <Modal title="Enviar Notificação" onClose={() => setIsNotifModalOpen(false)} isDarkMode={isDarkMode}>
-          <NotificationForm 
+        <Modal
+          title="Enviar Notificação"
+          onClose={() => setIsNotifModalOpen(false)}
+          isDarkMode={isDarkMode}
+        >
+          <NotificationForm
             users={allUsers}
             theme={theme}
             onSave={async (data) => {
               try {
-                const targetUsers = data.userId === 'all' ? allUsers : [allUsers.find(u => u.uid === data.userId)!];
+                const targetUsers =
+                  data.userId === "all"
+                    ? allUsers
+                    : [allUsers.find((u) => u.uid === data.userId)!];
                 for (const u of targetUsers) {
-                  await addDoc(collection(db, 'notifications'), {
+                  await addDoc(collection(db, "notifications"), {
                     userId: u.uid,
                     title: data.title,
                     message: data.message,
                     read: false,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
                   });
                 }
                 toast.success("Notificação enviada!");
                 setIsNotifModalOpen(false);
               } catch (error) {
-                handleFirestoreError(error, OperationType.CREATE, 'notifications');
+                handleFirestoreError(
+                  error,
+                  OperationType.CREATE,
+                  "notifications",
+                );
               }
             }}
           />
@@ -1401,11 +2573,18 @@ export default function App() {
       )}
 
       {isAnnouncementModalOpen && (
-        <Modal title="Novo Anúncio" onClose={() => setIsAnnouncementModalOpen(false)} isDarkMode={isDarkMode}>
-          <AnnouncementForm 
+        <Modal
+          title="Novo Anúncio"
+          onClose={() => setIsAnnouncementModalOpen(false)}
+          isDarkMode={isDarkMode}
+        >
+          <AnnouncementForm
             theme={theme}
             onSave={async (data) => {
-              await addDoc(collection(db, 'announcements'), { ...data, createdAt: new Date().toISOString() });
+              await addDoc(collection(db, "announcements"), {
+                ...data,
+                createdAt: new Date().toISOString(),
+              });
               toast.success("Anúncio publicado!");
               setIsAnnouncementModalOpen(false);
             }}
@@ -1413,21 +2592,165 @@ export default function App() {
         </Modal>
       )}
 
+      {isDateScheduleModalOpen && (
+        <Modal
+          title="Agendamento Específico de Voluntário"
+          onClose={() => setIsDateScheduleModalOpen(false)}
+          isDarkMode={isDarkMode}
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                Selecione o Voluntário
+              </p>
+              <select
+                className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
+                value={dateScheduleUser}
+                onChange={(e) => {
+                  setDateScheduleUser(e.target.value);
+                  setDateScheduleRole(""); // Reset role when user changes
+                }}
+              >
+                <option value="">Selecionar Voluntário</option>
+                {allUsers
+                  .filter((u) => u.status === "approved")
+                  .map((u) => (
+                    <option key={u.uid} value={u.uid}>
+                      {u.displayName}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {dateScheduleUser && (
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Selecione a Função
+                </p>
+                <select
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
+                  value={dateScheduleRole}
+                  onChange={(e) => setDateScheduleRole(e.target.value)}
+                >
+                  <option value="">Selecionar Função compatível</option>
+                  {ROLES.filter((r) =>
+                    allUsers
+                      .find((u) => u.uid === dateScheduleUser)
+                      ?.specialty?.toLowerCase()
+                      .includes(r.toLowerCase()),
+                  ).map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {dateScheduleRole && (
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Selecione as Datas (Eventos)
+                </p>
+                <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2">
+                  {events
+                    .filter(
+                      (e) =>
+                        new Date(e.date) >=
+                        new Date(new Date().setHours(0, 0, 0, 0)),
+                    )
+                    .map((e) => (
+                      <label
+                        key={e.id}
+                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:border-indigo-200 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={dateScheduleEvents.includes(e.id)}
+                          onChange={(event) => {
+                            if (event.target.checked)
+                              setDateScheduleEvents([
+                                ...dateScheduleEvents,
+                                e.id,
+                              ]);
+                            else
+                              setDateScheduleEvents(
+                                dateScheduleEvents.filter((id) => id !== e.id),
+                              );
+                          }}
+                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm text-gray-900">
+                            {e.title}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {formatDate(e.date)}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  {events.filter(
+                    (e) =>
+                      new Date(e.date) >=
+                      new Date(new Date().setHours(0, 0, 0, 0)),
+                  ).length === 0 && (
+                    <p className="text-sm text-gray-500 italic">
+                      Nenhum evento futuro encontrado.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleDateScheduleSave}
+              className={cn(
+                "w-full text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 mt-4",
+                dateScheduleUser &&
+                  dateScheduleRole &&
+                  dateScheduleEvents.length > 0
+                  ? "bg-indigo-600 hover:bg-indigo-700"
+                  : "bg-gray-300 cursor-not-allowed",
+              )}
+              disabled={
+                !dateScheduleUser ||
+                !dateScheduleRole ||
+                dateScheduleEvents.length === 0
+              }
+            >
+              <Save size={20} /> Salvar Agendamento
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {isScaleModalOpen && selectedEventForScale && (
-        <Modal title={`Escala: ${selectedEventForScale.title}`} onClose={() => setIsScaleModalOpen(false)} isDarkMode={isDarkMode}>
-          <ScaleForm 
+        <Modal
+          title={`Escala: ${selectedEventForScale.title}`}
+          onClose={() => setIsScaleModalOpen(false)}
+          isDarkMode={isDarkMode}
+        >
+          <ScaleForm
             event={selectedEventForScale}
             users={allUsers}
-            initialScale={scales.find(s => s.eventId === selectedEventForScale.id)}
+            initialScale={scales.find(
+              (s) => s.eventId === selectedEventForScale.id,
+            )}
             allScales={scales}
             allEvents={events}
             theme={theme}
             onSave={async (assignments) => {
-              const scale = scales.find(s => s.eventId === selectedEventForScale.id);
+              const scale = scales.find(
+                (s) => s.eventId === selectedEventForScale.id,
+              );
               if (scale) {
-                await updateDoc(doc(db, 'scales', scale.id), { assignments });
+                await updateDoc(doc(db, "scales", scale.id), { assignments });
               } else {
-                await addDoc(collection(db, 'scales'), { eventId: selectedEventForScale.id, assignments });
+                await addDoc(collection(db, "scales"), {
+                  eventId: selectedEventForScale.id,
+                  assignments,
+                });
               }
               toast.success("Escala atualizada!");
               setIsScaleModalOpen(false);
@@ -1437,27 +2760,32 @@ export default function App() {
       )}
 
       {isVolunteerModalOpen && (
-        <Modal title={editingVolunteer ? "Editar Voluntário" : "Novo Voluntário"} onClose={() => setIsVolunteerModalOpen(false)} isDarkMode={isDarkMode}>
-          <VolunteerForm 
+        <Modal
+          title={editingVolunteer ? "Editar Voluntário" : "Novo Voluntário"}
+          onClose={() => setIsVolunteerModalOpen(false)}
+          isDarkMode={isDarkMode}
+        >
+          <VolunteerForm
             initialData={editingVolunteer}
             theme={theme}
             onSave={async (data) => {
               try {
                 if (editingVolunteer) {
-                  await updateDoc(doc(db, 'users', editingVolunteer.uid), data);
+                  await updateDoc(doc(db, "users", editingVolunteer.uid), data);
                   toast.success("Voluntário atualizado!");
                 } else {
                   // Pre-registering in Firestore
-                  await addDoc(collection(db, 'users'), {
+                  await addDoc(collection(db, "users"), {
                     ...data,
                     createdAt: new Date().toISOString(),
-                    color: '#'+Math.floor(Math.random()*16777215).toString(16)
+                    color:
+                      "#" + Math.floor(Math.random() * 16777215).toString(16),
                   });
                   toast.success("Voluntário cadastrado!");
                 }
                 setIsVolunteerModalOpen(false);
               } catch (error) {
-                handleFirestoreError(error, OperationType.WRITE, 'users');
+                handleFirestoreError(error, OperationType.WRITE, "users");
               }
             }}
           />
@@ -1467,32 +2795,63 @@ export default function App() {
   );
 }
 
-function NavItem({ active, onClick, icon, label, compact, theme = 'indigo', badgeCount }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, compact?: boolean, theme?: string, badgeCount?: number }) {
+function NavItem({
+  active,
+  onClick,
+  icon,
+  label,
+  compact,
+  theme = "indigo",
+  badgeCount,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  compact?: boolean;
+  theme?: string;
+  badgeCount?: number;
+}) {
   const themeClasses = {
     indigo: "bg-indigo-600 shadow-indigo-100 text-white",
     red: "bg-red-600 shadow-red-100 text-white",
     blue: "bg-blue-600 shadow-blue-100 text-white",
     rose: "bg-rose-900 shadow-rose-100 text-white",
     sky: "bg-sky-400 shadow-sky-100 text-white",
-    imw: "bg-indigo-600 shadow-indigo-100 text-white"
+    imw: "bg-indigo-600 shadow-indigo-100 text-white",
   };
-  
+
   const textClasses = {
     indigo: "text-indigo-600",
     red: "text-red-600",
     blue: "text-blue-600",
     rose: "text-rose-900",
     sky: "text-sky-400",
-    imw: "text-indigo-600"
+    imw: "text-indigo-600",
   };
 
   return (
-    <button onClick={onClick} className={cn(
-      "flex items-center gap-3 transition-all group shrink-0 relative",
-      compact ? "p-3 rounded-xl" : "px-4 py-3 md:w-full md:p-3 rounded-xl",
-      active ? themeClasses[theme as keyof typeof themeClasses] : "text-gray-500 hover:bg-gray-100"
-    )}>
-      <span className={cn("transition-transform group-hover:scale-110", active ? "text-white" : "text-gray-400 group-hover:" + textClasses[theme as keyof typeof textClasses])}>{icon}</span>
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 transition-all group shrink-0 relative",
+        compact ? "p-3 rounded-xl" : "px-4 py-3 md:w-full md:p-3 rounded-xl",
+        active
+          ? themeClasses[theme as keyof typeof themeClasses]
+          : "text-gray-500 hover:bg-gray-100",
+      )}
+    >
+      <span
+        className={cn(
+          "transition-transform group-hover:scale-110",
+          active
+            ? "text-white"
+            : "text-gray-400 group-hover:" +
+                textClasses[theme as keyof typeof textClasses],
+        )}
+      >
+        {icon}
+      </span>
       {!compact && <span className="font-semibold text-sm">{label}</span>}
       {badgeCount && badgeCount > 0 && (
         <span className="absolute top-2 right-2 flex h-3 w-3">
@@ -1500,25 +2859,43 @@ function NavItem({ active, onClick, icon, label, compact, theme = 'indigo', badg
           <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
         </span>
       )}
-      {!compact && active && <ChevronRight size={16} className="ml-auto opacity-50 hidden md:block" />}
+      {!compact && active && (
+        <ChevronRight
+          size={16}
+          className="ml-auto opacity-50 hidden md:block"
+        />
+      )}
     </button>
   );
 }
 
-const REACTION_EMOJIS = ['❤️', '👍', '🙏', '🙌', '🔥'];
+const REACTION_EMOJIS = ["❤️", "👍", "🙏", "🙌", "🔥"];
 
-function ReactionPicker({ onReact, currentUserId, reactions }: { onReact: (emoji: string) => void, currentUserId?: string, reactions: Reaction[] }) {
+function ReactionPicker({
+  onReact,
+  currentUserId,
+  reactions,
+}: {
+  onReact: (emoji: string) => void;
+  currentUserId?: string;
+  reactions: Reaction[];
+}) {
   return (
     <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-full border border-gray-100 overflow-x-auto max-w-full">
-      {REACTION_EMOJIS.map(emoji => {
-        const hasReacted = reactions.some(r => r.userId === currentUserId && r.emoji === emoji);
+      {REACTION_EMOJIS.map((emoji) => {
+        const hasReacted = reactions.some(
+          (r) => r.userId === currentUserId && r.emoji === emoji,
+        );
         return (
           <button
             key={emoji}
-            onClick={(e) => { e.stopPropagation(); onReact(emoji); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onReact(emoji);
+            }}
             className={cn(
               "w-8 h-8 flex items-center justify-center rounded-full transition-all hover:scale-125 shrink-0",
-              hasReacted ? "bg-indigo-100" : "hover:bg-white"
+              hasReacted ? "bg-indigo-100" : "hover:bg-white",
             )}
           >
             <span className="text-sm">{emoji}</span>
@@ -1529,28 +2906,47 @@ function ReactionPicker({ onReact, currentUserId, reactions }: { onReact: (emoji
   );
 }
 
-function ReactionDisplay({ reactions, allUsers }: { reactions: Reaction[], allUsers: User[] }) {
+function ReactionDisplay({
+  reactions,
+  allUsers,
+}: {
+  reactions: Reaction[];
+  allUsers: User[];
+}) {
   if (reactions.length === 0) return null;
 
   // Group by emoji
-  const grouped = reactions.reduce((acc, r) => {
-    if (!acc[r.emoji]) acc[r.emoji] = [];
-    acc[r.emoji].push(r);
-    return acc;
-  }, {} as Record<string, Reaction[]>);
+  const grouped = reactions.reduce(
+    (acc, r) => {
+      if (!acc[r.emoji]) acc[r.emoji] = [];
+      acc[r.emoji].push(r);
+      return acc;
+    },
+    {} as Record<string, Reaction[]>,
+  );
 
   return (
     <div className="space-y-3 mt-4">
       <div className="flex flex-wrap gap-2">
         {Object.entries(grouped).map(([emoji, rs]) => (
-          <div key={emoji} className="flex items-center gap-1 bg-white border border-gray-100 px-2 py-1 rounded-full shadow-sm group relative">
+          <div
+            key={emoji}
+            className="flex items-center gap-1 bg-white border border-gray-100 px-2 py-1 rounded-full shadow-sm group relative"
+          >
             <span className="text-xs">{emoji}</span>
-            <span className="text-[10px] font-bold text-gray-500">{rs.length}</span>
-            
+            <span className="text-[10px] font-bold text-gray-500">
+              {rs.length}
+            </span>
+
             {/* Tooltip with names */}
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
               <div className="bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-xl">
-                {rs.map(r => allUsers.find(u => u.uid === r.userId)?.displayName).join(', ')}
+                {rs
+                  .map(
+                    (r) =>
+                      allUsers.find((u) => u.uid === r.userId)?.displayName,
+                  )
+                  .join(", ")}
               </div>
             </div>
           </div>
@@ -1559,16 +2955,23 @@ function ReactionDisplay({ reactions, allUsers }: { reactions: Reaction[], allUs
 
       {/* List of users who reacted */}
       <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-50">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest w-full mb-1">Voluntários que reagiram:</p>
-        {reactions.map(r => {
-          const u = allUsers.find(user => user.uid === r.userId);
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest w-full mb-1">
+          Voluntários que reagiram:
+        </p>
+        {reactions.map((r) => {
+          const u = allUsers.find((user) => user.uid === r.userId);
           if (!u) return null;
           return (
-            <div key={r.id} className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+            <div
+              key={r.id}
+              className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100"
+            >
               <div className="w-4 h-4 rounded-full bg-indigo-100 flex items-center justify-center text-[8px] font-bold text-indigo-600">
                 {u.displayName[0]}
               </div>
-              <span className="text-[10px] font-medium text-gray-600">{u.displayName.split(' ')[0]}</span>
+              <span className="text-[10px] font-medium text-gray-600">
+                {u.displayName.split(" ")[0]}
+              </span>
               <span className="text-[10px]">{r.emoji}</span>
             </div>
           );
@@ -1581,7 +2984,7 @@ function ReactionDisplay({ reactions, allUsers }: { reactions: Reaction[], allUs
 interface EventCardProps {
   key?: string | number;
   event: ChurchEvent;
-  onCheckIn: (id: string, s: 'PRESENTE' | 'AUSENTE' | 'ATRASADO') => void;
+  onCheckIn: (id: string, s: "PRESENTE" | "AUSENTE" | "ATRASADO") => void;
   userCheckIn?: CheckIn;
   isAdmin: boolean;
   onEdit: () => void;
@@ -1595,45 +2998,82 @@ interface EventCardProps {
   checkins: CheckIn[];
 }
 
-function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, onDuplicate, compact, reactions, onReaction, currentUserId, allUsers, checkins }: EventCardProps) {
-  const checkedInUsers = checkins.filter(c => c.eventId === event.id && c.status === 'PRESENTE');
+function EventCard({
+  event,
+  onCheckIn,
+  userCheckIn,
+  isAdmin,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  compact,
+  reactions,
+  onReaction,
+  currentUserId,
+  allUsers,
+  checkins,
+}: EventCardProps) {
+  const checkedInUsers = checkins.filter(
+    (c) => c.eventId === event.id && c.status === "PRESENTE",
+  );
 
   if (compact) {
     return (
       <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-4 group">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={cn(
-              "px-2 py-0.5 rounded text-[8px] font-bold uppercase",
-              event.type === 'CULTO' ? "bg-blue-600 text-white" : event.type === 'ENSAIO' ? "bg-amber-500 text-white" : "bg-rose-900 text-white"
-            )}>
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded text-[8px] font-bold uppercase",
+                event.type === "CULTO"
+                  ? "bg-blue-600 text-white"
+                  : event.type === "ENSAIO"
+                    ? "bg-amber-500 text-white"
+                    : "bg-rose-900 text-white",
+              )}
+            >
               {event.type}
             </span>
-            <h4 className="text-sm font-bold text-gray-900 truncate">{event.title}</h4>
+            <h4 className="text-sm font-bold text-gray-900 truncate">
+              {event.title}
+            </h4>
           </div>
-          <p className="text-[10px] text-gray-500 flex items-center gap-1"><CalendarIcon size={10} /> {formatDate(event.date)}</p>
-          
+          <p className="text-[10px] text-gray-500 flex items-center gap-1">
+            <CalendarIcon size={10} /> {formatDate(event.date)}
+          </p>
+
           {checkedInUsers.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
-              {checkedInUsers.map(c => {
-                const u = allUsers.find(user => user.uid === c.userId);
+              {checkedInUsers.map((c) => {
+                const u = allUsers.find((user) => user.uid === c.userId);
                 return (
-                  <div key={c.id} className="bg-green-50 text-green-700 text-[7px] font-bold px-1.5 py-0.5 rounded border border-green-100 flex items-center gap-0.5">
-                    <CheckCircle size={7} /> {u?.displayName.split(' ')[0]}
+                  <div
+                    key={c.id}
+                    className="bg-green-50 text-green-700 text-[7px] font-bold px-1.5 py-0.5 rounded border border-green-100 flex items-center gap-0.5"
+                  >
+                    <CheckCircle size={7} /> {u?.displayName.split(" ")[0]}
                   </div>
                 );
               })}
             </div>
           )}
-          
+
           <ReactionDisplay reactions={reactions} allUsers={allUsers} />
         </div>
         <div className="flex items-center gap-2">
           <div className="transition-opacity">
-            <ReactionPicker onReact={onReaction} currentUserId={currentUserId} reactions={reactions} />
+            <ReactionPicker
+              onReact={onReaction}
+              currentUserId={currentUserId}
+              reactions={reactions}
+            />
           </div>
           {isAdmin && onDuplicate && (
-            <button onClick={onDuplicate} className="p-2 text-gray-400 hover:text-indigo-600 transition-opacity" title="Duplicar">
+            <button
+              onClick={onDuplicate}
+              className="p-2 text-gray-400 hover:text-indigo-600 transition-opacity"
+              title="Duplicar"
+            >
               <Plus size={16} />
             </button>
           )}
@@ -1642,12 +3082,18 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
               <CheckCircle size={16} />
             </div>
           ) : (
-            <button onClick={() => onCheckIn(event.id, 'PRESENTE')} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors">
+            <button
+              onClick={() => onCheckIn(event.id, "PRESENTE")}
+              className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors"
+            >
               <CheckCircle size={16} />
             </button>
           )}
           {isAdmin && (
-            <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-600 transition-opacity">
+            <button
+              onClick={onDelete}
+              className="p-2 text-gray-400 hover:text-red-600 transition-opacity"
+            >
               <Trash2 size={16} />
             </button>
           )}
@@ -1659,41 +3105,78 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
   return (
     <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group overflow-hidden">
       {/* Accent bar with wine color */}
-      <div className={cn(
-        "absolute top-0 left-0 w-full h-1.5",
-        event.type === 'CULTO' ? "bg-blue-600" : event.type === 'ENSAIO' ? "bg-sky-400" : "bg-rose-900"
-      )} />
-      
+      <div
+        className={cn(
+          "absolute top-0 left-0 w-full h-1.5",
+          event.type === "CULTO"
+            ? "bg-blue-600"
+            : event.type === "ENSAIO"
+              ? "bg-sky-400"
+              : "bg-rose-900",
+        )}
+      />
+
       <div className="flex justify-between items-start mb-4">
-        <span className={cn(
-          "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
-          event.type === 'CULTO' ? "bg-blue-100 text-blue-700" : event.type === 'ENSAIO' ? "bg-sky-100 text-sky-700" : "bg-rose-100 text-rose-900"
-        )}>
+        <span
+          className={cn(
+            "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
+            event.type === "CULTO"
+              ? "bg-blue-100 text-blue-700"
+              : event.type === "ENSAIO"
+                ? "bg-sky-100 text-sky-700"
+                : "bg-rose-100 text-rose-900",
+          )}
+        >
           {event.type}
         </span>
         {isAdmin && (
           <div className="flex gap-1 transition-opacity">
-            <button onClick={onDuplicate} className="p-1 text-gray-400 hover:text-indigo-600" title="Duplicar"><Plus size={14} /></button>
-            <button onClick={onEdit} className="p-1 text-gray-400 hover:text-indigo-600"><Edit size={14} /></button>
-            <button onClick={onDelete} className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+            <button
+              onClick={onDuplicate}
+              className="p-1 text-gray-400 hover:text-indigo-600"
+              title="Duplicar"
+            >
+              <Plus size={14} />
+            </button>
+            <button
+              onClick={onEdit}
+              className="p-1 text-gray-400 hover:text-indigo-600"
+            >
+              <Edit size={14} />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-1 text-gray-400 hover:text-red-600"
+            >
+              <Trash2 size={14} />
+            </button>
           </div>
         )}
       </div>
       <h4 className="text-lg font-bold text-gray-900 mb-1">{event.title}</h4>
-      <p className="text-xs text-gray-500 mb-4 flex items-center gap-1"><CalendarIcon size={12} /> {formatDate(event.date)}</p>
+      <p className="text-xs text-gray-500 mb-4 flex items-center gap-1">
+        <CalendarIcon size={12} /> {formatDate(event.date)}
+      </p>
 
       {checkedInUsers.length > 0 && (
         <div className="mb-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Presença Confirmada:</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+            Presença Confirmada:
+          </p>
           <div className="flex flex-wrap gap-2">
-            {checkedInUsers.map(c => {
-              const u = allUsers.find(user => user.uid === c.userId);
+            {checkedInUsers.map((c) => {
+              const u = allUsers.find((user) => user.uid === c.userId);
               return (
-                <div key={c.id} className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-lg border border-green-100">
+                <div
+                  key={c.id}
+                  className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-lg border border-green-100"
+                >
                   <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-[8px] font-bold text-green-600">
                     {u?.displayName[0]}
                   </div>
-                  <span className="text-[10px] font-medium text-green-800">{u?.displayName.split(' ')[0]}</span>
+                  <span className="text-[10px] font-medium text-green-800">
+                    {u?.displayName.split(" ")[0]}
+                  </span>
                   <CheckCircle size={10} className="text-green-500" />
                 </div>
               );
@@ -1708,15 +3191,27 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
 
       <div className="pt-4 border-t border-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <ReactionPicker onReact={onReaction} currentUserId={currentUserId} reactions={reactions} />
+          <ReactionPicker
+            onReact={onReaction}
+            currentUserId={currentUserId}
+            reactions={reactions}
+          />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           {userCheckIn ? (
             <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle size={16} /> <span className="text-xs font-bold uppercase">{userCheckIn.status}</span>
+              <CheckCircle size={16} />{" "}
+              <span className="text-xs font-bold uppercase">
+                {userCheckIn.status}
+              </span>
             </div>
           ) : (
-            <button onClick={() => onCheckIn(event.id, 'PRESENTE')} className="w-full sm:w-auto px-4 bg-indigo-50 text-indigo-600 text-[10px] font-bold py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-colors uppercase">Check-in</button>
+            <button
+              onClick={() => onCheckIn(event.id, "PRESENTE")}
+              className="w-full sm:w-auto px-4 bg-indigo-50 text-indigo-600 text-[10px] font-bold py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-colors uppercase"
+            >
+              Check-in
+            </button>
           )}
         </div>
       </div>
@@ -1724,83 +3219,151 @@ function EventCard({ event, onCheckIn, userCheckIn, isAdmin, onEdit, onDelete, o
   );
 }
 
-function Modal({ title, children, onClose, isDarkMode = false }: { title: string, children: React.ReactNode, onClose: () => void, isDarkMode?: boolean }) {
+function Modal({
+  title,
+  children,
+  onClose,
+  isDarkMode = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  isDarkMode?: boolean;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className={cn("w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200", isDarkMode ? "bg-slate-800 text-white" : "bg-white")}>
-        <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "border-slate-700" : "border-gray-100")}>
-          <h3 className={cn("text-xl font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{title}</h3>
-          <button onClick={onClose} className={cn("p-2 rounded-xl", isDarkMode ? "text-gray-400 hover:bg-slate-700" : "text-gray-400 hover:bg-gray-50")}><X size={20} /></button>
+      <div
+        className={cn(
+          "w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200",
+          isDarkMode ? "bg-slate-800 text-white" : "bg-white",
+        )}
+      >
+        <div
+          className={cn(
+            "p-6 border-b flex justify-between items-center",
+            isDarkMode ? "border-slate-700" : "border-gray-100",
+          )}
+        >
+          <h3
+            className={cn(
+              "text-xl font-bold",
+              isDarkMode ? "text-white" : "text-gray-900",
+            )}
+          >
+            {title}
+          </h3>
+          <button
+            onClick={onClose}
+            className={cn(
+              "p-2 rounded-xl",
+              isDarkMode
+                ? "text-gray-400 hover:bg-slate-700"
+                : "text-gray-400 hover:bg-gray-50",
+            )}
+          >
+            <X size={20} />
+          </button>
         </div>
-        <div className="p-6 max-h-[80vh] overflow-y-auto">
-          {children}
-        </div>
+        <div className="p-6 max-h-[80vh] overflow-y-auto">{children}</div>
       </div>
     </div>
   );
 }
 
-function EventForm({ initialData, onSave, theme = 'indigo' }: { initialData: ChurchEvent | null, onSave: (data: any) => void, theme?: string }) {
+function EventForm({
+  initialData,
+  onSave,
+  theme = "indigo",
+}: {
+  initialData: ChurchEvent | null;
+  onSave: (data: any) => void;
+  theme?: string;
+}) {
   const [formData, setFormData] = useState({
-    title: initialData?.title || '',
-    date: initialData?.date || '',
-    type: initialData?.type || 'CULTO',
-    description: initialData?.description || '',
+    title: initialData?.title || "",
+    date: initialData?.date || "",
+    type: initialData?.type || "CULTO",
+    description: initialData?.description || "",
     isRecurring: initialData?.isRecurring || false,
-    frequency: initialData?.frequency || 'WEEKLY',
+    frequency: initialData?.frequency || "WEEKLY",
     daysOfWeek: initialData?.daysOfWeek || [],
     durationMonths: 3,
-    autoSchedule: false
+    autoSchedule: false,
   });
 
   const toggleDay = (day: number) => {
     const newDays = formData.daysOfWeek.includes(day)
-      ? formData.daysOfWeek.filter(d => d !== day)
+      ? formData.daysOfWeek.filter((d) => d !== day)
       : [...formData.daysOfWeek, day];
     setFormData({ ...formData, daysOfWeek: newDays });
   };
 
-  const themeBg = {
-    imw: "bg-red-600 hover:bg-red-700",
-    indigo: "bg-indigo-600 hover:bg-indigo-700",
-    red: "bg-red-600 hover:bg-red-700",
-    blue: "bg-blue-600 hover:bg-blue-700",
-    rose: "bg-rose-900 hover:bg-rose-950",
-    sky: "bg-sky-400 hover:bg-sky-500"
-  }[theme as keyof typeof themeBg] || "bg-indigo-600";
+  const themeBg =
+    {
+      imw: "bg-red-600 hover:bg-red-700",
+      indigo: "bg-indigo-600 hover:bg-indigo-700",
+      red: "bg-red-600 hover:bg-red-700",
+      blue: "bg-blue-600 hover:bg-blue-700",
+      rose: "bg-rose-900 hover:bg-rose-950",
+      sky: "bg-sky-400 hover:bg-sky-500",
+    }[theme as keyof typeof themeBg] || "bg-indigo-600";
 
-  const themeText = {
-    imw: "text-red-600",
-    indigo: "text-indigo-600",
-    red: "text-red-600",
-    blue: "text-blue-600",
-    rose: "text-rose-900",
-    sky: "text-sky-400"
-  }[theme as keyof typeof themeText] || "text-indigo-600";
+  const themeText =
+    {
+      imw: "text-red-600",
+      indigo: "text-indigo-600",
+      red: "text-red-600",
+      blue: "text-blue-600",
+      rose: "text-rose-900",
+      sky: "text-sky-400",
+    }[theme as keyof typeof themeText] || "text-indigo-600";
 
-  const themeBgLight = {
-    imw: "bg-red-50",
-    indigo: "bg-indigo-50",
-    red: "bg-red-50",
-    blue: "bg-blue-50",
-    rose: "bg-rose-50",
-    sky: "bg-sky-50"
-  }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
+  const themeBgLight =
+    {
+      imw: "bg-red-50",
+      indigo: "bg-indigo-50",
+      red: "bg-red-50",
+      blue: "bg-blue-50",
+      rose: "bg-rose-50",
+      sky: "bg-sky-50",
+    }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
 
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label>
-        <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Título
+        </label>
+        <input
+          type="text"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+        />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data e Hora</label>
-          <input type="datetime-local" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Data e Hora
+          </label>
+          <input
+            type="datetime-local"
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+          />
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo</label>
-          <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})}>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Tipo
+          </label>
+          <select
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+            value={formData.type}
+            onChange={(e) =>
+              setFormData({ ...formData, type: e.target.value as any })
+            }
+          >
             <option value="CULTO">CULTO</option>
             <option value="ENSAIO">ENSAIO</option>
             <option value="REUNIAO">REUNIAO</option>
@@ -1810,20 +3373,31 @@ function EventForm({ initialData, onSave, theme = 'indigo' }: { initialData: Chu
 
       <div className={cn("p-4 rounded-2xl space-y-3", themeBgLight)}>
         <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" className={cn("w-4 rounded", themeText)} checked={formData.isRecurring} onChange={e => setFormData({...formData, isRecurring: e.target.checked})} />
-          <span className={cn("text-sm font-bold", themeText)}>Evento Recorrente</span>
+          <input
+            type="checkbox"
+            className={cn("w-4 rounded", themeText)}
+            checked={formData.isRecurring}
+            onChange={(e) =>
+              setFormData({ ...formData, isRecurring: e.target.checked })
+            }
+          />
+          <span className={cn("text-sm font-bold", themeText)}>
+            Evento Recorrente
+          </span>
         </label>
-        
+
         {formData.isRecurring && (
           <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex gap-1">
-              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((label, i) => (
+              {["D", "S", "T", "Q", "Q", "S", "S"].map((label, i) => (
                 <button
                   key={i}
                   onClick={() => toggleDay(i)}
                   className={cn(
                     "w-8 h-8 rounded-lg text-[10px] font-bold transition-all",
-                    formData.daysOfWeek.includes(i) ? themeBg + " text-white" : "bg-white text-gray-400 border border-gray-200"
+                    formData.daysOfWeek.includes(i)
+                      ? themeBg + " text-white"
+                      : "bg-white text-gray-400 border border-gray-200",
                   )}
                 >
                   {label}
@@ -1831,118 +3405,227 @@ function EventForm({ initialData, onSave, theme = 'indigo' }: { initialData: Chu
               ))}
             </div>
             <div>
-              <label className={cn("block text-[10px] font-bold uppercase mb-1", themeText)}>Duração (meses)</label>
-              <input type="number" min="1" max="12" className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none" value={formData.durationMonths} onChange={e => setFormData({...formData, durationMonths: parseInt(e.target.value)})} />
+              <label
+                className={cn(
+                  "block text-[10px] font-bold uppercase mb-1",
+                  themeText,
+                )}
+              >
+                Duração (meses)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="12"
+                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none"
+                value={formData.durationMonths}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    durationMonths: parseInt(e.target.value),
+                  })
+                }
+              />
             </div>
             <label className="flex items-center gap-2 cursor-pointer mt-2">
-              <input type="checkbox" className={cn("w-4 rounded", themeText)} checked={formData.autoSchedule} onChange={e => setFormData({...formData, autoSchedule: e.target.checked})} />
-              <span className="text-[10px] font-bold text-gray-600 uppercase">Auto-gerar escalas para todas as ocorrências</span>
+              <input
+                type="checkbox"
+                className={cn("w-4 rounded", themeText)}
+                checked={formData.autoSchedule}
+                onChange={(e) =>
+                  setFormData({ ...formData, autoSchedule: e.target.checked })
+                }
+              />
+              <span className="text-[10px] font-bold text-gray-600 uppercase">
+                Auto-gerar escalas para todas as ocorrências
+              </span>
             </label>
           </div>
         )}
       </div>
 
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
-        <textarea className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none" rows={2} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Descrição
+        </label>
+        <textarea
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          rows={2}
+          value={formData.description}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
+        />
       </div>
-      <button onClick={() => onSave(formData)} className={cn("w-full text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2", themeBg)}>
+      <button
+        onClick={() => onSave(formData)}
+        className={cn(
+          "w-full text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2",
+          themeBg,
+        )}
+      >
         <Save size={20} /> Salvar Evento
       </button>
     </div>
   );
 }
 
-function NotificationForm({ users, onSave, theme = 'indigo' }: { users: User[], onSave: (data: any) => void, theme?: string }) {
-  const [formData, setFormData] = useState({ userId: 'all', title: '', message: '' });
-  const themeBg = {
-    imw: "bg-red-600 hover:bg-red-700",
-    indigo: "bg-indigo-600 hover:bg-indigo-700",
-    red: "bg-red-600 hover:bg-red-700",
-    blue: "bg-blue-600 hover:bg-blue-700",
-    rose: "bg-rose-900 hover:bg-rose-950",
-    sky: "bg-sky-400 hover:bg-sky-500"
-  }[theme as keyof typeof themeBg] || "bg-indigo-600";
+function NotificationForm({
+  users,
+  onSave,
+  theme = "indigo",
+}: {
+  users: User[];
+  onSave: (data: any) => void;
+  theme?: string;
+}) {
+  const [formData, setFormData] = useState({
+    userId: "all",
+    title: "",
+    message: "",
+  });
+  const themeBg =
+    {
+      imw: "bg-red-600 hover:bg-red-700",
+      indigo: "bg-indigo-600 hover:bg-indigo-700",
+      red: "bg-red-600 hover:bg-red-700",
+      blue: "bg-blue-600 hover:bg-blue-700",
+      rose: "bg-rose-900 hover:bg-rose-950",
+      sky: "bg-sky-400 hover:bg-sky-500",
+    }[theme as keyof typeof themeBg] || "bg-indigo-600";
 
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Para</label>
-        <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none" value={formData.userId} onChange={e => setFormData({...formData, userId: e.target.value})}>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Para
+        </label>
+        <select
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          value={formData.userId}
+          onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+        >
           <option value="all">Todos os Voluntários</option>
-          {users.map(u => <option key={u.uid} value={u.uid}>{u.displayName}</option>)}
+          {users.map((u) => (
+            <option key={u.uid} value={u.uid}>
+              {u.displayName}
+            </option>
+          ))}
         </select>
       </div>
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label>
-        <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Título
+        </label>
+        <input
+          type="text"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+        />
       </div>
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mensagem</label>
-        <textarea className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none" rows={3} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Mensagem
+        </label>
+        <textarea
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          rows={3}
+          value={formData.message}
+          onChange={(e) =>
+            setFormData({ ...formData, message: e.target.value })
+          }
+        />
       </div>
-      <button onClick={() => onSave(formData)} className={cn("w-full text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all", themeBg)}><Send size={20} /> Enviar</button>
+      <button
+        onClick={() => onSave(formData)}
+        className={cn(
+          "w-full text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all",
+          themeBg,
+        )}
+      >
+        <Send size={20} /> Enviar
+      </button>
     </div>
   );
 }
 
-function AnnouncementForm({ onSave, theme = 'indigo' }: { onSave: (data: any) => void, theme?: string }) {
-  const [formData, setFormData] = useState({ title: '', date: '', time: '', description: '', pdfUrl: '', externalLink: '' });
+function AnnouncementForm({
+  onSave,
+  theme = "indigo",
+}: {
+  onSave: (data: any) => void;
+  theme?: string;
+}) {
+  const [formData, setFormData] = useState({
+    title: "",
+    date: "",
+    time: "",
+    description: "",
+    pdfUrl: "",
+    externalLink: "",
+  });
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const themeBg = {
-    imw: "bg-red-600 hover:bg-red-700",
-    indigo: "bg-indigo-600 hover:bg-indigo-700",
-    red: "bg-red-600 hover:bg-red-700",
-    blue: "bg-blue-600 hover:bg-blue-700",
-    rose: "bg-rose-900 hover:bg-rose-950",
-    sky: "bg-sky-400 hover:bg-sky-500"
-  }[theme as keyof typeof themeBg] || "bg-indigo-600";
+  const themeBg =
+    {
+      imw: "bg-red-600 hover:bg-red-700",
+      indigo: "bg-indigo-600 hover:bg-indigo-700",
+      red: "bg-red-600 hover:bg-red-700",
+      blue: "bg-blue-600 hover:bg-blue-700",
+      rose: "bg-rose-900 hover:bg-rose-950",
+      sky: "bg-sky-400 hover:bg-sky-500",
+    }[theme as keyof typeof themeBg] || "bg-indigo-600";
 
-  const themeText = {
-    imw: "text-red-700",
-    indigo: "text-indigo-700",
-    red: "text-red-700",
-    blue: "text-blue-700",
-    rose: "text-rose-900",
-    sky: "text-sky-700"
-  }[theme as keyof typeof themeText] || "text-indigo-700";
+  const themeText =
+    {
+      imw: "text-red-700",
+      indigo: "text-indigo-700",
+      red: "text-red-700",
+      blue: "text-blue-700",
+      rose: "text-rose-900",
+      sky: "text-sky-700",
+    }[theme as keyof typeof themeText] || "text-indigo-700";
 
-  const themeBgLight = {
-    imw: "bg-red-50",
-    indigo: "bg-indigo-50",
-    red: "bg-red-50",
-    blue: "bg-blue-50",
-    rose: "bg-rose-50",
-    sky: "bg-sky-50"
-  }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
+  const themeBgLight =
+    {
+      imw: "bg-red-50",
+      indigo: "bg-indigo-50",
+      red: "bg-red-50",
+      blue: "bg-blue-50",
+      rose: "bg-rose-50",
+      sky: "bg-sky-50",
+    }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
 
   const handleSave = async () => {
     if (!formData.title || !formData.date) {
       toast.error("Preencha o título e a data.");
       return;
     }
-    
+
     setIsUploading(true);
     setUploadProgress(0);
     const toastId = toast.loading("Preparando anúncio...");
-    
+
     try {
       let pdfUrl = formData.pdfUrl;
       if (file) {
         if (file.size > 10 * 1024 * 1024) {
           throw new Error("O arquivo é muito grande (máximo 10MB)");
         }
-        
+
         toast.loading("Enviando PDF...", { id: toastId });
         console.log("Iniciando upload do arquivo:", file.name);
-        
+
         if (!storage) throw new Error("Firebase Storage não inicializado.");
-        
-        const storageRef = ref(storage, `announcements/${Date.now()}_${file.name}`);
-        
+
+        const storageRef = ref(
+          storage,
+          `announcements/${Date.now()}_${file.name}`,
+        );
+
         // Use simpler uploadBytes for better reliability if resumable fails
         try {
           const snapshot = await uploadBytes(storageRef, file);
@@ -1950,40 +3633,47 @@ function AnnouncementForm({ onSave, theme = 'indigo' }: { onSave: (data: any) =>
           pdfUrl = await getDownloadURL(snapshot.ref);
         } catch (uploadErr) {
           console.warn("uploadBytes falhou, tentando resumable...", uploadErr);
-          
+
           const uploadTask = uploadBytesResumable(storageRef, file);
           const uploadPromise = new Promise((resolve, reject) => {
-            uploadTask.on('state_changed', 
+            uploadTask.on(
+              "state_changed",
               (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                const progress =
+                  (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 setUploadProgress(progress);
-                toast.loading(`Enviando PDF... ${Math.round(progress)}%`, { id: toastId });
-              }, 
-              (error) => reject(error), 
-              () => resolve(uploadTask)
+                toast.loading(`Enviando PDF... ${Math.round(progress)}%`, {
+                  id: toastId,
+                });
+              },
+              (error) => reject(error),
+              () => resolve(uploadTask),
             );
           });
 
-          const timeoutPromise = new Promise((_, reject) => 
+          const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => {
               uploadTask.cancel();
               reject(new Error("Tempo de upload esgotado (5 min)."));
-            }, 300000)
+            }, 300000),
           );
 
           await Promise.race([uploadPromise, timeoutPromise]);
           pdfUrl = await getDownloadURL(storageRef);
         }
-        
+
         console.log("PDF URL gerada:", pdfUrl);
       }
-      
+
       toast.loading("Salvando anúncio...", { id: toastId });
       await onSave({ ...formData, pdfUrl: pdfUrl || formData.externalLink });
       toast.success("Anúncio publicado com sucesso!", { id: toastId });
     } catch (error: any) {
       console.error("Erro detalhado no upload:", error);
-      toast.error(error.message || "Erro ao enviar arquivo. Verifique as permissões.", { id: toastId });
+      toast.error(
+        error.message || "Erro ao enviar arquivo. Verifique as permissões.",
+        { id: toastId },
+      );
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -1992,40 +3682,70 @@ function AnnouncementForm({ onSave, theme = 'indigo' }: { onSave: (data: any) =>
 
   return (
     <div className="space-y-4">
-      <input placeholder="Título" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+      <input
+        placeholder="Título"
+        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+        value={formData.title}
+        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+      />
       <div className="grid grid-cols-2 gap-4">
-        <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-        <input type="time" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} />
+        <input
+          type="date"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+          value={formData.date}
+          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+        />
+        <input
+          type="time"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+          value={formData.time}
+          onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+        />
       </div>
-      <textarea placeholder="Descrição" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-      
+      <textarea
+        placeholder="Descrição"
+        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+        rows={3}
+        value={formData.description}
+        onChange={(e) =>
+          setFormData({ ...formData, description: e.target.value })
+        }
+      />
+
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Anexar PDF ou Link Externo</label>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Anexar PDF ou Link Externo
+        </label>
         <div className="space-y-2">
-          <input 
-            type="file" 
-            accept=".pdf" 
+          <input
+            type="file"
+            accept=".pdf"
             className="w-full p-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-            onChange={e => setFile(e.target.files?.[0] || null)}
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
           <div className="flex items-center gap-2">
             <div className="h-px bg-gray-200 flex-1" />
             <span className="text-[10px] font-bold text-gray-400">OU</span>
             <div className="h-px bg-gray-200 flex-1" />
           </div>
-          <input 
-            placeholder="Link do documento (Google Drive, Dropbox, etc)" 
-            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm" 
-            value={formData.externalLink} 
-            onChange={e => setFormData({...formData, externalLink: e.target.value})} 
+          <input
+            placeholder="Link do documento (Google Drive, Dropbox, etc)"
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+            value={formData.externalLink}
+            onChange={(e) =>
+              setFormData({ ...formData, externalLink: e.target.value })
+            }
           />
         </div>
       </div>
 
-      <button 
-        onClick={handleSave} 
+      <button
+        onClick={handleSave}
         disabled={isUploading}
-        className={cn("w-full text-white font-bold py-4 rounded-2xl disabled:opacity-50 transition-all", themeBg)}
+        className={cn(
+          "w-full text-white font-bold py-4 rounded-2xl disabled:opacity-50 transition-all",
+          themeBg,
+        )}
       >
         {isUploading ? "Enviando..." : "Publicar Anúncio"}
       </button>
@@ -2033,26 +3753,65 @@ function AnnouncementForm({ onSave, theme = 'indigo' }: { onSave: (data: any) =>
   );
 }
 
-function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData: User | null, onSave: (data: any) => void, theme?: string }) {
+function VolunteerForm({
+  initialData,
+  onSave,
+  theme = "indigo",
+}: {
+  initialData: User | null;
+  onSave: (data: any) => void;
+  theme?: string;
+}) {
   const [formData, setFormData] = useState({
-    displayName: initialData?.displayName || '',
-    email: initialData?.email || '',
-    role: initialData?.role || 'VOLUNTARIO',
-    specialty: initialData?.specialty || '',
-    status: initialData?.status || 'pending',
-    photoURL: initialData?.photoURL || '',
-    birthDate: initialData?.birthDate || '',
-    phone: initialData?.phone || ''
+    displayName: initialData?.displayName || "",
+    email: initialData?.email || "",
+    role: initialData?.role || "VOLUNTARIO",
+    specialty: initialData?.specialty || "",
+    status: initialData?.status || "pending",
+    photoURL: initialData?.photoURL || "",
+    birthDate: initialData?.birthDate || "",
+    phone: initialData?.phone || "",
   });
   const [isUploading, setIsUploading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  const PROFILE_EMOJIS = ['🧑','👩','👱‍♂️','👱‍♀️','🧔','👨‍🦲','👩‍🦲','👨‍🦳','👩‍🦳','🐼','🦊','🦁','🐵','🦄','👽','👾','🤖','😎','🤓','🤠','🎸','🥁','🎹','🎤','🎧','📷','🎥','✝️','🔥','🕊️'];
+  const PROFILE_EMOJIS = [
+    "🧑",
+    "👩",
+    "👱‍♂️",
+    "👱‍♀️",
+    "🧔",
+    "👨‍🦲",
+    "👩‍🦲",
+    "👨‍🦳",
+    "👩‍🦳",
+    "🐼",
+    "🦊",
+    "🦁",
+    "🐵",
+    "🦄",
+    "👽",
+    "👾",
+    "🤖",
+    "😎",
+    "🤓",
+    "🤠",
+    "🎸",
+    "🥁",
+    "🎹",
+    "🎤",
+    "🎧",
+    "📷",
+    "🎥",
+    "✝️",
+    "🔥",
+    "🕊️",
+  ];
 
   const handleEmojiSelect = (emoji: string) => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${emoji}</text></svg>`;
     const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    setFormData(prev => ({ ...prev, photoURL: url }));
+    setFormData((prev) => ({ ...prev, photoURL: url }));
     setShowEmojiPicker(false);
   };
 
@@ -2063,10 +3822,13 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
     setIsUploading(true);
     const toastId = toast.loading("Enviando foto...");
     try {
-      const storageRef = ref(storage, `profiles/temp_${Date.now()}_${file.name}`);
+      const storageRef = ref(
+        storage,
+        `profiles/temp_${Date.now()}_${file.name}`,
+      );
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-      setFormData(prev => ({ ...prev, photoURL: url }));
+      setFormData((prev) => ({ ...prev, photoURL: url }));
       toast.success("Foto enviada com sucesso!", { id: toastId });
     } catch (error) {
       console.error("Erro ao enviar foto:", error);
@@ -2076,46 +3838,75 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
     }
   };
 
-  const themeBg = {
-    imw: "bg-red-600 hover:bg-red-700",
-    indigo: "bg-indigo-600 hover:bg-indigo-700",
-    red: "bg-red-600 hover:bg-red-700",
-    blue: "bg-blue-600 hover:bg-blue-700",
-    rose: "bg-rose-900 hover:bg-rose-950",
-    sky: "bg-sky-400 hover:bg-sky-500"
-  }[theme as keyof typeof themeBg] || "bg-indigo-600";
+  const themeBg =
+    {
+      imw: "bg-red-600 hover:bg-red-700",
+      indigo: "bg-indigo-600 hover:bg-indigo-700",
+      red: "bg-red-600 hover:bg-red-700",
+      blue: "bg-blue-600 hover:bg-blue-700",
+      rose: "bg-rose-900 hover:bg-rose-950",
+      sky: "bg-sky-400 hover:bg-sky-500",
+    }[theme as keyof typeof themeBg] || "bg-indigo-600";
 
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label>
-        <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.displayName} onChange={e => setFormData({...formData, displayName: e.target.value})} />
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Nome Completo
+        </label>
+        <input
+          type="text"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+          value={formData.displayName}
+          onChange={(e) =>
+            setFormData({ ...formData, displayName: e.target.value })
+          }
+        />
       </div>
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">E-mail</label>
-        <input type="email" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          E-mail
+        </label>
+        <input
+          type="email"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        />
       </div>
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Função / Especialidade</label>
-        <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} placeholder="Ex: Fotografia, Transmissão, Som..." />
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Função / Especialidade
+        </label>
+        <input
+          type="text"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+          value={formData.specialty}
+          onChange={(e) =>
+            setFormData({ ...formData, specialty: e.target.value })
+          }
+          placeholder="Ex: Fotografia, Transmissão, Som..."
+        />
       </div>
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Foto de Perfil</label>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Foto de Perfil
+        </label>
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-4">
             <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
               <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
                 <Upload size={16} /> Escolher arquivo
               </span>
-              <input 
-                type="file" 
+              <input
+                type="file"
                 accept="image/*"
                 className="hidden"
                 onChange={handlePhotoUpload}
                 disabled={isUploading}
               />
             </label>
-            <button 
+            <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
               title="Escolher Emoji"
@@ -2123,8 +3914,10 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
               😀
             </button>
             {formData.photoURL && (
-              <button 
-                onClick={() => setFormData(prev => ({ ...prev, photoURL: '' }))}
+              <button
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, photoURL: "" }))
+                }
                 className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
                 title="Remover foto"
               >
@@ -2132,13 +3925,15 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
               </button>
             )}
           </div>
-          
+
           {showEmojiPicker && (
             <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
-              <p className="text-xs font-bold text-gray-400 uppercase mb-2">Escolha um emoji</p>
+              <p className="text-xs font-bold text-gray-400 uppercase mb-2">
+                Escolha um emoji
+              </p>
               <div className="flex flex-wrap gap-2">
-                {PROFILE_EMOJIS.map(emoji => (
-                  <button 
+                {PROFILE_EMOJIS.map((emoji) => (
+                  <button
                     key={emoji}
                     onClick={() => handleEmojiSelect(emoji)}
                     className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-50 rounded-lg transition-colors border border-gray-100"
@@ -2153,104 +3948,196 @@ function VolunteerForm({ initialData, onSave, theme = 'indigo' }: { initialData:
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data de Nascimento</label>
-          <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Data de Nascimento
+          </label>
+          <input
+            type="date"
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+            value={formData.birthDate}
+            onChange={(e) =>
+              setFormData({ ...formData, birthDate: e.target.value })
+            }
+          />
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label>
-          <input type="tel" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(00) 00000-0000" />
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            WhatsApp
+          </label>
+          <input
+            type="tel"
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+            value={formData.phone}
+            onChange={(e) =>
+              setFormData({ ...formData, phone: e.target.value })
+            }
+            placeholder="(00) 00000-0000"
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cargo</label>
-          <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})}>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Cargo
+          </label>
+          <select
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+            value={formData.role}
+            onChange={(e) =>
+              setFormData({ ...formData, role: e.target.value as any })
+            }
+          >
             <option value="VOLUNTARIO">VOLUNTÁRIO</option>
             <option value="LIDER_II">LÍDER II</option>
             <option value="LIDER_I">LÍDER I</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-          <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Status
+          </label>
+          <select
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl"
+            value={formData.status}
+            onChange={(e) =>
+              setFormData({ ...formData, status: e.target.value as any })
+            }
+          >
             <option value="pending">Pendente</option>
             <option value="approved">Aprovado</option>
           </select>
         </div>
       </div>
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Especialidade / Funções</label>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Especialidade / Funções
+        </label>
         <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[50px]">
-          {ROLES.map(r => {
-            const isSelected = formData.specialty?.split(',').map(s => s.trim()).includes(r);
+          {ROLES.map((r) => {
+            const isSelected = formData.specialty
+              ?.split(",")
+              .map((s) => s.trim())
+              .includes(r);
             return (
               <button
                 key={r}
                 type="button"
                 onClick={() => {
-                  const current = formData.specialty ? formData.specialty.split(',').map(s => s.trim()).filter(Boolean) : [];
-                  const updated = current.includes(r) 
-                    ? current.filter(s => s !== r)
+                  const current = formData.specialty
+                    ? formData.specialty
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                    : [];
+                  const updated = current.includes(r)
+                    ? current.filter((s) => s !== r)
                     : [...current, r];
-                  setFormData({ ...formData, specialty: updated.join(', ') });
+                  setFormData({ ...formData, specialty: updated.join(", ") });
                 }}
                 className={cn(
                   "text-[10px] font-bold px-3 py-1.5 rounded-full transition-all border",
-                  isSelected 
-                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
-                    : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+                  isSelected
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600",
                 )}
               >
-                {isSelected ? '✓ ' : '+ '} {r}
+                {isSelected ? "✓ " : "+ "} {r}
               </button>
             );
           })}
         </div>
       </div>
-      <button onClick={() => onSave(formData)} disabled={isUploading} className={cn("w-full text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50", themeBg)}>
-        {isUploading ? "Enviando foto..." : (initialData ? "Atualizar" : "Cadastrar")}
+      <button
+        onClick={() => onSave(formData)}
+        disabled={isUploading}
+        className={cn(
+          "w-full text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50",
+          themeBg,
+        )}
+      >
+        {isUploading
+          ? "Enviando foto..."
+          : initialData
+            ? "Atualizar"
+            : "Cadastrar"}
       </button>
     </div>
   );
 }
 
-const ROLES = ['Som', 'Câmera', 'Projeção', 'Mídia', 'Vídeo', 'Fotos', 'Cantina', 'Doces', 'Iluminação', 'Recepção', 'Café', 'Placas', 'Anúncios', 'Outros'];
+const ROLES = [
+  "Som",
+  "Câmera",
+  "Projeção",
+  "Mídia",
+  "Vídeo",
+  "Fotos",
+  "Cantina",
+  "Doces",
+  "Iluminação",
+  "Recepção",
+  "Café",
+  "Placas",
+  "Anúncios",
+  "Outros",
+];
 
-function ScaleForm({ event, users, initialScale, onSave, allScales, allEvents, theme = 'indigo' }: { event: ChurchEvent, users: User[], initialScale?: Scale, onSave: (assignments: any[]) => void, allScales: Scale[], allEvents: ChurchEvent[], theme?: string }) {
-  const [assignments, setAssignments] = useState<any[]>(initialScale?.assignments || []);
-  const [selectedUser, setSelectedUser] = useState('');
+function ScaleForm({
+  event,
+  users,
+  initialScale,
+  onSave,
+  allScales,
+  allEvents,
+  theme = "indigo",
+}: {
+  event: ChurchEvent;
+  users: User[];
+  initialScale?: Scale;
+  onSave: (assignments: any[]) => void;
+  allScales: Scale[];
+  allEvents: ChurchEvent[];
+  theme?: string;
+}) {
+  const [assignments, setAssignments] = useState<any[]>(
+    initialScale?.assignments || [],
+  );
+  const [selectedUser, setSelectedUser] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
-  const themeBg = {
-    imw: "bg-red-600 hover:bg-red-700",
-    indigo: "bg-indigo-600 hover:bg-indigo-700",
-    red: "bg-red-600 hover:bg-red-700",
-    blue: "bg-blue-600 hover:bg-blue-700",
-    rose: "bg-rose-900 hover:bg-rose-950",
-    sky: "bg-sky-400 hover:bg-sky-500"
-  }[theme as keyof typeof themeBg] || "bg-indigo-600";
+  const themeBg =
+    {
+      imw: "bg-red-600 hover:bg-red-700",
+      indigo: "bg-indigo-600 hover:bg-indigo-700",
+      red: "bg-red-600 hover:bg-red-700",
+      blue: "bg-blue-600 hover:bg-blue-700",
+      rose: "bg-rose-900 hover:bg-rose-950",
+      sky: "bg-sky-400 hover:bg-sky-500",
+    }[theme as keyof typeof themeBg] || "bg-indigo-600";
 
-  const themeText = {
-    imw: "text-red-600",
-    indigo: "text-indigo-600",
-    red: "text-red-600",
-    blue: "text-blue-600",
-    rose: "text-rose-900",
-    sky: "text-sky-400"
-  }[theme as keyof typeof themeText] || "text-indigo-600";
+  const themeText =
+    {
+      imw: "text-red-600",
+      indigo: "text-indigo-600",
+      red: "text-red-600",
+      blue: "text-blue-600",
+      rose: "text-rose-900",
+      sky: "text-sky-400",
+    }[theme as keyof typeof themeText] || "text-indigo-600";
 
-  const themeBgLight = {
-    imw: "bg-red-50",
-    indigo: "bg-indigo-50",
-    red: "bg-red-50",
-    blue: "bg-blue-50",
-    rose: "bg-rose-50",
-    sky: "bg-sky-50"
-  }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
+  const themeBgLight =
+    {
+      imw: "bg-red-50",
+      indigo: "bg-indigo-50",
+      red: "bg-red-50",
+      blue: "bg-blue-50",
+      rose: "bg-rose-50",
+      sky: "bg-sky-50",
+    }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
 
   const toggleRole = (role: string) => {
     if (selectedRoles.includes(role)) {
-      setSelectedRoles(selectedRoles.filter(r => r !== role));
+      setSelectedRoles(selectedRoles.filter((r) => r !== role));
     } else {
       if (selectedRoles.length >= 4) {
         toast.error("Máximo de 4 funções por voluntário.");
@@ -2266,43 +4153,81 @@ function ScaleForm({ event, users, initialScale, onSave, allScales, allEvents, t
       toast.error("Selecione pelo menos uma função.");
       return;
     }
-    if (assignments.some(a => a.userId === selectedUser)) {
+    if (assignments.some((a) => a.userId === selectedUser)) {
       toast.error("Voluntário já está nesta escala.");
       return;
     }
-    setAssignments([...assignments, { userId: selectedUser, roles: selectedRoles }]);
-    setSelectedUser('');
+    setAssignments([
+      ...assignments,
+      { userId: selectedUser, roles: selectedRoles },
+    ]);
+    setSelectedUser("");
     setSelectedRoles([]);
   };
 
   const autoSchedule = () => {
-    const rolesToAssign = ['Som', 'Câmera', 'Projeção', 'Mídia', 'Vídeo', 'Fotos', 'Cantina', 'Doces', 'Iluminação', 'Recepção', 'Café', 'Placas', 'Anúncios'];
+    const rolesToAssign = [
+      "Som",
+      "Câmera",
+      "Projeção",
+      "Mídia",
+      "Vídeo",
+      "Fotos",
+      "Cantina",
+      "Doces",
+      "Iluminação",
+      "Recepção",
+      "Café",
+      "Placas",
+      "Anúncios",
+    ];
     const newAssignments: any[] = [];
     const usedUserIds = new Set<string>();
 
     const userParticipation: Record<string, number> = {};
-    users.forEach(u => {
-      userParticipation[u.uid] = allScales.reduce((acc, s) => 
-        acc + s.assignments.filter(a => a.userId === u.uid).length, 0
+    users.forEach((u) => {
+      userParticipation[u.uid] = allScales.reduce(
+        (acc, s) =>
+          acc + s.assignments.filter((a) => a.userId === u.uid).length,
+        0,
       );
     });
 
-    rolesToAssign.forEach(role => {
-      let eligibleUsers = users.filter(u => 
-        !usedUserIds.has(u.uid) && 
-        (u.specialty?.toLowerCase().includes(role.toLowerCase()))
-      );
+    // Add existing explicit assignments that we want to preserve
+    assignments.forEach((a) => {
+      if (a.userId && a.userId !== "EMPTY") {
+        newAssignments.push(a);
+        usedUserIds.add(a.userId);
+      }
+    });
 
-      if (eligibleUsers.length === 0) {
-        eligibleUsers = users.filter(u => !usedUserIds.has(u.uid));
+    rolesToAssign.forEach((role) => {
+      // Skip if this role is already assigned manually
+      if (
+        newAssignments.some(
+          (a) => (a.roles || []).includes(role) || a.role === role,
+        )
+      ) {
+        return;
       }
 
-      eligibleUsers.sort((a, b) => (userParticipation[a.uid] || 0) - (userParticipation[b.uid] || 0));
+      let eligibleUsers = users.filter(
+        (u) =>
+          u.status === "approved" &&
+          !usedUserIds.has(u.uid) &&
+          u.specialty?.toLowerCase().includes(role.toLowerCase()),
+      );
 
       if (eligibleUsers.length > 0) {
+        eligibleUsers.sort(
+          (a, b) =>
+            (userParticipation[a.uid] || 0) - (userParticipation[b.uid] || 0),
+        );
         const selected = eligibleUsers[0];
         newAssignments.push({ userId: selected.uid, roles: [role] });
         usedUserIds.add(selected.uid);
+      } else {
+        newAssignments.push({ userId: "EMPTY", roles: [role] });
       }
     });
 
@@ -2312,11 +4237,13 @@ function ScaleForm({ event, users, initialScale, onSave, allScales, allEvents, t
 
   const duplicatePreviousScale = () => {
     const sameTypeEvents = allEvents
-      .filter(e => e.type === event.type && e.id !== event.id)
+      .filter((e) => e.type === event.type && e.id !== event.id)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
+
     if (sameTypeEvents.length > 0) {
-      const prevScale = allScales.find(s => s.eventId === sameTypeEvents[0].id);
+      const prevScale = allScales.find(
+        (s) => s.eventId === sameTypeEvents[0].id,
+      );
       if (prevScale && prevScale.assignments.length > 0) {
         setAssignments(prevScale.assignments);
         toast.success(`Escala copiada de "${sameTypeEvents[0].title}"`);
@@ -2326,36 +4253,87 @@ function ScaleForm({ event, users, initialScale, onSave, allScales, allEvents, t
     toast.error("Nenhuma escala anterior encontrada para este tipo de evento.");
   };
 
+  const [selectedForRemoval, setSelectedForRemoval] = useState<number[]>([]);
+
+  const toggleRemovalSelection = (index: number) => {
+    if (selectedForRemoval.includes(index)) {
+      setSelectedForRemoval(selectedForRemoval.filter((i) => i !== index));
+    } else {
+      setSelectedForRemoval([...selectedForRemoval, index]);
+    }
+  };
+
+  const removeSelected = () => {
+    setAssignments(
+      assignments.filter((_, idx) => !selectedForRemoval.includes(idx)),
+    );
+    setSelectedForRemoval([]);
+  };
+
+  const handleQuickSwap = (index: number, newUserId: string) => {
+    const newAssignments = [...assignments];
+    newAssignments[index] = { ...newAssignments[index], userId: newUserId };
+    setAssignments(newAssignments);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap gap-2">
-        <button onClick={autoSchedule} className={cn("flex-1 font-bold py-3 rounded-xl border transition-all flex items-center justify-center gap-2", themeBgLight, themeText, "border-current border-opacity-20")}>
+        <button
+          onClick={autoSchedule}
+          className={cn(
+            "flex-1 font-bold py-3 rounded-xl border transition-all flex items-center justify-center gap-2",
+            themeBgLight,
+            themeText,
+            "border-current border-opacity-20",
+          )}
+        >
           <Sparkles size={18} /> Sugerir Escala
         </button>
-        <button onClick={duplicatePreviousScale} className={cn("flex-1 font-bold py-3 rounded-xl border transition-all flex items-center justify-center gap-2", themeBgLight, themeText, "border-current border-opacity-20")}>
+        <button
+          onClick={duplicatePreviousScale}
+          className={cn(
+            "flex-1 font-bold py-3 rounded-xl border transition-all flex items-center justify-center gap-2",
+            themeBgLight,
+            themeText,
+            "border-current border-opacity-20",
+          )}
+        >
           <Plus size={18} /> Repetir Anterior
         </button>
       </div>
 
       <div className="space-y-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Adicionar Voluntário</p>
-        <select className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none" value={selectedUser} onChange={e => setSelectedUser(e.target.value)}>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+          Adicionar Voluntário
+        </p>
+        <select
+          className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none"
+          value={selectedUser}
+          onChange={(e) => setSelectedUser(e.target.value)}
+        >
           <option value="">Selecionar Voluntário</option>
-          {users.map(u => <option key={u.uid} value={u.uid}>{u.displayName}</option>)}
+          {users.map((u) => (
+            <option key={u.uid} value={u.uid}>
+              {u.displayName}
+            </option>
+          ))}
         </select>
-        
+
         <div className="space-y-2">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Funções (Até 4):</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+            Funções (Até 4):
+          </p>
           <div className="flex flex-wrap gap-2">
-            {ROLES.map(role => (
+            {ROLES.map((role) => (
               <button
                 key={role}
                 onClick={() => toggleRole(role)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border",
-                  selectedRoles.includes(role) 
-                    ? cn(themeBg, "text-white border-transparent") 
-                    : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300"
+                  selectedRoles.includes(role)
+                    ? cn(themeBg, "text-white border-transparent")
+                    : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300",
                 )}
               >
                 {role}
@@ -2364,97 +4342,258 @@ function ScaleForm({ event, users, initialScale, onSave, allScales, allEvents, t
           </div>
         </div>
 
-        <button onClick={addAssignment} className={cn("w-full text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2", themeBg)}>
+        <button
+          onClick={addAssignment}
+          className={cn(
+            "w-full text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2",
+            themeBg,
+          )}
+        >
           <Plus size={18} /> Adicionar à Escala
         </button>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Escala Atual</p>
-        {assignments.map((a, i) => (
-          <div key={i} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm animate-in fade-in slide-in-from-left-2 duration-200">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 shadow-inner text-sm">
-                {users.find(u => u.uid === a.userId)?.displayName[0]}
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">{users.find(u => u.uid === a.userId)?.displayName}</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {(a.roles || [a.role]).map((r: string) => (
-                    <span key={r} className="text-[8px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded uppercase tracking-tighter">{r}</span>
-                  ))}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+            Escala Atual
+          </p>
+          {selectedForRemoval.length > 0 && (
+            <button
+              onClick={removeSelected}
+              className="text-[10px] font-bold uppercase tracking-widest text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
+            >
+              <Trash2 size={12} /> Remover Selecionados (
+              {selectedForRemoval.length})
+            </button>
+          )}
+        </div>
+        {assignments.map((a, i) => {
+          const isMissing = a.userId === "EMPTY";
+          const u = isMissing
+            ? null
+            : users.find((user) => user.uid === a.userId);
+          const currentRoles = a.roles || [a.role];
+
+          // Find compatible users for the first role in their set
+          const roleTocheck = currentRoles[0] || "";
+          const compatibleUsers = users.filter(
+            (user) =>
+              user.status === "approved" &&
+              user.uid !== a.userId &&
+              user.specialty?.toLowerCase().includes(roleTocheck.toLowerCase()),
+          );
+
+          return (
+            <div
+              key={i}
+              className={cn(
+                "flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border shadow-sm animate-in fade-in slide-in-from-left-2 duration-200 gap-4",
+                isMissing ? "border-red-100 bg-red-50/30" : "border-gray-100",
+                selectedForRemoval.includes(i) ? "ring-2 ring-red-400" : "",
+              )}
+            >
+              <div className="flex items-start sm:items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selectedForRemoval.includes(i)}
+                  onChange={() => toggleRemovalSelection(i)}
+                  className="mt-1 sm:mt-0 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                />
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-inner text-sm shrink-0",
+                    isMissing
+                      ? "bg-red-100 text-red-600"
+                      : "bg-indigo-50 text-indigo-600",
+                  )}
+                >
+                  {isMissing ? "!" : u?.displayName[0] || "?"}
+                </div>
+                <div className="flex flex-col">
+                  <p
+                    className={cn(
+                      "text-sm font-bold",
+                      isMissing ? "text-red-700" : "text-gray-900",
+                    )}
+                  >
+                    {isMissing ? "Sem voluntários disponíveis" : u?.displayName}
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {currentRoles.filter(Boolean).map((r: string) => (
+                      <span
+                        key={r}
+                        className={cn(
+                          "text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                          isMissing
+                            ? "bg-red-100 text-red-700"
+                            : "bg-indigo-50 text-indigo-600",
+                        )}
+                      >
+                        {r}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <select
+                  className="flex-1 sm:w-32 text-xs p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  value=""
+                  onChange={(e) => handleQuickSwap(i, e.target.value)}
+                >
+                  <option value="" disabled>
+                    Trocar...
+                  </option>
+                  {compatibleUsers.map((compUser) => (
+                    <option key={compUser.uid} value={compUser.uid}>
+                      {compUser.displayName}
+                    </option>
+                  ))}
+                  {compatibleUsers.length === 0 && (
+                    <option disabled>Nenhum voluntário apto</option>
+                  )}
+                </select>
+                <button
+                  onClick={() =>
+                    setAssignments(assignments.filter((_, idx) => idx !== i))
+                  }
+                  className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
-            <button onClick={() => setAssignments(assignments.filter((_, idx) => idx !== i))} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
-          </div>
-        ))}
-        {assignments.length === 0 && <p className="text-center text-gray-400 text-sm italic py-4">Nenhum voluntário escalado.</p>}
+          );
+        })}
+        {assignments.length === 0 && (
+          <p className="text-center text-gray-400 text-sm italic py-4">
+            Nenhum voluntário escalado.
+          </p>
+        )}
       </div>
-      <button onClick={() => onSave(assignments)} className={cn("w-full text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2", themeBg)}>
+      <button
+        onClick={() => onSave(assignments)}
+        className={cn(
+          "w-full text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2",
+          themeBg,
+        )}
+      >
         <Save size={20} /> Salvar Escala
       </button>
     </div>
   );
 }
 
-function CalendarView({ events, scales, allUsers }: { events: ChurchEvent[], scales: Scale[], allUsers: User[] }) {
+function CalendarView({
+  events,
+  scales,
+  allUsers,
+}: {
+  events: ChurchEvent[];
+  scales: Scale[];
+  allUsers: User[];
+}) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart);
   const endDate = endOfWeek(monthEnd);
-  
+
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in duration-300">
       <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
         <div>
-          <h3 className="text-xl font-bold text-gray-900 capitalize">{format(currentMonth, 'MMMM yyyy', { locale: ptBR })}</h3>
-          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Planejamento Mensal</p>
+          <h3 className="text-xl font-bold text-gray-900 capitalize">
+            {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
+          </h3>
+          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">
+            Planejamento Mensal
+          </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-white bg-white/50 rounded-xl transition-colors shadow-sm"><ChevronLeft size={20} /></button>
-          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 hover:bg-white bg-white/50 rounded-xl transition-colors shadow-sm"><ChevronRight size={20} /></button>
+          <button
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+            className="p-2 hover:bg-white bg-white/50 rounded-xl transition-colors shadow-sm"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+            className="p-2 hover:bg-white bg-white/50 rounded-xl transition-colors shadow-sm"
+          >
+            <ChevronRight size={20} />
+          </button>
         </div>
       </div>
       <div className="grid grid-cols-7 bg-gray-50/50 border-b border-gray-100">
-        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-          <div key={day} className="py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">{day}</div>
+        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
+          <div
+            key={day}
+            className="py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+          >
+            {day}
+          </div>
         ))}
       </div>
       <div className="grid grid-cols-7">
         {calendarDays.map((day, i) => {
-          const dayEvents = events.filter(e => isSameDay(new Date(e.date), day));
+          const dayEvents = events.filter((e) =>
+            isSameDay(new Date(e.date), day),
+          );
           const isCurrentMonth = isSameMonth(day, monthStart);
-          
+
           return (
-            <div key={i} className={cn(
-              "min-h-[140px] p-2 border-r border-b border-gray-50 transition-colors hover:bg-gray-50/50",
-              !isCurrentMonth && "opacity-25"
-            )}>
-              <span className={cn(
-                "text-xs font-bold mb-2 block w-6 h-6 flex items-center justify-center rounded-lg",
-                isSameDay(day, new Date()) ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" : "text-gray-400"
-              )}>
-                {format(day, 'd')}
+            <div
+              key={i}
+              className={cn(
+                "min-h-[140px] p-2 border-r border-b border-gray-50 transition-colors hover:bg-gray-50/50",
+                !isCurrentMonth && "opacity-25",
+              )}
+            >
+              <span
+                className={cn(
+                  "text-xs font-bold mb-2 block w-6 h-6 flex items-center justify-center rounded-lg",
+                  isSameDay(day, new Date())
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-100"
+                    : "text-gray-400",
+                )}
+              >
+                {format(day, "d")}
               </span>
               <div className="space-y-1.5">
-                {dayEvents.map(e => {
-                  const scale = scales.find(s => s.eventId === e.id);
-                  const volunteers = scale?.assignments.map(a => allUsers.find(u => u.uid === a.userId)?.displayName.split(' ')[0]).filter(Boolean).join(', ');
-                  
+                {dayEvents.map((e) => {
+                  const scale = scales.find((s) => s.eventId === e.id);
+                  const volunteers = scale?.assignments
+                    .map(
+                      (a) =>
+                        allUsers
+                          .find((u) => u.uid === a.userId)
+                          ?.displayName.split(" ")[0],
+                    )
+                    .filter(Boolean)
+                    .join(", ");
+
                   return (
-                    <div key={e.id} className={cn(
-                      "px-2 py-1.5 rounded-lg text-[9px] font-bold border-l-2 shadow-sm",
-                      e.type === 'CULTO' ? "bg-blue-50 text-blue-700 border-blue-600" : 
-                      e.type === 'ENSAIO' ? "bg-sky-50 text-sky-700 border-sky-400" : 
-                      "bg-rose-50 text-rose-900 border-rose-900"
-                    )}>
+                    <div
+                      key={e.id}
+                      className={cn(
+                        "px-2 py-1.5 rounded-lg text-[9px] font-bold border-l-2 shadow-sm",
+                        e.type === "CULTO"
+                          ? "bg-blue-50 text-blue-700 border-blue-600"
+                          : e.type === "ENSAIO"
+                            ? "bg-sky-50 text-sky-700 border-sky-400"
+                            : "bg-rose-50 text-rose-900 border-rose-900",
+                      )}
+                    >
                       <div className="flex justify-between items-center mb-0.5">
-                        <span>{format(new Date(e.date), 'HH:mm')} {e.title}</span>
+                        <span>
+                          {format(new Date(e.date), "HH:mm")} {e.title}
+                        </span>
                       </div>
                       {volunteers && (
                         <div className="text-[7px] text-gray-500 italic border-t border-black/5 pt-0.5 mt-0.5 truncate">
@@ -2473,11 +4612,21 @@ function CalendarView({ events, scales, allUsers }: { events: ChurchEvent[], sca
   );
 }
 
-function SetlistView({ setlists, isAdmin, theme, setViewingSetlist }: { setlists: Setlist[], isAdmin: boolean, theme: string, setViewingSetlist: (s: Setlist) => void }) {
+function SetlistView({
+  setlists,
+  isAdmin,
+  theme,
+  setViewingSetlist,
+}: {
+  setlists: Setlist[];
+  isAdmin: boolean;
+  theme: string;
+  setViewingSetlist: (s: Setlist) => void;
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
-  const [content, setContent] = useState('');
-  const [title, setTitle] = useState('');
+  const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
 
   const handleSave = async () => {
     if (!title || !content) {
@@ -2487,18 +4636,27 @@ function SetlistView({ setlists, isAdmin, theme, setViewingSetlist }: { setlists
 
     try {
       if (editingSetlist) {
-        await updateDoc(doc(db, 'setlists', editingSetlist.id), { title, content, updatedAt: new Date().toISOString() });
+        await updateDoc(doc(db, "setlists", editingSetlist.id), {
+          title,
+          content,
+          updatedAt: new Date().toISOString(),
+        });
         toast.success("Setlist atualizado!");
       } else {
-        await addDoc(collection(db, 'setlists'), { title, content, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+        await addDoc(collection(db, "setlists"), {
+          title,
+          content,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
         toast.success("Setlist criado!");
       }
       setIsModalOpen(false);
       setEditingSetlist(null);
-      setTitle('');
-      setContent('');
+      setTitle("");
+      setContent("");
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'setlists');
+      handleFirestoreError(error, OperationType.WRITE, "setlists");
     }
   };
 
@@ -2507,8 +4665,13 @@ function SetlistView({ setlists, isAdmin, theme, setViewingSetlist }: { setlists
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold text-gray-900">Músicas e Louvor</h3>
         {isAdmin && (
-          <button 
-            onClick={() => { setEditingSetlist(null); setTitle(''); setContent(''); setIsModalOpen(true); }}
+          <button
+            onClick={() => {
+              setEditingSetlist(null);
+              setTitle("");
+              setContent("");
+              setIsModalOpen(true);
+            }}
             className="bg-red-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-red-100"
           >
             <Plus size={16} /> Novo Setlist
@@ -2517,29 +4680,47 @@ function SetlistView({ setlists, isAdmin, theme, setViewingSetlist }: { setlists
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {setlists.map(s => (
-          <div key={s.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer" onClick={() => setViewingSetlist(s)}>
+        {setlists.map((s) => (
+          <div
+            key={s.id}
+            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer"
+            onClick={() => setViewingSetlist(s)}
+          >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="font-bold text-gray-900 text-lg group-hover:text-indigo-600 transition-colors">{s.title}</h4>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Atualizado em {new Date(s.updatedAt).toLocaleDateString()}</p>
+                <h4 className="font-bold text-gray-900 text-lg group-hover:text-indigo-600 transition-colors">
+                  {s.title}
+                </h4>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                  Atualizado em {new Date(s.updatedAt).toLocaleDateString()}
+                </p>
               </div>
               {isAdmin && (
                 <div className="flex gap-1">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setEditingSetlist(s); setTitle(s.title); setContent(s.content); setIsModalOpen(true); }}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingSetlist(s);
+                      setTitle(s.title);
+                      setContent(s.content);
+                      setIsModalOpen(true);
+                    }}
                     className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
                   >
                     <Edit size={16} />
                   </button>
-                  <button 
-                    onClick={async (e) => { 
+                  <button
+                    onClick={async (e) => {
                       e.stopPropagation();
                       try {
-                        await deleteDoc(doc(db, 'setlists', s.id));
+                        await deleteDoc(doc(db, "setlists", s.id));
                         toast.success("Setlist excluído");
                       } catch (error) {
-                        handleFirestoreError(error, OperationType.DELETE, 'setlists');
+                        handleFirestoreError(
+                          error,
+                          OperationType.DELETE,
+                          "setlists",
+                        );
                       }
                     }}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
@@ -2549,31 +4730,45 @@ function SetlistView({ setlists, isAdmin, theme, setViewingSetlist }: { setlists
                 </div>
               )}
             </div>
-            <div className="prose prose-sm max-w-none text-gray-600 line-clamp-3" dangerouslySetInnerHTML={{ __html: s.content }} />
+            <div
+              className="prose prose-sm max-w-none text-gray-600 line-clamp-3"
+              dangerouslySetInnerHTML={{ __html: s.content }}
+            />
           </div>
         ))}
       </div>
 
       {isModalOpen && (
-        <Modal title={editingSetlist ? "Editar Setlist" : "Novo Setlist"} onClose={() => setIsModalOpen(false)}>
+        <Modal
+          title={editingSetlist ? "Editar Setlist" : "Novo Setlist"}
+          onClose={() => setIsModalOpen(false)}
+        >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título do Setlist</label>
-              <input 
-                type="text" 
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Título do Setlist
+              </label>
+              <input
+                type="text"
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Culto de Domingo - 15/10"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Conteúdo</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Conteúdo
+              </label>
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <ReactQuill theme="snow" value={content} onChange={setContent} />
+                <ReactQuill
+                  theme="snow"
+                  value={content}
+                  onChange={setContent}
+                />
               </div>
             </div>
-            <button 
+            <button
               onClick={handleSave}
               className="w-full bg-red-600 text-white font-bold py-4 rounded-2xl hover:bg-red-700 transition-all flex items-center justify-center gap-2"
             >
@@ -2586,12 +4781,24 @@ function SetlistView({ setlists, isAdmin, theme, setViewingSetlist }: { setlists
   );
 }
 
-function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: { cronogramas: Cronograma[], isAdmin: boolean, theme: string, setViewingCronograma: (c: Cronograma) => void }) {
+function CronogramaView({
+  cronogramas,
+  isAdmin,
+  theme,
+  setViewingCronograma,
+}: {
+  cronogramas: Cronograma[];
+  isAdmin: boolean;
+  theme: string;
+  setViewingCronograma: (c: Cronograma) => void;
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCronograma, setEditingCronograma] = useState<Cronograma | null>(null);
-  const [content, setContent] = useState('');
-  const [title, setTitle] = useState('');
-  const [externalLink, setExternalLink] = useState('');
+  const [editingCronograma, setEditingCronograma] = useState<Cronograma | null>(
+    null,
+  );
+  const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
+  const [externalLink, setExternalLink] = useState("");
 
   const handleSave = async () => {
     if (!title || (!content && !externalLink)) {
@@ -2601,24 +4808,35 @@ function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: {
 
     try {
       if (editingCronograma) {
-        await updateDoc(doc(db, 'cronogramas', editingCronograma.id), { title, content, externalLink, updatedAt: new Date().toISOString() });
+        await updateDoc(doc(db, "cronogramas", editingCronograma.id), {
+          title,
+          content,
+          externalLink,
+          updatedAt: new Date().toISOString(),
+        });
         toast.success("Cronograma atualizado!");
       } else {
-        await addDoc(collection(db, 'cronogramas'), { title, content, externalLink, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+        await addDoc(collection(db, "cronogramas"), {
+          title,
+          content,
+          externalLink,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
         toast.success("Cronograma criado!");
       }
       setIsModalOpen(false);
       setEditingCronograma(null);
-      setTitle('');
-      setContent('');
-      setExternalLink('');
+      setTitle("");
+      setContent("");
+      setExternalLink("");
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'cronogramas');
+      handleFirestoreError(error, OperationType.WRITE, "cronogramas");
     }
   };
 
   const generatePDF = async (c: Cronograma) => {
-    const element = document.createElement('div');
+    const element = document.createElement("div");
     element.innerHTML = `
       <div style="padding: 40px; font-family: sans-serif;">
         <h1 style="color: #dc2626; border-bottom: 2px solid #dc2626; padding-bottom: 10px;">${c.title}</h1>
@@ -2629,16 +4847,16 @@ function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: {
       </div>
     `;
     document.body.appendChild(element);
-    
+
     try {
       const canvas = await html2canvas(element);
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF();
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`cronograma-${c.title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`cronograma-${c.title.toLowerCase().replace(/\s+/g, "-")}.pdf`);
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
@@ -2653,8 +4871,14 @@ function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: {
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold text-gray-900">Cronograma do Culto</h3>
         {isAdmin && (
-          <button 
-            onClick={() => { setEditingCronograma(null); setTitle(''); setContent(''); setExternalLink(''); setIsModalOpen(true); }}
+          <button
+            onClick={() => {
+              setEditingCronograma(null);
+              setTitle("");
+              setContent("");
+              setExternalLink("");
+              setIsModalOpen(true);
+            }}
             className="bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-blue-100"
           >
             <Plus size={16} /> Novo Cronograma
@@ -2663,36 +4887,58 @@ function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {cronogramas.map(c => (
-          <div key={c.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer" onClick={() => setViewingCronograma(c)}>
+        {cronogramas.map((c) => (
+          <div
+            key={c.id}
+            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer"
+            onClick={() => setViewingCronograma(c)}
+          >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="font-bold text-gray-900 text-lg group-hover:text-indigo-600 transition-colors">{c.title}</h4>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Atualizado em {new Date(c.updatedAt).toLocaleDateString()}</p>
+                <h4 className="font-bold text-gray-900 text-lg group-hover:text-indigo-600 transition-colors">
+                  {c.title}
+                </h4>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                  Atualizado em {new Date(c.updatedAt).toLocaleDateString()}
+                </p>
               </div>
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); generatePDF(c); }}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    generatePDF(c);
+                  }}
                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors flex items-center gap-2 text-xs font-bold"
                 >
                   <Download size={16} /> PDF
                 </button>
                 {isAdmin && (
                   <div className="flex gap-1">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setEditingCronograma(c); setTitle(c.title); setContent(c.content || ''); setExternalLink(c.externalLink || ''); setIsModalOpen(true); }}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingCronograma(c);
+                        setTitle(c.title);
+                        setContent(c.content || "");
+                        setExternalLink(c.externalLink || "");
+                        setIsModalOpen(true);
+                      }}
                       className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
                     >
                       <Edit size={16} />
                     </button>
-                    <button 
-                      onClick={async (e) => { 
+                    <button
+                      onClick={async (e) => {
                         e.stopPropagation();
                         try {
-                          await deleteDoc(doc(db, 'cronogramas', c.id));
+                          await deleteDoc(doc(db, "cronogramas", c.id));
                           toast.success("Cronograma excluído");
                         } catch (error) {
-                          handleFirestoreError(error, OperationType.DELETE, 'cronogramas');
+                          handleFirestoreError(
+                            error,
+                            OperationType.DELETE,
+                            "cronogramas",
+                          );
                         }
                       }}
                       className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
@@ -2703,9 +4949,20 @@ function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: {
                 )}
               </div>
             </div>
-            {c.content && <div className="prose prose-sm max-w-none text-gray-600 mb-4 line-clamp-3" dangerouslySetInnerHTML={{ __html: c.content }} />}
+            {c.content && (
+              <div
+                className="prose prose-sm max-w-none text-gray-600 mb-4 line-clamp-3"
+                dangerouslySetInnerHTML={{ __html: c.content }}
+              />
+            )}
             {c.externalLink && (
-              <a href={c.externalLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline">
+              <a
+                href={c.externalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline"
+              >
                 <ExternalLink size={16} /> Ver Link Externo
               </a>
             )}
@@ -2714,35 +4971,48 @@ function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: {
       </div>
 
       {isModalOpen && (
-        <Modal title={editingCronograma ? "Editar Cronograma" : "Novo Cronograma"} onClose={() => setIsModalOpen(false)}>
+        <Modal
+          title={editingCronograma ? "Editar Cronograma" : "Novo Cronograma"}
+          onClose={() => setIsModalOpen(false)}
+        >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título do Cronograma</label>
-              <input 
-                type="text" 
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Título do Cronograma
+              </label>
+              <input
+                type="text"
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Culto da Vitória - 22/10"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Conteúdo (Opcional se houver link)</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Conteúdo (Opcional se houver link)
+              </label>
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <ReactQuill theme="snow" value={content} onChange={setContent} />
+                <ReactQuill
+                  theme="snow"
+                  value={content}
+                  onChange={setContent}
+                />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Link Externo (Opcional)</label>
-              <input 
-                type="text" 
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Link Externo (Opcional)
+              </label>
+              <input
+                type="text"
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
                 value={externalLink}
-                onChange={e => setExternalLink(e.target.value)}
+                onChange={(e) => setExternalLink(e.target.value)}
                 placeholder="https://..."
               />
             </div>
-            <button 
+            <button
               onClick={handleSave}
               className="w-full bg-blue-700 text-white font-bold py-4 rounded-2xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2"
             >
@@ -2755,23 +5025,62 @@ function CronogramaView({ cronogramas, isAdmin, theme, setViewingCronograma }: {
   );
 }
 
-function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, theme: string }) {
+function ProfileForm({
+  user,
+  onSave,
+  theme,
+}: {
+  user: User;
+  onSave: () => void;
+  theme: string;
+}) {
   const [formData, setFormData] = useState({
-    displayName: user.displayName || '',
-    photoURL: user.photoURL || '',
-    birthDate: user.birthDate || '',
-    phone: user.phone || '',
-    specialty: user.specialty || ''
+    displayName: user.displayName || "",
+    photoURL: user.photoURL || "",
+    birthDate: user.birthDate || "",
+    phone: user.phone || "",
+    specialty: user.specialty || "",
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  const PROFILE_EMOJIS = ['🧑','👩','👱‍♂️','👱‍♀️','🧔','👨‍🦲','👩‍🦲','👨‍🦳','👩‍🦳','🐼','🦊','🦁','🐵','🦄','👽','👾','🤖','😎','🤓','🤠','🎸','🥁','🎹','🎤','🎧','📷','🎥','✝️','🔥','🕊️'];
+  const PROFILE_EMOJIS = [
+    "🧑",
+    "👩",
+    "👱‍♂️",
+    "👱‍♀️",
+    "🧔",
+    "👨‍🦲",
+    "👩‍🦲",
+    "👨‍🦳",
+    "👩‍🦳",
+    "🐼",
+    "🦊",
+    "🦁",
+    "🐵",
+    "🦄",
+    "👽",
+    "👾",
+    "🤖",
+    "😎",
+    "🤓",
+    "🤠",
+    "🎸",
+    "🥁",
+    "🎹",
+    "🎤",
+    "🎧",
+    "📷",
+    "🎥",
+    "✝️",
+    "🔥",
+    "🕊️",
+  ];
 
   const handleEmojiSelect = (emoji: string) => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${emoji}</text></svg>`;
     const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    setFormData(prev => ({ ...prev, photoURL: url }));
+    setFormData((prev) => ({ ...prev, photoURL: url }));
     setShowEmojiPicker(false);
   };
 
@@ -2784,7 +5093,7 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
       const storageRef = ref(storage, `profiles/${user.uid}/${file.name}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-      setFormData(prev => ({ ...prev, photoURL: url }));
+      setFormData((prev) => ({ ...prev, photoURL: url }));
       toast.success("Foto enviada com sucesso!", { id: toastId });
     } catch (error) {
       console.error("Erro ao enviar foto:", error);
@@ -2800,13 +5109,13 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
 
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateDoc(doc(db, "users", user.uid), {
         displayName: formData.displayName,
         photoURL: formData.photoURL,
         birthDate: formData.birthDate,
         phone: formData.phone,
         specialty: formData.specialty,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       toast.success("Perfil atualizado com sucesso!");
       onSave();
@@ -2822,20 +5131,27 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
       <div className="flex flex-col items-center gap-4">
         <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-xl overflow-hidden relative group">
           {formData.photoURL ? (
-            <img src={formData.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <img
+              src={formData.photoURL}
+              alt=""
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
               {formData.displayName[0]}
             </div>
           )}
         </div>
-        
+
         {showEmojiPicker && (
           <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-lg w-full max-w-sm absolute z-10 top-32">
-            <p className="text-xs font-bold text-gray-400 uppercase mb-2">Escolha um emoji</p>
+            <p className="text-xs font-bold text-gray-400 uppercase mb-2">
+              Escolha um emoji
+            </p>
             <div className="flex flex-wrap gap-2 justify-center">
-              {PROFILE_EMOJIS.map(emoji => (
-                <button 
+              {PROFILE_EMOJIS.map((emoji) => (
+                <button
                   key={emoji}
                   onClick={() => handleEmojiSelect(emoji)}
                   className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-50 rounded-lg transition-colors border border-gray-100"
@@ -2846,46 +5162,58 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
             </div>
           </div>
         )}
-        
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sua Foto de Perfil</p>
+
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          Sua Foto de Perfil
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label>
-          <input 
-            type="text" 
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Nome Completo
+          </label>
+          <input
+            type="text"
             className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
             value={formData.displayName}
-            onChange={e => setFormData({...formData, displayName: e.target.value})}
+            onChange={(e) =>
+              setFormData({ ...formData, displayName: e.target.value })
+            }
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Função / Especialidade</label>
-          <input 
-            type="text" 
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Função / Especialidade
+          </label>
+          <input
+            type="text"
             placeholder="Ex: Fotografia, Transmissão, Som..."
             className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
             value={formData.specialty}
-            onChange={e => setFormData({...formData, specialty: e.target.value})}
+            onChange={(e) =>
+              setFormData({ ...formData, specialty: e.target.value })
+            }
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Foto de Perfil</label>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Foto de Perfil
+          </label>
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-4">
               <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
                 <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
                   <Upload size={16} /> Escolher arquivo
                 </span>
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handlePhotoUpload}
                 />
               </label>
-              <button 
+              <button
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
                 title="Escolher Emoji"
@@ -2893,8 +5221,10 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
                 😀
               </button>
               {formData.photoURL && (
-                <button 
-                  onClick={() => setFormData(prev => ({ ...prev, photoURL: '' }))}
+                <button
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, photoURL: "" }))
+                  }
                   className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
                   title="Remover foto"
                 >
@@ -2906,33 +5236,47 @@ function ProfileForm({ user, onSave, theme }: { user: User, onSave: () => void, 
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data de Nascimento</label>
-            <input 
-              type="date" 
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Data de Nascimento
+            </label>
+            <input
+              type="date"
               className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
               value={formData.birthDate}
-              onChange={e => setFormData({...formData, birthDate: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, birthDate: e.target.value })
+              }
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label>
-            <input 
-              type="tel" 
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              WhatsApp
+            </label>
+            <input
+              type="tel"
               className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
               value={formData.phone}
-              onChange={e => setFormData({...formData, phone: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
               placeholder="(00) 00000-0000"
             />
           </div>
         </div>
       </div>
 
-      <button 
+      <button
         onClick={handleSave}
         disabled={isSaving}
         className="w-full bg-red-600 text-white font-bold py-4 rounded-2xl hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
-        {isSaving ? "Salvando..." : <><Save size={20} /> Salvar Alterações</>}
+        {isSaving ? (
+          "Salvando..."
+        ) : (
+          <>
+            <Save size={20} /> Salvar Alterações
+          </>
+        )}
       </button>
     </div>
   );
