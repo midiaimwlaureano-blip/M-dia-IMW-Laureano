@@ -167,6 +167,8 @@ export default function App() {
   const [eventFilterStatus, setEventFilterStatus] = useState('all');
   const [scaleFilterRole, setScaleFilterRole] = useState('all');
   const [scaleViewMode, setScaleViewMode] = useState<'cards' | 'weekly'>('cards');
+  const [calendarFilterType, setCalendarFilterType] = useState('all');
+  const [calendarFilterStatus, setCalendarFilterStatus] = useState('all');
 
   // Real-time listeners
   useEffect(() => {
@@ -1617,6 +1619,13 @@ export default function App() {
                     events={events}
                     scales={scales}
                     allUsers={allUsers}
+                    isAdmin={isAdmin}
+                    setSelectedEventForScale={setSelectedEventForScale}
+                    setIsScaleModalOpen={setIsScaleModalOpen}
+                    calendarFilterType={calendarFilterType}
+                    setCalendarFilterType={setCalendarFilterType}
+                    calendarFilterStatus={calendarFilterStatus}
+                    setCalendarFilterStatus={setCalendarFilterStatus}
                   />
                 )}
 
@@ -4510,12 +4519,27 @@ function CalendarView({
   events,
   scales,
   allUsers,
+  isAdmin,
+  setSelectedEventForScale,
+  setIsScaleModalOpen,
+  calendarFilterType,
+  setCalendarFilterType,
+  calendarFilterStatus,
+  setCalendarFilterStatus
 }: {
   events: ChurchEvent[];
   scales: Scale[];
   allUsers: User[];
+  isAdmin: boolean;
+  setSelectedEventForScale: (e: ChurchEvent) => void;
+  setIsScaleModalOpen: (b: boolean) => void;
+  calendarFilterType: string;
+  setCalendarFilterType: (v: string) => void;
+  calendarFilterStatus: string;
+  setCalendarFilterStatus: (v: string) => void;
 }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);
@@ -4524,9 +4548,41 @@ function CalendarView({
 
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
+  const filteredEvents = events
+    .filter((e) => calendarFilterType === 'all' || e.type === calendarFilterType)
+    .filter((e) => {
+      if (calendarFilterStatus === 'all') return true;
+      const isPast = new Date(e.date) < new Date(new Date().setHours(0, 0, 0, 0));
+      if (calendarFilterStatus === 'CONCLUIDO') return isPast;
+      if (calendarFilterStatus === 'AGENDADO') return !isPast;
+      return true;
+    });
+
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in duration-300">
-      <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <select 
+          className="text-sm p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          value={calendarFilterType}
+          onChange={(e) => setCalendarFilterType(e.target.value)}
+        >
+          <option value="all">Todos os Tipos</option>
+          <option value="CULTO">Culto</option>
+          <option value="ENSAIO">Ensaio</option>
+          <option value="REUNIAO">Reunião</option>
+        </select>
+        <select 
+          className="text-sm p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          value={calendarFilterStatus}
+          onChange={(e) => setCalendarFilterStatus(e.target.value)}
+        >
+          <option value="all">Todo o Período</option>
+          <option value="AGENDADO">Somente Agendados</option>
+          <option value="CONCLUIDO">Somente Concluídos</option>
+        </select>
+      </div>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in duration-300">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
         <div>
           <h3 className="text-xl font-bold text-gray-900 capitalize">
             {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
@@ -4562,7 +4618,7 @@ function CalendarView({
       </div>
       <div className="grid grid-cols-7">
         {calendarDays.map((day, i) => {
-          const dayEvents = events.filter((e) =>
+          const dayEvents = filteredEvents.filter((e) =>
             isSameDay(new Date(e.date), day),
           );
           const isCurrentMonth = isSameMonth(day, monthStart);
@@ -4570,9 +4626,11 @@ function CalendarView({
           return (
             <div
               key={i}
+              onClick={() => dayEvents.length > 0 && setSelectedDate(day)}
               className={cn(
                 "min-h-[140px] p-2 border-r border-b border-gray-50 transition-colors hover:bg-gray-50/50",
                 !isCurrentMonth && "opacity-25",
+                dayEvents.length > 0 && "cursor-pointer"
               )}
             >
               <span
@@ -4628,6 +4686,79 @@ function CalendarView({
           );
         })}
       </div>
+
+      {selectedDate && (
+        <Modal 
+          title={`Atividades: ${format(selectedDate, "dd/MM/yyyy")}`}
+          onClose={() => setSelectedDate(null)}
+          isDarkMode={false}
+        >
+          <div className="space-y-4">
+            {events
+              .filter((e) => isSameDay(new Date(e.date), selectedDate))
+              .map((e) => {
+                const scale = scales.find((s) => s.eventId === e.id);
+                return (
+                  <div key={e.id} className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                       <h4 className="font-bold text-gray-900">{format(new Date(e.date), "HH:mm")} - {e.title}</h4>
+                       <span className={cn(
+                          "px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider",
+                          e.type === "CULTO"
+                            ? "bg-blue-100 text-blue-700"
+                            : e.type === "ENSAIO"
+                              ? "bg-sky-100 text-sky-700"
+                              : "bg-rose-100 text-rose-900"
+                        )}>
+                          {e.type}
+                        </span>
+                    </div>
+                    {e.description && <p className="text-sm text-gray-600 mb-4">{e.description}</p>}
+                    
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Equipe Escalada</p>
+                      {scale && scale.assignments.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {scale.assignments.map((a, i) => {
+                            const user = allUsers.find(u => u.uid === a.userId);
+                            const isMissing = a.userId === "EMPTY";
+                            return (
+                              <div key={i} className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
+                                <span className={cn("text-xs font-bold", isMissing ? "text-red-600" : "text-gray-900")}>
+                                  {isMissing ? "Pendente" : user?.displayName}
+                                </span>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded uppercase tracking-tighter">
+                                  {(a.roles || [a.role]).filter(Boolean).join(', ')}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">Ninguém escalado ainda.</p>
+                      )}
+                    </div>
+                    {isAdmin && (
+                      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                        <button
+                          onClick={() => {
+                            setSelectedDate(null);
+                            setSelectedEventForScale(e);
+                            setIsScaleModalOpen(true);
+                          }}
+                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all uppercase"
+                        >
+                          Editar Escalas
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </Modal>
+      )}
+    </div>
     </div>
   );
 }
