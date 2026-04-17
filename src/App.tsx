@@ -734,6 +734,8 @@ export default function App() {
     );
 
   if (user.status === "pending") {
+    const isProfileComplete = user.phone && user.specialty && user.birthDate;
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-indigo-50 p-4">
         <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center">
@@ -743,23 +745,41 @@ export default function App() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Aprovação Pendente
           </h2>
-          <p className="text-gray-600 mb-8">
-            Sua conta foi criada com sucesso! Para acessar o sistema, por favor,
-            complete seu perfil abaixo e aguarde a aprovação de um líder.
-          </p>
-          <ProfileForm
-            user={user}
-            onSave={() =>
-              toast.success("Perfil atualizado! Aguarde a aprovação.")
-            }
-            theme={theme}
-          />
-          <button
-            onClick={logout}
-            className="mt-6 text-gray-500 hover:text-gray-700 text-sm font-medium"
-          >
-            Sair e tentar com outra conta
-          </button>
+          {isProfileComplete ? (
+            <div className="space-y-6">
+              <div className="bg-green-50 text-green-700 p-4 rounded-2xl border border-green-100 text-sm">
+                <strong>Perfil completo! 🎉</strong><br/>
+                Seus dados foram enviados e estão sob análise da liderança. 
+                Você receberá acesso total assim que for aprovado.
+              </div>
+              <button
+                onClick={logout}
+                className="w-full font-bold py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Voltar ao Início
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-gray-600 mb-8 text-sm">
+                Sua conta foi criada! Para liberar seu acesso, por favor,
+                complete seu perfil (telefone, data de nascimento e funções) abaixo.
+              </p>
+              <ProfileForm
+                user={user}
+                onSave={() =>
+                  toast.success("Perfil atualizado! Aguarde a aprovação da liderança.")
+                }
+                theme={theme}
+              />
+              <button
+                onClick={logout}
+                className="mt-6 text-gray-500 hover:text-gray-700 text-sm font-medium"
+              >
+                Sair e tentar com outra conta
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
