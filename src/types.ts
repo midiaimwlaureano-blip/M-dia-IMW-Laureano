@@ -20,7 +20,10 @@ export interface User {
   role: UserRole;
   status?: 'pending' | 'approved';
   specialty?: string;
-  color?: string;
+  color?: string; // legacy
+  bg_color?: string;
+  initials?: string;
+  profile_emoji?: string;
   createdAt: string;
   photoURL?: string;
   birthDate?: string;

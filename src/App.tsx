@@ -66,6 +66,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   AlertTriangle,
+  Camera,
 } from "lucide-react";
 
 const ChristianCross = ({
@@ -403,7 +404,7 @@ export default function App() {
         newAssignments.push({ userId: selected.uid, roles: [role] });
         usedUserIds.add(selected.uid);
       } else {
-        newAssignments.push({ userId: "EMPTY", roles: [role] });
+        newAssignments.push({ userId: null, roles: [role] });
       }
     });
 
@@ -965,7 +966,10 @@ export default function App() {
                 : "p-2 hover:bg-gray-50 rounded-xl",
             )}
           >
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden shrink-0">
+            <div 
+               className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden shrink-0 text-sm"
+               style={{ backgroundColor: user.photoURL ? 'transparent' : user.bg_color || user.color || '#4F46E5', color: user.photoURL ? 'inherit' : 'white' }}
+            >
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
@@ -973,8 +977,10 @@ export default function App() {
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
+              ) : user.profile_emoji ? (
+                user.profile_emoji
               ) : (
-                user.displayName[0]
+                user.initials || user.displayName.substring(0, 2).toUpperCase()
               )}
             </div>
             {navStyle === "sidebar" && !isSidebarCollapsed && (
@@ -1473,7 +1479,7 @@ export default function App() {
                                   </div>
                                   <div className="flex flex-wrap gap-2">
                                     {scale.assignments.map((a, idx) => {
-                                      const isMissing = a.userId === "EMPTY";
+                                      const isMissing = !a.userId || a.userId === "EMPTY";
                                       const u = isMissing
                                         ? null
                                         : allUsers.find(
@@ -1499,7 +1505,7 @@ export default function App() {
                                           >
                                             {isMissing
                                               ? "!"
-                                              : u?.displayName[0] || "?"}
+                                              : u?.displayName?.[0] || ""}
                                           </div>
                                           <div className="flex flex-col">
                                             <span
@@ -1971,30 +1977,30 @@ export default function App() {
                                       <div
                                         className={cn(
                                           "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
-                                          a.userId === "EMPTY"
+                                          !a.userId || a.userId === "EMPTY"
                                             ? "bg-red-100 text-red-600"
                                             : "bg-indigo-100 text-indigo-600",
                                         )}
                                       >
-                                        {a.userId === "EMPTY"
+                                        {!a.userId || a.userId === "EMPTY"
                                           ? "!"
                                           : allUsers.find(
                                               (u) => u.uid === a.userId,
-                                            )?.displayName[0] || "?"}
+                                            )?.displayName?.[0] || ""}
                                       </div>
                                       <span
                                         className={cn(
                                           "text-xs font-medium",
-                                          a.userId === "EMPTY"
+                                          !a.userId || a.userId === "EMPTY"
                                             ? "text-red-600"
                                             : "text-gray-700",
                                         )}
                                       >
-                                        {a.userId === "EMPTY"
-                                          ? "Sem voluntários disponíveis"
+                                        {!a.userId || a.userId === "EMPTY"
+                                          ? "Sem voluntário disponível"
                                           : allUsers.find(
                                               (u) => u.uid === a.userId,
-                                            )?.displayName || "Desconhecido"}
+                                            )?.displayName || ""}
                                       </span>
                                     </div>
                                     <div className="flex flex-wrap gap-1 justify-end max-w-[100px]">
@@ -2005,7 +2011,7 @@ export default function App() {
                                             key={r}
                                             className={cn(
                                               "text-[7px] font-bold px-1 py-0.5 rounded uppercase tracking-tighter",
-                                              a.userId === "EMPTY"
+                                              !a.userId || a.userId === "EMPTY"
                                                 ? "bg-red-50 text-red-600"
                                                 : "bg-indigo-50 text-indigo-600",
                                             )}
@@ -2096,14 +2102,14 @@ export default function App() {
                                     <td className="px-4 py-3">
                                       <div className="flex flex-wrap gap-2">
                                         {scale?.assignments.map((a, i) => {
-                                          const isMissing = a.userId === "EMPTY";
+                                          const isMissing = !a.userId || a.userId === "EMPTY";
                                           return (
                                             <div key={i} className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-lg">
                                               <div className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold", isMissing ? "bg-red-100 text-red-600" : "bg-indigo-100 text-indigo-600")}>
-                                                {isMissing ? "!" : allUsers.find(u => u.uid === a.userId)?.displayName[0] || "?"}
+                                                {isMissing ? "!" : allUsers.find(u => u.uid === a.userId)?.displayName?.[0] || ""}
                                               </div>
                                               <span className={cn("text-[10px] font-medium max-w-[80px] truncate", isMissing ? "text-red-600" : "text-gray-700")}>
-                                                {isMissing ? "Pendente" : allUsers.find(u => u.uid === a.userId)?.displayName.split(' ')[0] || "Desconh."}
+                                                {isMissing ? "Vago" : allUsers.find(u => u.uid === a.userId)?.displayName?.split(' ')?.[0] || ""}
                                               </span>
                                               <span className="text-[8px] text-gray-500 uppercase font-bold tracking-tighter mix-blend-multiply">
                                                 {(a.roles || [a.role]).filter(Boolean).join(',')}
@@ -2312,7 +2318,10 @@ export default function App() {
 
                 {activeTab === "volunteers" && (
                   <div className="space-y-6">
-                    <div className="flex justify-end">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {/* Title will be rendered by the generic h2 above, so we keep this empty or just leave the New Volunteer button */}
+                      </h3>
                       {isAdmin && (
                         <button
                           onClick={() => {
@@ -2325,6 +2334,61 @@ export default function App() {
                         </button>
                       )}
                     </div>
+                    
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                      <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        🎉 Próximos Aniversariantes
+                      </h4>
+                      {(() => {
+                        const today = new Date();
+                        const upcoming = allUsers
+                          .filter(u => u.birthDate)
+                          .map(u => {
+                            const [year, month, day] = u.birthDate!.split('-');
+                            let nextBday = new Date(today.getFullYear(), parseInt(month) - 1, parseInt(day));
+                            if (nextBday < new Date(today.setHours(0, 0, 0, 0))) {
+                              nextBday = new Date(today.getFullYear() + 1, parseInt(month) - 1, parseInt(day));
+                            }
+                            return { ...u, nextBday };
+                          })
+                          .sort((a, b) => a.nextBday.getTime() - b.nextBday.getTime())
+                          .slice(0, 5);
+
+                        if (upcoming.length === 0) {
+                          return <p className="text-sm text-gray-500">Nenhum aniversário cadastrado.</p>;
+                        }
+
+                        return (
+                          <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+                            {upcoming.map(u => (
+                              <div key={u.uid} className="flex-shrink-0 bg-gray-50 border border-gray-100 rounded-2xl p-4 min-w-[200px] flex items-center gap-3">
+                                <div
+                                  className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0"
+                                  style={{ backgroundColor: u.bg_color || u.color || "#4F46E5" }}
+                                >
+                                  {u.profile_emoji ? (
+                                    u.profile_emoji
+                                  ) : u.photoURL ? (
+                                    <img src={u.photoURL} alt="" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    u.initials || u.displayName[0]
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-gray-900 text-sm truncate w-24">
+                                    {u.displayName.split(' ')[0]}
+                                  </p>
+                                  <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mt-0.5">
+                                    {format(u.nextBday, "dd/MM")}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {allUsers.map((u) => (
                         <div
@@ -2333,9 +2397,11 @@ export default function App() {
                         >
                           <div
                             className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shrink-0"
-                            style={{ backgroundColor: u.color || "#4F46E5" }}
+                            style={{ backgroundColor: u.bg_color || u.color || "#4F46E5" }}
                           >
-                            {u.photoURL ? (
+                            {u.profile_emoji ? (
+                              u.profile_emoji
+                            ) : u.photoURL ? (
                               <img
                                 src={u.photoURL}
                                 alt=""
@@ -2343,7 +2409,7 @@ export default function App() {
                                 referrerPolicy="no-referrer"
                               />
                             ) : (
-                              u.displayName[0]
+                              u.initials || u.displayName.substring(0, 2).toUpperCase()
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -4398,7 +4464,7 @@ function ScaleForm({
           )}
         </div>
         {assignments.map((a, i) => {
-          const isMissing = a.userId === "EMPTY";
+          const isMissing = !a.userId || a.userId === "EMPTY";
           const u = isMissing
             ? null
             : users.find((user) => user.uid === a.userId);
@@ -4437,7 +4503,7 @@ function ScaleForm({
                       : "bg-indigo-50 text-indigo-600",
                   )}
                 >
-                  {isMissing ? "!" : u?.displayName[0] || "?"}
+                  {isMissing ? "!" : u?.displayName?.[0] || ""}
                 </div>
                 <div className="flex flex-col">
                   <p
@@ -4446,7 +4512,7 @@ function ScaleForm({
                       isMissing ? "text-red-700" : "text-gray-900",
                     )}
                   >
-                    {isMissing ? "Sem voluntários disponíveis" : u?.displayName}
+                    {isMissing ? "Sem voluntário disponível" : u?.displayName}
                   </p>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {currentRoles.filter(Boolean).map((r: string) => (
@@ -4721,14 +4787,14 @@ function CalendarView({
                         <div className="flex flex-wrap gap-2">
                           {scale.assignments.map((a, i) => {
                             const user = allUsers.find(u => u.uid === a.userId);
-                            const isMissing = a.userId === "EMPTY";
+                            const isMissing = !a.userId || a.userId === "EMPTY";
                             return (
                               <div key={i} className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
                                 <span className={cn("text-xs font-bold", isMissing ? "text-red-600" : "text-gray-900")}>
-                                  {isMissing ? "Pendente" : user?.displayName}
+                                  {isMissing ? "Vago" : user?.displayName}
                                 </span>
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded uppercase tracking-tighter">
-                                  {(a.roles || [a.role]).filter(Boolean).join(', ')}
+                                  {(a.roles || [(a as any).role]).filter(Boolean).join(', ')}
                                 </span>
                               </div>
                             );
@@ -4763,6 +4829,63 @@ function CalendarView({
   );
 }
 
+function SetlistForm({
+  initialTitle,
+  initialContent,
+  onSave,
+}: {
+  initialTitle: string;
+  initialContent: string;
+  onSave: (title: string, content: string) => Promise<void>;
+}) {
+  const [title, setTitle] = useState(initialTitle);
+  const [content, setContent] = useState(initialContent);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onSave(title, content);
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Título do Setlist
+        </label>
+        <input
+          type="text"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Ex: Culto de Domingo - 15/10"
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Conteúdo
+        </label>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <ReactQuill
+            theme="snow"
+            value={content}
+            onChange={setContent}
+          />
+        </div>
+      </div>
+      <button
+        onClick={handleSave}
+        disabled={isSaving}
+        className="w-full bg-red-600 text-white font-bold py-4 rounded-2xl hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        <Save size={20} />
+        {isSaving ? "Salvando..." : "Salvar Setlist"}
+      </button>
+    </div>
+  );
+}
+
 function SetlistView({
   setlists,
   isAdmin,
@@ -4776,10 +4899,8 @@ function SetlistView({
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
-  const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
 
-  const handleSave = async () => {
+  const handleSave = async (title: string, content: string) => {
     if (!title || !content) {
       toast.error("Título e conteúdo são obrigatórios.");
       return;
@@ -4804,8 +4925,6 @@ function SetlistView({
       }
       setIsModalOpen(false);
       setEditingSetlist(null);
-      setTitle("");
-      setContent("");
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "setlists");
     }
@@ -4819,8 +4938,6 @@ function SetlistView({
           <button
             onClick={() => {
               setEditingSetlist(null);
-              setTitle("");
-              setContent("");
               setIsModalOpen(true);
             }}
             className="bg-red-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-red-100"
@@ -4852,8 +4969,6 @@ function SetlistView({
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingSetlist(s);
-                      setTitle(s.title);
-                      setContent(s.content);
                       setIsModalOpen(true);
                     }}
                     className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
@@ -4894,40 +5009,85 @@ function SetlistView({
           title={editingSetlist ? "Editar Setlist" : "Novo Setlist"}
           onClose={() => setIsModalOpen(false)}
         >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Título do Setlist
-              </label>
-              <input
-                type="text"
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ex: Culto de Domingo - 15/10"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Conteúdo
-              </label>
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <ReactQuill
-                  theme="snow"
-                  value={content}
-                  onChange={setContent}
-                />
-              </div>
-            </div>
-            <button
-              onClick={handleSave}
-              className="w-full bg-red-600 text-white font-bold py-4 rounded-2xl hover:bg-red-700 transition-all flex items-center justify-center gap-2"
-            >
-              <Save size={20} /> Salvar Setlist
-            </button>
-          </div>
+          <SetlistForm
+             initialTitle={editingSetlist?.title || ""}
+             initialContent={editingSetlist?.content || ""}
+             onSave={handleSave}
+          />
         </Modal>
       )}
+    </div>
+  );
+}
+
+function CronogramaForm({
+  initialTitle,
+  initialContent,
+  initialLink,
+  onSave,
+}: {
+  initialTitle: string;
+  initialContent: string;
+  initialLink: string;
+  onSave: (title: string, content: string, externalLink: string) => Promise<void>;
+}) {
+  const [title, setTitle] = useState(initialTitle);
+  const [content, setContent] = useState(initialContent);
+  const [externalLink, setExternalLink] = useState(initialLink);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onSave(title, content, externalLink);
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Título do Cronograma
+        </label>
+        <input
+          type="text"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Ex: Culto da Vitória - 22/10"
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Conteúdo (Opcional se houver link)
+        </label>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <ReactQuill
+            theme="snow"
+            value={content}
+            onChange={setContent}
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+          Link Externo (Opcional)
+        </label>
+        <input
+          type="text"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+          value={externalLink}
+          onChange={(e) => setExternalLink(e.target.value)}
+          placeholder="https://..."
+        />
+      </div>
+      <button
+        onClick={handleSave}
+        disabled={isSaving}
+        className="w-full bg-blue-700 text-white font-bold py-4 rounded-2xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        <Save size={20} />
+        {isSaving ? "Salvando..." : "Salvar Cronograma"}
+      </button>
     </div>
   );
 }
@@ -4947,11 +5107,8 @@ function CronogramaView({
   const [editingCronograma, setEditingCronograma] = useState<Cronograma | null>(
     null,
   );
-  const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
-  const [externalLink, setExternalLink] = useState("");
 
-  const handleSave = async () => {
+  const handleSave = async (title: string, content: string, externalLink: string) => {
     if (!title || (!content && !externalLink)) {
       toast.error("Título e (conteúdo ou link) são obrigatórios.");
       return;
@@ -4978,9 +5135,6 @@ function CronogramaView({
       }
       setIsModalOpen(false);
       setEditingCronograma(null);
-      setTitle("");
-      setContent("");
-      setExternalLink("");
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "cronogramas");
     }
@@ -5025,9 +5179,6 @@ function CronogramaView({
           <button
             onClick={() => {
               setEditingCronograma(null);
-              setTitle("");
-              setContent("");
-              setExternalLink("");
               setIsModalOpen(true);
             }}
             className="bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-blue-100"
@@ -5069,9 +5220,6 @@ function CronogramaView({
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditingCronograma(c);
-                        setTitle(c.title);
-                        setContent(c.content || "");
-                        setExternalLink(c.externalLink || "");
                         setIsModalOpen(true);
                       }}
                       className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
@@ -5126,50 +5274,12 @@ function CronogramaView({
           title={editingCronograma ? "Editar Cronograma" : "Novo Cronograma"}
           onClose={() => setIsModalOpen(false)}
         >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Título do Cronograma
-              </label>
-              <input
-                type="text"
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ex: Culto da Vitória - 22/10"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Conteúdo (Opcional se houver link)
-              </label>
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <ReactQuill
-                  theme="snow"
-                  value={content}
-                  onChange={setContent}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Link Externo (Opcional)
-              </label>
-              <input
-                type="text"
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-                value={externalLink}
-                onChange={(e) => setExternalLink(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-            <button
-              onClick={handleSave}
-              className="w-full bg-blue-700 text-white font-bold py-4 rounded-2xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2"
-            >
-              <Save size={20} /> Salvar Cronograma
-            </button>
-          </div>
+          <CronogramaForm
+            initialTitle={editingCronograma?.title || ""}
+            initialContent={editingCronograma?.content || ""}
+            initialLink={editingCronograma?.externalLink || ""}
+            onSave={handleSave}
+          />
         </Modal>
       )}
     </div>
@@ -5191,47 +5301,26 @@ function ProfileForm({
     birthDate: user.birthDate || "",
     phone: user.phone || "",
     specialty: user.specialty || "",
+    bg_color: user.bg_color || user.color || "#4F46E5",
+    profile_emoji: user.profile_emoji || "",
+    initials: user.initials || "",
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  const PROFILE_COLORS = [
+    "#EF4444", "#F97316", "#F59E0B", "#10B981", "#06B6D4",
+    "#3B82F6", "#6366F1", "#8B5CF6", "#D946EF", "#F43F5E"
+  ];
+
   const PROFILE_EMOJIS = [
-    "🧑",
-    "👩",
-    "👱‍♂️",
-    "👱‍♀️",
-    "🧔",
-    "👨‍🦲",
-    "👩‍🦲",
-    "👨‍🦳",
-    "👩‍🦳",
-    "🐼",
-    "🦊",
-    "🦁",
-    "🐵",
-    "🦄",
-    "👽",
-    "👾",
-    "🤖",
-    "😎",
-    "🤓",
-    "🤠",
-    "🎸",
-    "🥁",
-    "🎹",
-    "🎤",
-    "🎧",
-    "📷",
-    "🎥",
-    "✝️",
-    "🔥",
-    "🕊️",
+    "🧑", "👩", "👱‍♂️", "👱‍♀️", "🧔", "👨‍🦲", "👩‍🦲", "👨‍🦳", "👩‍🦳",
+    "🐼", "🦊", "🦁", "🐵", "🦄", "👽", "👾", "🤖", "😎", "🤓", "🤠",
+    "🎸", "🥁", "🎹", "🎤", "🎧", "📷", "🎥", "💻", "⛪", "✝️", "🔥", "🕊️"
   ];
 
   const handleEmojiSelect = (emoji: string) => {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${emoji}</text></svg>`;
-    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    setFormData((prev) => ({ ...prev, photoURL: url }));
+    setFormData((prev) => ({ ...prev, profile_emoji: emoji }));
     setShowEmojiPicker(false);
   };
 
@@ -5252,6 +5341,12 @@ function ProfileForm({
     }
   };
 
+  useEffect(() => {
+    if (formData.displayName && !formData.initials && !user.initials) {
+      setFormData(prev => ({...prev, initials: prev.displayName.substring(0, 2).toUpperCase()}));
+    }
+  }, [formData.displayName, user.initials]);
+
   const handleSave = async () => {
     if (!formData.displayName) {
       toast.error("Nome é obrigatório.");
@@ -5266,6 +5361,9 @@ function ProfileForm({
         birthDate: formData.birthDate,
         phone: formData.phone,
         specialty: formData.specialty,
+        bg_color: formData.bg_color,
+        profile_emoji: formData.profile_emoji,
+        initials: formData.initials,
         updatedAt: new Date().toISOString(),
       });
       toast.success("Perfil atualizado com sucesso!");
@@ -5278,9 +5376,12 @@ function ProfileForm({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-xl overflow-hidden relative group">
+    <div className="space-y-6 max-h-[80vh] overflow-y-auto hide-scrollbar px-2">
+      <div className="flex flex-col items-center gap-4 relative">
+        <div 
+          className="w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden relative group flex items-center justify-center text-4xl font-bold"
+          style={{ backgroundColor: formData.photoURL ? 'transparent' : formData.bg_color, color: 'white' }}
+        >
           {formData.photoURL ? (
             <img
               src={formData.photoURL}
@@ -5288,45 +5389,106 @@ function ProfileForm({
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
+          ) : formData.profile_emoji ? (
+            formData.profile_emoji
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
-              {formData.displayName[0]}
+             formData.initials || formData.displayName.substring(0, 2).toUpperCase()
+          )}
+          <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex flex-col items-center justify-center gap-1 text-white">
+            <Camera size={20} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">
+              Foto
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+          </label>
+        </div>
+
+        <div className="flex gap-2 relative">
+          {formData.photoURL && (
+            <button
+              onClick={() => setFormData((prev) => ({ ...prev, photoURL: "" }))}
+              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors"
+            >
+              Remover Foto
+            </button>
+          )}
+          {!formData.photoURL && (
+            <button
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
+            >
+              <Smile size={14} /> Emoji
+            </button>
+          )}
+
+          {showEmojiPicker && (
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 p-4 bg-white border border-gray-100 rounded-xl shadow-lg w-full min-w-[280px] z-50">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Escolha um emoji</span>
+                {formData.profile_emoji && (
+                  <button 
+                    onClick={() => handleEmojiSelect("")}
+                    className="text-[10px] font-bold text-red-500 hover:underline"
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center max-h-48 overflow-y-auto hide-scrollbar">
+                {PROFILE_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => handleEmojiSelect(emoji)}
+                    className={cn(
+                      "w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-50 rounded-lg transition-colors border border-gray-100",
+                      formData.profile_emoji === emoji && "bg-indigo-50 border-indigo-200"
+                    )}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        {showEmojiPicker && (
-          <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-lg w-full max-w-sm absolute z-10 top-32">
-            <p className="text-xs font-bold text-gray-400 uppercase mb-2">
-              Escolha um emoji
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {PROFILE_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => handleEmojiSelect(emoji)}
-                  className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-50 rounded-lg transition-colors border border-gray-100"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
+        {!formData.photoURL && (
+           <div className="w-full mt-2">
+             <label className="block text-xs font-bold text-center text-gray-400 uppercase tracking-widest mb-2">Cor de Fundo</label>
+             <div className="flex flex-wrap justify-center gap-2">
+               {PROFILE_COLORS.map(color => (
+                 <button
+                   key={color}
+                   type="button"
+                   onClick={() => setFormData(prev => ({...prev, bg_color: color}))}
+                   className={cn(
+                     "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
+                     formData.bg_color === color ? "border-gray-900 scale-110" : "border-transparent"
+                   )}
+                   style={{ backgroundColor: color }}
+                 />
+               ))}
+             </div>
+           </div>
         )}
-
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          Sua Foto de Perfil
-        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
             Nome Completo
           </label>
           <input
             type="text"
-            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+            className={cn(
+              "w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none",
+              theme === "dark" && "bg-gray-800 border-gray-700 text-white",
+            )}
             value={formData.displayName}
             onChange={(e) =>
               setFormData({ ...formData, displayName: e.target.value })
@@ -5334,6 +5496,39 @@ function ProfileForm({
           />
         </div>
         <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Iniciais (Para Avatar)
+          </label>
+          <input
+            type="text"
+            maxLength={2}
+            className={cn(
+              "w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none uppercase font-bold",
+              theme === "dark" && "bg-gray-800 border-gray-700 text-white",
+            )}
+            value={formData.initials}
+            onChange={(e) =>
+              setFormData({ ...formData, initials: e.target.value.toUpperCase() })
+            }
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+            Data de Nascimento
+          </label>
+          <input
+            type="date"
+            className={cn(
+              "w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none",
+              theme === "dark" && "bg-gray-800 border-gray-700 text-white",
+            )}
+            value={formData.birthDate}
+            onChange={(e) =>
+              setFormData({ ...formData, birthDate: e.target.value })
+            }
+          />
+        </div>
+        <div className="md:col-span-2">
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
             Função / Especialidade
           </label>
@@ -5347,72 +5542,19 @@ function ProfileForm({
             }
           />
         </div>
-        <div>
+        <div className="md:col-span-2">
           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-            Foto de Perfil
+            WhatsApp
           </label>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-4">
-              <label className="flex-1 cursor-pointer bg-gray-50 border border-gray-200 border-dashed rounded-xl p-3 text-center hover:bg-gray-100 transition-colors">
-                <span className="text-sm text-gray-600 flex items-center justify-center gap-2">
-                  <Upload size={16} /> Escolher arquivo
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
-              </label>
-              <button
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
-                title="Escolher Emoji"
-              >
-                😀
-              </button>
-              {formData.photoURL && (
-                <button
-                  onClick={() =>
-                    setFormData((prev) => ({ ...prev, photoURL: "" }))
-                  }
-                  className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-                  title="Remover foto"
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-              Data de Nascimento
-            </label>
-            <input
-              type="date"
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-              value={formData.birthDate}
-              onChange={(e) =>
-                setFormData({ ...formData, birthDate: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-              WhatsApp
-            </label>
-            <input
-              type="tel"
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-              value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
-              placeholder="(00) 00000-0000"
-            />
-          </div>
+          <input
+            type="tel"
+            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+            value={formData.phone}
+            onChange={(e) =>
+              setFormData({ ...formData, phone: e.target.value })
+            }
+            placeholder="(00) 00000-0000"
+          />
         </div>
       </div>
 
