@@ -28,6 +28,8 @@ export interface User {
   photoURL?: string;
   birthDate?: string;
   phone?: string;
+  maxScalesPerMonth?: number;
+  availableDays?: number[]; // 0 for Sunday, 1 for Monday, etc.
 }
 
 export interface ChurchEvent {

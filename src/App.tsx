@@ -14,6 +14,7 @@ import {
   limit,
   setDoc,
   getDocs,
+  getDocFromServer,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType, storage } from "./firebase";
 import {
@@ -121,17 +122,23 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<
     "indigo" | "red" | "blue" | "rose" | "sky" | "imw"
-  >("imw");
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [events, setEvents] = useState<ChurchEvent[]>([]);
+  >(() => (localStorage.getItem("theme") as any) || "imw");
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem("isDarkMode") === "true");
 
   useEffect(() => {
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("isDarkMode", String(isDarkMode));
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
   }, [isDarkMode]);
+
+  const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [scales, setScales] = useState<Scale[]>([]);
   const [scaleFilterVolunteer, setScaleFilterVolunteer] =
     useState<string>("all");
@@ -303,29 +310,98 @@ export default function App() {
     };
   }, [user]);
 
-  // Automatic Event Status Update
+  // Automatic Event Status Update and Birthday Notifications
   useEffect(() => {
-    if (!events.length || !isAdmin) return;
+    if (!isAdmin || !allUsers.length) return;
 
-    const updatePastEvents = async () => {
-      const now = new Date();
-      const pastEvents = events.filter(
-        (e) => e.status !== "CONCLUIDO" && new Date(e.date) < now,
-      );
+    const performDailyChecks = async () => {
+      // 1. Update past events
+      if (events.length > 0) {
+        const now = new Date();
+        const pastEvents = events.filter(
+          (e) => e.status !== "CONCLUIDO" && new Date(e.date) < now,
+        );
 
-      for (const event of pastEvents) {
-        try {
-          await updateDoc(doc(db, "events", event.id), { status: "CONCLUIDO" });
-        } catch (error) {
-          console.error("Error updating event status:", error);
+        for (const event of pastEvents) {
+          try {
+            await updateDoc(doc(db, "events", event.id), { status: "CONCLUIDO" });
+          } catch (error) {
+            console.error("Error updating event status:", error);
+          }
         }
       }
+
+      // 2. Check for upcoming birthdays (within 7 days) and notify
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+
+      allUsers.forEach(async (u) => {
+        if (!u.birthDate) return;
+        const [year, month, day] = u.birthDate.split('-');
+        let nextBday = new Date(today.getFullYear(), parseInt(month) - 1, parseInt(day));
+        
+        // If birthday already passed this year, check next year
+        if (nextBday < today) {
+          nextBday = new Date(today.getFullYear() + 1, parseInt(month) - 1, parseInt(day));
+        }
+
+        const timeDiff = nextBday.getTime() - today.getTime();
+        const daysUntil = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+        if (daysUntil === 7 || daysUntil === 1 || daysUntil === 0) {
+          const notificationTitle = `Aniversário: ${u.displayName.split(' ')[0]}`;
+          const notificationMessage = daysUntil === 0 
+            ? `Hoje é o aniversário de ${u.displayName}! 🎉` 
+            : `Faltam ${daysUntil} dias para o aniversário de ${u.displayName}.`;
+          
+          const notifIdString = `bday_${u.uid}_${nextBday.getFullYear()}_${daysUntil}`;
+          
+          // Check if we already sent this specific notification
+          // A somewhat hacky way is to query if it exists for the current user (the admin who is running this)
+          // To avoid massive reads, we rely on a custom ID hash or just check local state temporarily
+          const notifRef = doc(db, "notifications", notifIdString);
+          try {
+            const docSnap = await getDocFromServer(notifRef);
+            if (!docSnap.exists()) {
+              await setDoc(notifRef, {
+                userId: "all", // "all" means broadcast or we create individual ones
+                // To keep it simple, we store it for the admin or everyone.
+                // Or better, let's just create a general announcement/notification.
+                // We'll create it for the admin only first, but user asked for "voluntários e administradores".
+                // So let's create a broadcast notification by checking if it exists first.
+              });
+              
+              // We'll use the existing notifications collection but broadcast it or addDoc for each.
+              // Actually, "userId: 'all'" might not work with our query `where("userId", "==", user.uid)`
+              // Let's create it for everyone.
+              const batch = [];
+              for(const appUser of allUsers) {
+                 batch.push(
+                    addDoc(collection(db, "notifications"), {
+                      userId: appUser.uid,
+                      title: notificationTitle,
+                      message: notificationMessage,
+                      read: false,
+                      createdAt: new Date().toISOString(),
+                    })
+                 );
+              }
+              await Promise.all(batch);
+            }
+          } catch(err) {
+             console.error("Failed to process birthday notification", err);
+          }
+        }
+      });
     };
 
-    updatePastEvents();
-    const interval = setInterval(updatePastEvents, 1000 * 60 * 60); // Check every hour
+    performDailyChecks();
+    // Check every hour to see if day changed or perform past event updates
+    const interval = setInterval(performDailyChecks, 1000 * 60 * 60); 
     return () => clearInterval(interval);
-  }, [events, isAdmin]);
+  }, [events, allUsers, isAdmin]);
   const performAutoSchedule = async (
     eventId: string,
     currentScales: Scale[],
@@ -374,7 +450,39 @@ export default function App() {
       );
     });
 
-    roles.forEach((role) => {
+    const targetEvent = events.find((e) => e.id === eventId);
+    if (!targetEvent) return;
+
+    const eventDate = new Date(targetEvent.date);
+    const eventDayOfWeek = eventDate.getDay();
+    const eventMonth = eventDate.getMonth();
+    const eventYear = eventDate.getFullYear();
+
+    const normalizeString = (str: string) => {
+      return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+    };
+
+    const activeRoles = roles.filter((role) => 
+      currentUsers.some((u) => u.status === "approved" && normalizeString(u.specialty || "").includes(normalizeString(role)))
+    );
+
+    // Calculate scales per month per user
+    const userScalesThisMonth = new Map<string, number>();
+    currentScales.forEach((scale) => {
+      const scaleEvent = events.find((e) => e.id === scale.eventId);
+      if (scaleEvent) {
+        const sDate = new Date(scaleEvent.date);
+        if (sDate.getMonth() === eventMonth && sDate.getFullYear() === eventYear) {
+          scale.assignments.forEach((a) => {
+            if (a.userId) {
+              userScalesThisMonth.set(a.userId, (userScalesThisMonth.get(a.userId) || 0) + 1);
+            }
+          });
+        }
+      }
+    });
+
+    activeRoles.forEach((role) => {
       // Skip if this role is already assigned manually
       if (
         newAssignments.some(
@@ -385,24 +493,47 @@ export default function App() {
       }
 
       let eligibleUsers = currentUsers.filter(
-        (u) =>
-          u.status === "approved" &&
-          !usedUserIds.has(u.uid) &&
-          u.specialty?.toLowerCase().includes(role.toLowerCase()),
+        (u) => {
+          if (u.status !== "approved" || usedUserIds.has(u.uid)) return false;
+          if (!normalizeString(u.specialty || "").includes(normalizeString(role))) return false;
+          
+          // Check day of week availability
+          if (u.availableDays && u.availableDays.length > 0 && !u.availableDays.includes(eventDayOfWeek)) {
+            return false;
+          }
+
+          // Check max scales per month
+          if (u.maxScalesPerMonth && u.maxScalesPerMonth > 0) {
+            const usedThisMonth = userScalesThisMonth.get(u.uid) || 0;
+            if (usedThisMonth >= u.maxScalesPerMonth) {
+              return false;
+            }
+          }
+
+          return true;
+        }
       );
 
       if (eligibleUsers.length > 0) {
-        // Add some randomness to avoid same people every time
+        // Sort to spread out assignments and avoid consecutive fatigue
         eligibleUsers.sort((a, b) => {
+          // 1. By total participation
           const diff =
             (userParticipation[a.uid] || 0) - (userParticipation[b.uid] || 0);
-          if (diff === 0) return Math.random() - 0.5;
-          return diff;
+          if (diff !== 0) return diff;
+          
+          // 2. By scales this month
+          const scalesA = userScalesThisMonth.get(a.uid) || 0;
+          const scalesB = userScalesThisMonth.get(b.uid) || 0;
+          if (scalesA !== scalesB) return scalesA - scalesB;
+
+          return Math.random() - 0.5;
         });
 
         const selected = eligibleUsers[0];
         newAssignments.push({ userId: selected.uid, roles: [role] });
         usedUserIds.add(selected.uid);
+        userScalesThisMonth.set(selected.uid, (userScalesThisMonth.get(selected.uid) || 0) + 1);
       } else {
         newAssignments.push({ userId: null, roles: [role] });
       }
@@ -3326,12 +3457,16 @@ function Modal({
   isDarkMode?: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onMouseDown={onClose}
+    >
       <div
         className={cn(
           "w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200",
           isDarkMode ? "bg-slate-800 text-white" : "bg-white",
         )}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <div
           className={cn(
@@ -5304,7 +5439,10 @@ function ProfileForm({
     bg_color: user.bg_color || user.color || "#4F46E5",
     profile_emoji: user.profile_emoji || "",
     initials: user.initials || "",
+    maxScalesPerMonth: user.maxScalesPerMonth !== undefined ? user.maxScalesPerMonth.toString() : "",
+    availableDays: user.availableDays || [0, 1, 2, 3, 4, 5, 6],
   });
+
   const [isSaving, setIsSaving] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -5313,10 +5451,28 @@ function ProfileForm({
     "#3B82F6", "#6366F1", "#8B5CF6", "#D946EF", "#F43F5E"
   ];
 
+  const DAYS_OF_WEEK = [
+    { id: 0, label: "Dom" },
+    { id: 1, label: "Seg" },
+    { id: 2, label: "Ter" },
+    { id: 3, label: "Qua" },
+    { id: 4, label: "Qui" },
+    { id: 5, label: "Sex" },
+    { id: 6, label: "Sáb" },
+  ];
+
   const PROFILE_EMOJIS = [
-    "🧑", "👩", "👱‍♂️", "👱‍♀️", "🧔", "👨‍🦲", "👩‍🦲", "👨‍🦳", "👩‍🦳",
-    "🐼", "🦊", "🦁", "🐵", "🦄", "👽", "👾", "🤖", "😎", "🤓", "🤠",
-    "🎸", "🥁", "🎹", "🎤", "🎧", "📷", "🎥", "💻", "⛪", "✝️", "🔥", "🕊️"
+    // Rosto e Sentimentos
+    "😀", "😎", "🤓", "😇", "🤠", "😜", "🤩", "🤔", "🤫", "🤬", "🤡", "👻", "👽", "👾", "🤖",
+    // Variações de Pessoas
+    "🧑", "👩", "👱‍♂️", "👱‍♀️", "🧔", "👨‍🦲", "👩‍🦲", "👨‍🦳", "👩‍🦳", "🧑‍🦱", "👩‍🦱", "🧑‍🦰", "👩‍🦰", 
+    "👶", "👦", "👧", "👨", "👩", "🧓", "👴", "👵",
+    // Animais
+    "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🦄", "🐙", "🦖", "🦋",
+    // Música e Mídia
+    "🎸", "🥁", "🎹", "🎺", "🎻", "🎤", "🎧", "📻", "📷", "📸", "📹", "🎥", "🎬", "📺", "💻", "📱",
+    // Igreja e Outros
+    "⛪", "✝️", "🔥", "🕊️", "🙌", "🙏", "📖", "✨", "❤️", "⭐", "🎵", "🎶", "👑", "🛡️", "⚔️", "💡"
   ];
 
   const handleEmojiSelect = (emoji: string) => {
@@ -5364,6 +5520,8 @@ function ProfileForm({
         bg_color: formData.bg_color,
         profile_emoji: formData.profile_emoji,
         initials: formData.initials,
+        maxScalesPerMonth: formData.maxScalesPerMonth ? parseInt(formData.maxScalesPerMonth, 10) : null,
+        availableDays: formData.availableDays,
         updatedAt: new Date().toISOString(),
       });
       toast.success("Perfil atualizado com sucesso!");
@@ -5555,6 +5713,63 @@ function ProfileForm({
             }
             placeholder="(00) 00000-0000"
           />
+        </div>
+      </div>
+
+      <div className="border-t border-gray-100 pt-6 mt-6">
+        <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <CalendarDays size={18} className="text-indigo-600" />
+          Disponibilidade para Escalas
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Dias da Semana Disponíveis
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {DAYS_OF_WEEK.map((day) => {
+                const isSelected = formData.availableDays.includes(day.id);
+                return (
+                  <button
+                    key={day.id}
+                    onClick={() => {
+                      setFormData((prev) => {
+                        const newDays = isSelected
+                          ? prev.availableDays.filter((d) => d !== day.id)
+                          : [...prev.availableDays, day.id].sort();
+                        return { ...prev, availableDays: newDays };
+                      });
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border",
+                      isSelected
+                        ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                    )}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1">A IA não colocará você em eventos nos dias desmarcados.</p>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Limite de Escalas por Mês
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              placeholder="Ex: 2 (Deixe em branco para ilimitado)"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+              value={formData.maxScalesPerMonth}
+              onChange={(e) =>
+                setFormData({ ...formData, maxScalesPerMonth: e.target.value })
+              }
+            />
+          </div>
         </div>
       </div>
 
