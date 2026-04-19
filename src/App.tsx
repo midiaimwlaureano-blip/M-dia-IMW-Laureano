@@ -68,6 +68,7 @@ import {
   PanelLeftOpen,
   AlertTriangle,
   Camera,
+  Palette,
 } from "lucide-react";
 
 const ChristianCross = ({
@@ -117,27 +118,44 @@ export default function App() {
   const { user, loading, login, logout, isAdmin, isCoordinator } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<"modern" | "compact">("modern");
-  const [navStyle, setNavStyle] = useState<"sidebar" | "top">("sidebar");
+  const [layoutMode, setLayoutMode] = useState<"modern" | "compact">(() => {
+    const val = localStorage.getItem("layoutMode");
+    return (val === "modern" || val === "compact" ? val : "modern");
+  });
+  const [navStyle, setNavStyle] = useState<"sidebar" | "top">(() => {
+    const val = localStorage.getItem("navStyle");
+    return (val === "sidebar" || val === "top" ? val : "sidebar");
+  });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<
     "indigo" | "red" | "blue" | "rose" | "sky" | "imw"
   >(() => (localStorage.getItem("theme") as any) || "imw");
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem("isDarkMode") === "true");
+  const [visualTheme, setVisualTheme] = useState<"claro" | "escuro" | "vidro">(() => (localStorage.getItem("visualTheme") as any) || (localStorage.getItem("isDarkMode") === "true" ? "escuro" : "claro"));
+  const isDarkMode = visualTheme === "escuro" || visualTheme === "vidro";
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
   useEffect(() => {
+    localStorage.setItem("visualTheme", visualTheme);
     localStorage.setItem("isDarkMode", String(isDarkMode));
-    if (isDarkMode) {
+    
+    document.documentElement.classList.remove("dark", "glass");
+    
+    if (visualTheme === "vidro") {
+      document.documentElement.classList.add("dark", "glass");
+    } else if (visualTheme === "escuro") {
       document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
     }
-  }, [isDarkMode]);
+  }, [visualTheme, isDarkMode]);
 
+  useEffect(() => {
+    localStorage.setItem("layoutMode", layoutMode);
+    localStorage.setItem("navStyle", navStyle);
+  }, [layoutMode, navStyle]);
+
+  const [isAppearanceModalOpen, setIsAppearanceModalOpen] = useState(false);
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [scales, setScales] = useState<Scale[]>([]);
   const [scaleFilterVolunteer, setScaleFilterVolunteer] =
@@ -157,6 +175,7 @@ export default function App() {
   const [editingEvent, setEditingEvent] = useState<ChurchEvent | null>(null);
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [isScaleModalOpen, setIsScaleModalOpen] = useState(false);
   const [isVolunteerModalOpen, setIsVolunteerModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -395,6 +414,45 @@ export default function App() {
           }
         }
       });
+
+      // 3. Event Reminder - 24h before
+      if (events.length > 0) {
+        const now = new Date();
+        const upcomingEvents = events.filter((e) => {
+           if ((e as any).reminderSent) return false;
+           const eventDate = new Date(e.date);
+           const diff = eventDate.getTime() - now.getTime();
+           // within next 24 hours and not passed
+           return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+        });
+
+        for (const e of upcomingEvents) {
+           try {
+             const scale = scales.find(s => s.eventId === e.id);
+             if (scale && scale.assignments.length > 0) {
+                const batch = [];
+                const assignedUsers = Array.from(new Set(scale.assignments.map(a => a.userId).filter(id => id && id !== "EMPTY")));
+                for(const uid of assignedUsers) {
+                   batch.push(
+                      addDoc(collection(db, "notifications"), {
+                        userId: uid,
+                        title: `Lembrete: Escala Amanhã!`,
+                        message: `Você está escalado(a) para o evento: ${e.title}. Contamos com você!`,
+                        read: false,
+                        createdAt: new Date().toISOString(),
+                      })
+                   );
+                }
+                if (batch.length > 0) {
+                  await Promise.all(batch);
+                }
+                await updateDoc(doc(db, "events", e.id), { reminderSent: true });
+             }
+           } catch(err) {
+              console.error("Failed to send 24h reminder", err);
+           }
+        }
+      }
     };
 
     performDailyChecks();
@@ -1213,80 +1271,18 @@ export default function App() {
                       )}
                     </button>
 
-                    <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
-                      <button
-                        onClick={() => setIsDarkMode(false)}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
-                          !isDarkMode
-                            ? "bg-white text-indigo-600 shadow-sm"
-                            : "text-gray-500 hover:text-gray-700",
-                        )}
-                      >
-                        Claro
-                      </button>
-                      <button
-                        onClick={() => setIsDarkMode(true)}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
-                          isDarkMode
-                            ? "bg-slate-800 text-white shadow-sm"
-                            : "text-gray-500 hover:text-gray-700",
-                        )}
-                      >
-                        Escuro
-                      </button>
-                    </div>
-
-                    <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
-                      <button
-                        onClick={() => setLayoutMode("modern")}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
-                          layoutMode === "modern"
-                            ? "bg-white text-indigo-600 shadow-sm"
-                            : "text-gray-500 hover:text-gray-700",
-                        )}
-                      >
-                        Moderno
-                      </button>
-                      <button
-                        onClick={() => setLayoutMode("compact")}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
-                          layoutMode === "compact"
-                            ? "bg-white text-indigo-600 shadow-sm"
-                            : "text-gray-500 hover:text-gray-700",
-                        )}
-                      >
-                        Compacto
-                      </button>
-                    </div>
-
-                    <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
-                      <button
-                        onClick={() => setNavStyle("sidebar")}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
-                          navStyle === "sidebar"
-                            ? "bg-white text-indigo-600 shadow-sm"
-                            : "text-gray-500 hover:text-gray-700",
-                        )}
-                      >
-                        Lateral
-                      </button>
-                      <button
-                        onClick={() => setNavStyle("top")}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
-                          navStyle === "top"
-                            ? "bg-white text-indigo-600 shadow-sm"
-                            : "text-gray-500 hover:text-gray-700",
-                        )}
-                      >
-                        Superior
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setIsAppearanceModalOpen(true)}
+                      className={cn(
+                        "relative p-3 rounded-full transition-all flex items-center justify-center",
+                        isDarkMode
+                          ? "bg-slate-800 text-gray-300 hover:bg-slate-700"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+                      )}
+                      title="Aparência e Layout"
+                    >
+                      <Palette size={20} />
+                    </button>
 
                     {isAdmin && (
                       <div className="flex items-center gap-3">
@@ -2271,25 +2267,36 @@ export default function App() {
                               {ann.title}
                             </h4>
                             {isAdmin && (
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await deleteDoc(
-                                      doc(db, "announcements", ann.id),
-                                    );
-                                    toast.success("Anúncio excluído");
-                                  } catch (error) {
-                                    handleFirestoreError(
-                                      error,
-                                      OperationType.DELETE,
-                                      "announcements",
-                                    );
-                                  }
-                                }}
-                                className="p-2 text-gray-400 hover:text-red-600 transition-opacity"
-                              >
-                                <Trash2 size={18} />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingAnnouncement(ann);
+                                    setIsAnnouncementModalOpen(true);
+                                  }}
+                                  className="p-2 text-gray-400 hover:text-indigo-600 transition-opacity"
+                                >
+                                  <Edit size={18} />
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await deleteDoc(
+                                        doc(db, "announcements", ann.id),
+                                      );
+                                      toast.success("Anúncio excluído");
+                                    } catch (error) {
+                                      handleFirestoreError(
+                                        error,
+                                        OperationType.DELETE,
+                                        "announcements",
+                                      );
+                                    }
+                                  }}
+                                  className="p-2 text-gray-400 hover:text-red-600 transition-opacity"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center gap-4 text-gray-500 text-sm mb-4">
@@ -2774,19 +2781,29 @@ export default function App() {
 
       {isAnnouncementModalOpen && (
         <Modal
-          title="Novo Anúncio"
-          onClose={() => setIsAnnouncementModalOpen(false)}
+          title={editingAnnouncement ? "Editar Anúncio" : "Novo Anúncio"}
+          onClose={() => {
+            setIsAnnouncementModalOpen(false);
+            setEditingAnnouncement(null);
+          }}
           isDarkMode={isDarkMode}
         >
           <AnnouncementForm
+            initialData={editingAnnouncement}
             theme={theme}
             onSave={async (data) => {
-              await addDoc(collection(db, "announcements"), {
-                ...data,
-                createdAt: new Date().toISOString(),
-              });
-              toast.success("Anúncio publicado!");
+              if (editingAnnouncement) {
+                await updateDoc(doc(db, "announcements", editingAnnouncement.id), data);
+                toast.success("Anúncio atualizado!");
+              } else {
+                await addDoc(collection(db, "announcements"), {
+                  ...data,
+                  createdAt: new Date().toISOString(),
+                });
+                toast.success("Anúncio publicado!");
+              }
               setIsAnnouncementModalOpen(false);
+              setEditingAnnouncement(null);
             }}
           />
         </Modal>
@@ -2991,6 +3008,106 @@ export default function App() {
           />
         </Modal>
       )}
+
+      {isAppearanceModalOpen && (
+        <Modal
+          title="Aparência e Layout"
+          onClose={() => setIsAppearanceModalOpen(false)}
+          isDarkMode={isDarkMode}
+        >
+          <div className="space-y-6">
+            <div>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Tema Visual</h4>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setVisualTheme("claro")}
+                  className={cn("p-4 rounded-xl border text-center transition-all", visualTheme === "claro" ? "border-indigo-600 bg-indigo-50" : "border-gray-200 bg-white")}
+                >
+                  <p className="font-bold text-sm text-gray-900">Claro</p>
+                </button>
+                <button
+                  onClick={() => setVisualTheme("escuro")}
+                  className={cn("p-4 rounded-xl border text-center transition-all", visualTheme === "escuro" ? "border-indigo-600 bg-slate-800" : "border-slate-700 bg-slate-900")}
+                >
+                  <p className="font-bold text-sm text-white">Escuro</p>
+                </button>
+                <button
+                  onClick={() => setVisualTheme("vidro")}
+                  className={cn("p-4 rounded-xl border text-center transition-all bg-sky-50 shadow-inner", visualTheme === "vidro" ? "border-indigo-600 ring-2 ring-indigo-200" : "border-gray-200")}
+                >
+                  <p className="font-bold text-sm text-gray-900">Vidro Fosco</p>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Cores Principais</h4>
+              <div className="flex gap-2">
+                {["imw", "indigo", "red", "blue", "rose", "sky"].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTheme(t as any)}
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 transition-all",
+                      theme === t ? "border-gray-900 scale-110" : "border-transparent",
+                      t === "imw" ? "bg-red-600" :
+                      t === "indigo" ? "bg-indigo-600" :
+                      t === "red" ? "bg-red-600" :
+                      t === "blue" ? "bg-blue-600" :
+                      t === "rose" ? "bg-rose-900" :
+                      "bg-sky-400"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Layout dos Cards</h4>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setLayoutMode("modern")}
+                  className={cn("flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all", layoutMode === "modern" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-500")}
+                >
+                  Moderno
+                </button>
+                <button
+                  onClick={() => setLayoutMode("compact")}
+                  className={cn("flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all", layoutMode === "compact" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-500")}
+                >
+                  Compacto
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Posição do Menu</h4>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setNavStyle("sidebar")}
+                  className={cn("flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all", navStyle === "sidebar" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-500")}
+                >
+                  Lateral
+                </button>
+                <button
+                  onClick={() => setNavStyle("top")}
+                  className={cn("flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all", navStyle === "top" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-500")}
+                >
+                  Superior
+                </button>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setIsAppearanceModalOpen(false)}
+              className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors"
+            >
+              Concluído
+            </button>
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }
@@ -3433,14 +3550,14 @@ function Modal({
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      onMouseDown={onClose}
+      onClick={onClose}
     >
       <div
         className={cn(
           "w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200",
           isDarkMode ? "bg-slate-800 text-white" : "bg-white",
         )}
-        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div
           className={cn(
@@ -3756,17 +3873,19 @@ function NotificationForm({
 
 function AnnouncementForm({
   onSave,
+  initialData,
   theme = "indigo",
 }: {
   onSave: (data: any) => void;
+  initialData?: Announcement | null;
   theme?: string;
 }) {
   const [formData, setFormData] = useState({
-    title: "",
-    date: "",
-    time: "",
-    description: "",
-    pdfUrl: "",
+    title: initialData?.title || "",
+    date: initialData?.date || "",
+    time: initialData?.time || "",
+    description: initialData?.description || "",
+    pdfUrl: initialData?.pdfUrl || "",
     externalLink: "",
   });
   const [file, setFile] = useState<File | null>(null);
@@ -3975,9 +4094,21 @@ function VolunteerForm({
     photoURL: initialData?.photoURL || "",
     birthDate: initialData?.birthDate || "",
     phone: initialData?.phone || "",
+    maxScalesPerMonth: (initialData?.maxScalesPerMonth !== undefined && initialData?.maxScalesPerMonth !== null) ? initialData?.maxScalesPerMonth.toString() : "",
+    availableDays: initialData?.availableDays || [0, 1, 2, 3, 4, 5, 6],
   });
   const [isUploading, setIsUploading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const DAYS_OF_WEEK = [
+    { id: 0, label: "Dom" },
+    { id: 1, label: "Seg" },
+    { id: 2, label: "Ter" },
+    { id: 3, label: "Qua" },
+    { id: 4, label: "Qui" },
+    { id: 5, label: "Sex" },
+    { id: 6, label: "Sáb" },
+  ];
 
   const PROFILE_EMOJIS = [
     "🧑",
@@ -4251,8 +4382,69 @@ function VolunteerForm({
           })}
         </div>
       </div>
+      
+      <div className="border-t border-gray-100 pt-6 mt-6">
+        <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <CalendarDays size={18} className="text-indigo-600" />
+          Disponibilidade para Escalas
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Dias da Semana Disponíveis
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {DAYS_OF_WEEK.map((day) => {
+                const isSelected = formData.availableDays.includes(day.id);
+                return (
+                  <button
+                    key={day.id}
+                    type="button"
+                    onClick={() => {
+                      setFormData((prev) => {
+                        const newDays = isSelected
+                          ? prev.availableDays.filter((d) => d !== day.id)
+                          : [...prev.availableDays, day.id].sort();
+                        return { ...prev, availableDays: newDays };
+                      });
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border",
+                      isSelected
+                        ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                    )}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Limite de Escalas por Mês
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              placeholder="Ex: 2 (Deixe em branco para ilimitado)"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+              value={formData.maxScalesPerMonth}
+              onChange={(e) =>
+                setFormData({ ...formData, maxScalesPerMonth: e.target.value })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
       <button
-        onClick={() => onSave(formData)}
+        onClick={() => onSave({
+          ...formData,
+          maxScalesPerMonth: formData.maxScalesPerMonth ? parseInt(formData.maxScalesPerMonth, 10) : null
+        })}
         disabled={isUploading}
         className={cn(
           "w-full text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50",
@@ -4357,14 +4549,19 @@ function ScaleForm({
       toast.error("Selecione pelo menos uma função.");
       return;
     }
-    if (assignments.some((a) => a.userId === selectedUser)) {
-      toast.error("Voluntário já está nesta escala.");
-      return;
+    const existingIndex = assignments.findIndex((a) => a.userId === selectedUser);
+    if (existingIndex !== -1) {
+      const newAssignments = [...assignments];
+      const mergedRoles = Array.from(new Set([...(newAssignments[existingIndex].roles || []), ...(newAssignments[existingIndex].role ? [newAssignments[existingIndex].role] : []), ...selectedRoles]));
+      newAssignments[existingIndex] = { ...newAssignments[existingIndex], roles: mergedRoles };
+      setAssignments(newAssignments);
+      toast.success("Mais funções atribuídas a este voluntário!");
+    } else {
+      setAssignments([
+        ...assignments,
+        { userId: selectedUser, roles: selectedRoles },
+      ]);
     }
-    setAssignments([
-      ...assignments,
-      { userId: selectedUser, roles: selectedRoles },
-    ]);
     setSelectedUser("");
     setSelectedRoles([]);
   };
@@ -5290,13 +5487,27 @@ function CronogramaView({
     document.body.appendChild(element);
 
     try {
-      const canvas = await html2canvas(element);
+      const canvas = await html2canvas(element, { scale: 2 });
       const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF();
+      const pdf = new jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
       pdf.save(`cronograma-${c.title.toLowerCase().replace(/\s+/g, "-")}.pdf`);
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
@@ -5440,7 +5651,7 @@ function ProfileForm({
     bg_color: user.bg_color || user.color || "#4F46E5",
     profile_emoji: user.profile_emoji || "",
     initials: user.initials || "",
-    maxScalesPerMonth: user.maxScalesPerMonth !== undefined ? user.maxScalesPerMonth.toString() : "",
+    maxScalesPerMonth: (user.maxScalesPerMonth !== undefined && user.maxScalesPerMonth !== null) ? user.maxScalesPerMonth.toString() : "",
     availableDays: user.availableDays || [0, 1, 2, 3, 4, 5, 6],
   });
 
