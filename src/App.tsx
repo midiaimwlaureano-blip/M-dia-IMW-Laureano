@@ -534,8 +534,6 @@ export default function App() {
         newAssignments.push({ userId: selected.uid, roles: [role] });
         usedUserIds.add(selected.uid);
         userScalesThisMonth.set(selected.uid, (userScalesThisMonth.get(selected.uid) || 0) + 1);
-      } else {
-        newAssignments.push({ userId: null, roles: [role] });
       }
     });
 
@@ -1609,11 +1607,8 @@ export default function App() {
                                     </span>
                                   </div>
                                   <div className="flex flex-wrap gap-2">
-                                    {scale.assignments.map((a, idx) => {
-                                      const isMissing = !a.userId || a.userId === "EMPTY";
-                                      const u = isMissing
-                                        ? null
-                                        : allUsers.find(
+                                    {scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, idx) => {
+                                      const u = allUsers.find(
                                             (user) => user.uid === a.userId,
                                           );
                                       return (
@@ -1621,35 +1616,25 @@ export default function App() {
                                           key={idx}
                                           className={cn(
                                             "flex items-center gap-2 px-3 py-1.5 rounded-xl border",
-                                            isMissing
-                                              ? "bg-red-50 border-red-100"
-                                              : "bg-gray-50 border-gray-100",
+                                            "bg-gray-50 border-gray-100",
                                           )}
                                         >
                                           <div
                                             className={cn(
                                               "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
-                                              isMissing
-                                                ? "bg-red-100 text-red-600"
-                                                : "bg-indigo-100 text-indigo-600",
+                                              "bg-indigo-100 text-indigo-600",
                                             )}
                                           >
-                                            {isMissing
-                                              ? "!"
-                                              : u?.displayName?.[0] || ""}
+                                            {u?.displayName?.[0] || ""}
                                           </div>
                                           <div className="flex flex-col">
                                             <span
                                               className={cn(
                                                 "text-[10px] font-bold leading-none",
-                                                isMissing
-                                                  ? "text-red-700"
-                                                  : "text-gray-900",
+                                                "text-gray-900",
                                               )}
                                             >
-                                              {isMissing
-                                                ? "Pendente"
-                                                : u?.displayName.split(" ")[0]}
+                                              {u?.displayName.split(" ")[0]}
                                             </span>
                                             <span className="text-[8px] text-gray-500 font-medium uppercase tracking-tighter">
                                               {(a.roles || [a.role])
@@ -2099,7 +2084,7 @@ export default function App() {
                                 {formatDate(event.date)}
                               </p>
                               <div className="space-y-2 mb-6">
-                                {scale?.assignments.map((a, i) => (
+                                {scale?.assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, i) => (
                                   <div
                                     key={i}
                                     className="flex items-center justify-between p-2 bg-gray-50 rounded-xl"
@@ -2108,28 +2093,20 @@ export default function App() {
                                       <div
                                         className={cn(
                                           "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
-                                          !a.userId || a.userId === "EMPTY"
-                                            ? "bg-red-100 text-red-600"
-                                            : "bg-indigo-100 text-indigo-600",
+                                          "bg-indigo-100 text-indigo-600",
                                         )}
                                       >
-                                        {!a.userId || a.userId === "EMPTY"
-                                          ? "!"
-                                          : allUsers.find(
+                                        {allUsers.find(
                                               (u) => u.uid === a.userId,
                                             )?.displayName?.[0] || ""}
                                       </div>
                                       <span
                                         className={cn(
                                           "text-xs font-medium",
-                                          !a.userId || a.userId === "EMPTY"
-                                            ? "text-red-600"
-                                            : "text-gray-700",
+                                          "text-gray-700",
                                         )}
                                       >
-                                        {!a.userId || a.userId === "EMPTY"
-                                          ? "Sem voluntário disponível"
-                                          : allUsers.find(
+                                        {allUsers.find(
                                               (u) => u.uid === a.userId,
                                             )?.displayName || ""}
                                       </span>
@@ -2142,9 +2119,7 @@ export default function App() {
                                             key={r}
                                             className={cn(
                                               "text-[7px] font-bold px-1 py-0.5 rounded uppercase tracking-tighter",
-                                              !a.userId || a.userId === "EMPTY"
-                                                ? "bg-red-50 text-red-600"
-                                                : "bg-indigo-50 text-indigo-600",
+                                              "bg-indigo-50 text-indigo-600",
                                             )}
                                           >
                                             {r}
@@ -2153,7 +2128,7 @@ export default function App() {
                                     </div>
                                   </div>
                                 ))}
-                                {(!scale || scale.assignments.length === 0) && (
+                                {(!scale || scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").length === 0) && (
                                   <p className="text-xs text-gray-400 italic">
                                     Ninguém escalado.
                                   </p>
@@ -2232,15 +2207,14 @@ export default function App() {
                                     <td className="px-4 py-3 text-sm text-gray-500">{formatDate(event.date)}</td>
                                     <td className="px-4 py-3">
                                       <div className="flex flex-wrap gap-2">
-                                        {scale?.assignments.map((a, i) => {
-                                          const isMissing = !a.userId || a.userId === "EMPTY";
+                                        {scale?.assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, i) => {
                                           return (
                                             <div key={i} className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-lg">
-                                              <div className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold", isMissing ? "bg-red-100 text-red-600" : "bg-indigo-100 text-indigo-600")}>
-                                                {isMissing ? "!" : allUsers.find(u => u.uid === a.userId)?.displayName?.[0] || ""}
+                                              <div className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold", "bg-indigo-100 text-indigo-600")}>
+                                                {allUsers.find(u => u.uid === a.userId)?.displayName?.[0] || ""}
                                               </div>
-                                              <span className={cn("text-[10px] font-medium max-w-[80px] truncate", isMissing ? "text-red-600" : "text-gray-700")}>
-                                                {isMissing ? "Vago" : allUsers.find(u => u.uid === a.userId)?.displayName?.split(' ')?.[0] || ""}
+                                              <span className={cn("text-[10px] font-medium max-w-[80px] truncate", "text-gray-700")}>
+                                                {allUsers.find(u => u.uid === a.userId)?.displayName?.split(' ')?.[0] || ""}
                                               </span>
                                               <span className="text-[8px] text-gray-500 uppercase font-bold tracking-tighter mix-blend-multiply">
                                                 {(a.roles || [a.role]).filter(Boolean).join(',')}
@@ -2248,7 +2222,7 @@ export default function App() {
                                             </div>
                                           );
                                         })}
-                                        {(!scale || scale.assignments.length === 0) && <span className="text-xs text-gray-400 italic">Sem equipe</span>}
+                                        {(!scale || scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").length === 0) && <span className="text-xs text-gray-400 italic">Sem equipe</span>}
                                       </div>
                                     </td>
                                     {isAdmin && (
@@ -4330,7 +4304,7 @@ function ScaleForm({
   theme?: string;
 }) {
   const [assignments, setAssignments] = useState<any[]>(
-    initialScale?.assignments || [],
+    (initialScale?.assignments || []).filter(a => a.userId && a.userId !== "EMPTY")
   );
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
@@ -4414,6 +4388,14 @@ function ScaleForm({
     const newAssignments: any[] = [];
     const usedUserIds = new Set<string>();
 
+    const normalizeString = (str: string) => {
+      return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+    };
+
+    const activeRoles = rolesToAssign.filter((role) => 
+      users.some((u) => u.status === "approved" && normalizeString(u.specialty || "").includes(normalizeString(role)))
+    );
+
     const userParticipation: Record<string, number> = {};
     users.forEach((u) => {
       userParticipation[u.uid] = allScales.reduce(
@@ -4431,7 +4413,7 @@ function ScaleForm({
       }
     });
 
-    rolesToAssign.forEach((role) => {
+    activeRoles.forEach((role) => {
       // Skip if this role is already assigned manually
       if (
         newAssignments.some(
@@ -4441,12 +4423,41 @@ function ScaleForm({
         return;
       }
 
-      let eligibleUsers = users.filter(
-        (u) =>
-          u.status === "approved" &&
-          !usedUserIds.has(u.uid) &&
-          u.specialty?.toLowerCase().includes(role.toLowerCase()),
-      );
+      let eligibleUsers = users.filter((u) => {
+        if (u.status !== "approved" || usedUserIds.has(u.uid)) return false;
+        if (!normalizeString(u.specialty || "").includes(normalizeString(role))) return false;
+        
+        // We can also check availability here if we want, similar to performAutoSchedule
+        const eventDate = new Date(event.date);
+        const eventDayOfWeek = eventDate.getDay();
+        const eventMonth = eventDate.getMonth();
+        const eventYear = eventDate.getFullYear();
+
+        if (u.availableDays && u.availableDays.length > 0 && !u.availableDays.includes(eventDayOfWeek)) {
+          return false;
+        }
+
+        if (u.maxScalesPerMonth && u.maxScalesPerMonth > 0) {
+          // Count how many scales this user has this month
+          let userScalesThisMonth = 0;
+          allScales.forEach((scale) => {
+            const scaleEvent = allEvents.find((e) => e.id === scale.eventId);
+            if (scaleEvent) {
+              const sDate = new Date(scaleEvent.date);
+              if (sDate.getMonth() === eventMonth && sDate.getFullYear() === eventYear) {
+                if (scale.assignments.some(a => a.userId === u.uid)) {
+                  userScalesThisMonth++;
+                }
+              }
+            }
+          });
+          if (userScalesThisMonth >= u.maxScalesPerMonth) {
+            return false;
+          }
+        }
+
+        return true;
+      });
 
       if (eligibleUsers.length > 0) {
         eligibleUsers.sort(
@@ -4456,8 +4467,6 @@ function ScaleForm({
         const selected = eligibleUsers[0];
         newAssignments.push({ userId: selected.uid, roles: [role] });
         usedUserIds.add(selected.uid);
-      } else {
-        newAssignments.push({ userId: "EMPTY", roles: [role] });
       }
     });
 
@@ -4598,11 +4607,8 @@ function ScaleForm({
             </button>
           )}
         </div>
-        {assignments.map((a, i) => {
-          const isMissing = !a.userId || a.userId === "EMPTY";
-          const u = isMissing
-            ? null
-            : users.find((user) => user.uid === a.userId);
+        {assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, i) => {
+          const u = users.find((user) => user.uid === a.userId);
           const currentRoles = a.roles || [a.role];
 
           // Find compatible users for the first role in their set
@@ -4619,7 +4625,7 @@ function ScaleForm({
               key={i}
               className={cn(
                 "flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border shadow-sm animate-in fade-in slide-in-from-left-2 duration-200 gap-4",
-                isMissing ? "border-red-100 bg-red-50/30" : "border-gray-100",
+                "border-gray-100",
                 selectedForRemoval.includes(i) ? "ring-2 ring-red-400" : "",
               )}
             >
@@ -4633,21 +4639,19 @@ function ScaleForm({
                 <div
                   className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-inner text-sm shrink-0",
-                    isMissing
-                      ? "bg-red-100 text-red-600"
-                      : "bg-indigo-50 text-indigo-600",
+                    "bg-indigo-50 text-indigo-600",
                   )}
                 >
-                  {isMissing ? "!" : u?.displayName?.[0] || ""}
+                  {u?.displayName?.[0] || ""}
                 </div>
                 <div className="flex flex-col">
                   <p
                     className={cn(
                       "text-sm font-bold",
-                      isMissing ? "text-red-700" : "text-gray-900",
+                      "text-gray-900",
                     )}
                   >
-                    {isMissing ? "Sem voluntário disponível" : u?.displayName}
+                    {u?.displayName}
                   </p>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {currentRoles.filter(Boolean).map((r: string) => (
@@ -4655,9 +4659,7 @@ function ScaleForm({
                         key={r}
                         className={cn(
                           "text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                          isMissing
-                            ? "bg-red-100 text-red-700"
-                            : "bg-indigo-50 text-indigo-600",
+                          "bg-indigo-50 text-indigo-600",
                         )}
                       >
                         {r}
@@ -4918,15 +4920,14 @@ function CalendarView({
                     
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Equipe Escalada</p>
-                      {scale && scale.assignments.length > 0 ? (
+                      {scale && scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                          {scale.assignments.map((a, i) => {
+                          {scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, i) => {
                             const user = allUsers.find(u => u.uid === a.userId);
-                            const isMissing = !a.userId || a.userId === "EMPTY";
                             return (
                               <div key={i} className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
-                                <span className={cn("text-xs font-bold", isMissing ? "text-red-600" : "text-gray-900")}>
-                                  {isMissing ? "Vago" : user?.displayName}
+                                <span className={cn("text-xs font-bold", "text-gray-900")}>
+                                  {user?.displayName}
                                 </span>
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded uppercase tracking-tighter">
                                   {(a.roles || [(a as any).role]).filter(Boolean).join(', ')}
