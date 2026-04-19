@@ -197,137 +197,103 @@ export default function App() {
   const [calendarFilterType, setCalendarFilterType] = useState('all');
   const [calendarFilterStatus, setCalendarFilterStatus] = useState('all');
 
-  // Real-time listeners
+  // Static Data - Fetched once to save Quotas
   useEffect(() => {
     if (!user) return;
 
-    const qEvents = query(collection(db, "events"), orderBy("date", "asc"));
-    const unsubEvents = onSnapshot(
-      qEvents,
-      (snapshot) => {
-        setEvents(
-          snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as ChurchEvent,
-          ),
-        );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "events"),
-    );
+    const fetchStaticData = async () => {
+      try {
+        const snapUsers = await getDocs(collection(db, "users"));
+        setAllUsers(snapUsers.docs.map((doc) => ({ uid: doc.id, ...doc.data() }) as User));
 
-    const unsubScales = onSnapshot(
-      collection(db, "scales"),
-      (snapshot) => {
-        setScales(
-          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Scale),
-        );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "scales"),
-    );
+        const snapCheckins = await getDocs(collection(db, "checkins"));
+        setCheckins(snapCheckins.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as CheckIn));
 
-    const unsubUsers = onSnapshot(
-      collection(db, "users"),
-      (snapshot) => {
-        setAllUsers(
-          snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }) as User),
-        );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "users"),
-    );
+        const snapReactions = await getDocs(collection(db, "reactions"));
+        setReactions(snapReactions.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Reaction));
+      } catch (err) {
+        console.error("Error fetching static data: ", err);
+      }
+    };
+    fetchStaticData();
+  }, [user]);
 
-    const unsubCheckins = onSnapshot(
-      collection(db, "checkins"),
-      (snapshot) => {
-        setCheckins(
-          snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as CheckIn,
-          ),
-        );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "checkins"),
-    );
+  // Conditional Real-time listeners (Surgical Queries)
+  useEffect(() => {
+    if (!user) return;
 
-    const qNotifs = query(
-      collection(db, "notifications"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc"),
-      limit(20),
-    );
-    const unsubNotifs = onSnapshot(
-      qNotifs,
-      (snapshot) => {
-        setNotifications(
-          snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as Notification,
-          ),
-        );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "notifications"),
-    );
+    const unsubscribers: (() => void)[] = [];
 
-    const qAnnouncements = query(
-      collection(db, "announcements"),
-      orderBy("createdAt", "desc"),
-    );
-    const unsubAnnouncements = onSnapshot(
-      qAnnouncements,
-      (snapshot) => {
-        setAnnouncements(
-          snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as Announcement,
-          ),
+    // 1. Events
+    if (["dashboard", "calendar", "events", "scales"].includes(activeTab)) {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      let qEvents = query(collection(db, "events"), orderBy("date", "asc"));
+      
+      // Filtros cirúrgicos para painéis que só precisam do presente/futuro
+      if (activeTab === "events" || activeTab === "dashboard" || activeTab === "scales") {
+        qEvents = query(
+          collection(db, "events"), 
+          where("date", ">=", startOfToday.toISOString()), 
+          orderBy("date", "asc")
         );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "announcements"),
-    );
+      }
 
-    const unsubReactions = onSnapshot(
-      collection(db, "reactions"),
-      (snapshot) => {
-        setReactions(
-          snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as Reaction,
-          ),
-        );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "reactions"),
-    );
+      unsubscribers.push(onSnapshot(qEvents, (snapshot) => {
+        setEvents(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as ChurchEvent));
+      }, (err) => handleFirestoreError(err, OperationType.LIST, "events")));
+    }
 
-    const unsubSetlists = onSnapshot(
-      collection(db, "setlists"),
-      (snapshot) => {
-        setSetlists(
-          snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as Setlist,
-          ),
-        );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "setlists"),
-    );
+    // 2. Scales
+    if (["dashboard", "calendar", "events", "scales"].includes(activeTab)) {
+      unsubscribers.push(onSnapshot(collection(db, "scales"), (snapshot) => {
+        setScales(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Scale));
+      }, (err) => handleFirestoreError(err, OperationType.LIST, "scales")));
+    }
 
-    const unsubCronogramas = onSnapshot(
-      collection(db, "cronogramas"),
-      (snapshot) => {
-        setCronogramas(
-          snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as Cronograma,
-          ),
-        );
-      },
-      (err) => handleFirestoreError(err, OperationType.LIST, "cronogramas"),
-    );
+    // 3. Notifications
+    if (["dashboard", "notifications"].includes(activeTab)) {
+      const qNotifs = query(
+        collection(db, "notifications"),
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc"),
+        limit(20),
+      );
+      unsubscribers.push(onSnapshot(qNotifs, (snapshot) => {
+        setNotifications(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Notification));
+      }, (err) => handleFirestoreError(err, OperationType.LIST, "notifications")));
+    }
+
+    // 4. Announcements
+    if (["dashboard", "announcements"].includes(activeTab)) {
+      const qAnnouncements = query(
+        collection(db, "announcements"),
+        orderBy("createdAt", "desc"),
+        limit(20)
+      );
+      unsubscribers.push(onSnapshot(qAnnouncements, (snapshot) => {
+        setAnnouncements(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Announcement));
+      }, (err) => handleFirestoreError(err, OperationType.LIST, "announcements")));
+    }
+
+    // 5. Reactions and Setlists
+    if (activeTab === "setlist") {
+      unsubscribers.push(onSnapshot(collection(db, "setlists"), (snapshot) => {
+        setSetlists(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Setlist));
+      }, (err) => handleFirestoreError(err, OperationType.LIST, "setlists")));
+    }
+
+    // 6. Cronogramas
+    if (activeTab === "cronograma") {
+      unsubscribers.push(onSnapshot(collection(db, "cronogramas"), (snapshot) => {
+        setCronogramas(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Cronograma));
+      }, (err) => handleFirestoreError(err, OperationType.LIST, "cronogramas")));
+    }
 
     return () => {
-      unsubEvents();
-      unsubScales();
-      unsubUsers();
-      unsubCheckins();
-      unsubNotifs();
-      unsubAnnouncements();
-      unsubReactions();
-      unsubSetlists();
-      unsubCronogramas();
+      unsubscribers.forEach((unsub) => unsub());
     };
-  }, [user]);
+  }, [user, activeTab]);
 
   // Automatic Event Status Update and Birthday Notifications
   useEffect(() => {
@@ -640,7 +606,40 @@ export default function App() {
     for (const ev of eventsToCreate) {
       const docRef = await addDoc(collection(db, "events"), ev);
       if (autoSchedule) {
-        await performAutoSchedule(docRef.id, scales, allUsers);
+        // Run AI assignment logic purely local without fetching, then add directly
+        const roles = ["Som", "Câmera", "Projeção", "Mídia", "Vídeo", "Fotos", "Cantina", "Doces", "Iluminação", "Recepção", "Café", "Placas", "Anúncios"];
+        const newAssignments: any[] = [];
+        const usedUserIds = new Set<string>();
+        
+        const eventDate = new Date(ev.date);
+        const eventDayOfWeek = eventDate.getDay();
+        
+        roles.forEach((role) => {
+          let eligibleUsers = allUsers.filter(u => {
+            if (u.status !== "approved" || usedUserIds.has(u.uid)) return false;
+            
+            const normalizedSpecialty = u.specialty ? u.specialty.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+            const normalizedRole = role.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            if (!normalizedSpecialty.includes(normalizedRole)) return false;
+            
+            if (u.availableDays && u.availableDays.length > 0 && !u.availableDays.includes(eventDayOfWeek)) {
+              return false;
+            }
+            return true;
+          });
+
+          if (eligibleUsers.length > 0) {
+            eligibleUsers.sort(() => Math.random() - 0.5); // Fast randomization instead of complex fatigue
+            const selected = eligibleUsers[0];
+            newAssignments.push({ userId: selected.uid, roles: [role] });
+            usedUserIds.add(selected.uid);
+          }
+        });
+        
+        await addDoc(collection(db, "scales"), {
+          eventId: docRef.id,
+          assignments: newAssignments,
+        });
       } else {
         await addDoc(collection(db, "scales"), {
           eventId: docRef.id,
