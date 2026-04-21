@@ -24,15 +24,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const isAdminEmail = ['midiaimwlaureano@gmail.com', 'melolucas78@gmail.com', 'thatianebusiness@gmail.com'].includes(firebaseUser.email || '');
+          const isLider2Email = ['melolucas78@gmail.com'].includes(firebaseUser.email || '');
+          const isAdminEmail = ['midiaimwlaureano@gmail.com', 'thatianebusiness@gmail.com'].includes(firebaseUser.email || '');
           
+          let expectedRole = isLider2Email ? 'LIDER_II' : (isAdminEmail ? 'LIDER_I' : undefined);
+
           // Try to find user by UID first
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
-            if (isAdminEmail && (userData.role !== 'LIDER_I' || userData.status !== 'approved')) {
-              await updateDoc(doc(db, 'users', firebaseUser.uid), { role: 'LIDER_I', status: 'approved' });
-              userData.role = 'LIDER_I';
+            if (expectedRole && (userData.role !== expectedRole || userData.status !== 'approved')) {
+              await updateDoc(doc(db, 'users', firebaseUser.uid), { role: expectedRole, status: 'approved' });
+              userData.role = expectedRole as any;
               userData.status = 'approved';
             }
             setUser({ uid: userDoc.id, ...userData });
@@ -52,8 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email: firebaseUser.email || existingData.email || '',
               } as User;
 
-              if (isAdminEmail) {
-                newUser.role = 'LIDER_I';
+              if (expectedRole) {
+                newUser.role = expectedRole as any;
                 newUser.status = 'approved';
               }
 
@@ -68,8 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 uid: firebaseUser.uid,
                 displayName: firebaseUser.displayName || 'Usuário',
                 email: firebaseUser.email || '',
-                role: isAdminEmail ? 'LIDER_I' : 'VOLUNTARIO',
-                status: isAdminEmail ? 'approved' : 'pending',
+                role: expectedRole ? (expectedRole as any) : 'VOLUNTARIO',
+                status: expectedRole ? 'approved' : 'pending',
                 createdAt: new Date().toISOString(),
                 color: '#4F46E5', // Default indigo
               };

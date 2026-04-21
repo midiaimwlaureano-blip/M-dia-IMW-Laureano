@@ -69,6 +69,7 @@ import {
   AlertTriangle,
   Camera,
   Palette,
+  ShieldCheck,
 } from "lucide-react";
 
 const ChristianCross = ({
@@ -113,6 +114,7 @@ import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import MaintenanceCenter from "./components/MaintenanceCenter";
 
 export default function App() {
   const { user, loading, login, logout, isAdmin, isCoordinator } = useAuth();
@@ -277,14 +279,14 @@ export default function App() {
     }
 
     // 5. Reactions and Setlists
-    if (activeTab === "setlist") {
+    if (["dashboard", "setlist"].includes(activeTab)) {
       unsubscribers.push(onSnapshot(collection(db, "setlists"), (snapshot) => {
         setSetlists(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Setlist));
       }, (err) => handleFirestoreError(err, OperationType.LIST, "setlists")));
     }
 
     // 6. Cronogramas
-    if (activeTab === "cronograma") {
+    if (["dashboard", "cronograma"].includes(activeTab)) {
       unsubscribers.push(onSnapshot(collection(db, "cronogramas"), (snapshot) => {
         setCronogramas(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Cronograma));
       }, (err) => handleFirestoreError(err, OperationType.LIST, "cronogramas")));
@@ -1117,6 +1119,16 @@ export default function App() {
             compact={navStyle === "top" || isSidebarCollapsed}
             theme={theme}
           />
+          {user?.role === 'LIDER_II' && (
+            <NavItem
+              active={activeTab === "maintenance"}
+              onClick={() => setActiveTab("maintenance")}
+              icon={<ShieldCheck size={20} />}
+              label="Manutenção"
+              compact={navStyle === "top" || isSidebarCollapsed}
+              theme={theme}
+            />
+          )}
         </nav>
 
         <div
@@ -1247,6 +1259,7 @@ export default function App() {
                       {activeTab === "announcements" && "Mural de Anúncios"}
                       {activeTab === "setlist" && "Setlist de Louvor"}
                       {activeTab === "cronograma" && "Cronograma do Culto"}
+                      {activeTab === "maintenance" && "Central de Manutenção"}
                       {activeTab === "notifications" && "Suas Notificações"}
                     </h2>
                   </div>
@@ -2621,6 +2634,14 @@ export default function App() {
                     setViewingCronograma={setViewingCronograma}
                   />
                 )}
+
+                {activeTab === "maintenance" && (
+                  <MaintenanceCenter
+                    isAdmin={user?.role === 'LIDER_II'}
+                    events={events}
+                    scales={scales}
+                  />
+                )}
               </>
             )}
           </motion.div>
@@ -3032,9 +3053,9 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setVisualTheme("vidro")}
-                  className={cn("p-4 rounded-xl border text-center transition-all bg-sky-50 shadow-inner", visualTheme === "vidro" ? "border-indigo-600 ring-2 ring-indigo-200" : "border-gray-200")}
+                  className={cn("p-4 rounded-xl border text-center transition-all shadow-inner", visualTheme === "vidro" ? "border-indigo-600 ring-2 ring-indigo-200 bg-sky-50" : "border-gray-200 bg-gray-50")}
                 >
-                  <p className="font-bold text-sm text-gray-900">Vidro Fosco</p>
+                  <p className="font-bold text-sm text-slate-900 border-none">Vidro Fosco</p>
                 </button>
               </div>
             </div>
@@ -5475,18 +5496,34 @@ function CronogramaView({
   const generatePDF = async (c: Cronograma) => {
     const element = document.createElement("div");
     element.innerHTML = `
-      <div style="padding: 40px; font-family: sans-serif;">
-        <h1 style="color: #dc2626; border-bottom: 2px solid #dc2626; padding-bottom: 10px;">${c.title}</h1>
-        <div style="margin-top: 20px; line-height: 1.6;">${c.content}</div>
-        <div style="margin-top: 40px; font-size: 12px; color: #666; border-top: 1px solid #eee; padding-top: 10px;">
+      <div style="background-color: #ffffff; color: #000000; font-family: Arial, Helvetica, sans-serif; padding: 15mm; width: 210mm; box-sizing: border-box;">
+        <h1 style="color: #000000; font-size: 16pt; font-weight: bold; margin-bottom: 24px; text-align: center;">${c.title}</h1>
+        <div style="color: #000000; font-size: 12pt; line-height: 1.5;">${c.content}</div>
+        <div style="margin-top: 40px; font-size: 10pt; color: #000000; border-top: 1px solid #000000; padding-top: 10px; text-align: center;">
           Gerado em ${new Date().toLocaleString()} - IMW Laureano
         </div>
       </div>
     `;
+    
+    // Explicitly resetting any inherited dark mode classes to ensure children styling works fine internally
+    Object.assign(element.style, {
+      position: 'absolute',
+      left: '-9999px',
+      top: '-9999px',
+      backgroundColor: '#ffffff'
+    });
+    element.className = ""; // Remove any 'dark' or 'glass' class
+
+    // Quill uses strong inline styles but sometimes color inherits from body
+    // Let's force all child text to be black.
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = "* { color: #000000 !important; background-color: transparent; }";
+    element.appendChild(styleSheet);
+
     document.body.appendChild(element);
 
     try {
-      const canvas = await html2canvas(element, { scale: 2 });
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: "#ffffff" });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
