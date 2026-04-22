@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: var(--cor-principal);
+  --color-primary-faded: var(--cor-principal-faded);
+}
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -8,6 +13,27 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+:root {
+  --cor-principal: #3b82f6;
+  --cor-principal-faded: rgba(59, 130, 246, 0.2);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cor-principal);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
 }
 
 /* iPhone App Style Base */
@@ -70,8 +96,11 @@ body {
   border-color: #475569 !important;
 }
 
-.dark .hover\:bg-gray-50:hover {
-  background-color: rgba(255,255,255,0.05) !important;
+.dark .hover\:bg-gray-50:hover, 
+.dark .group:hover,
+html.glass .group:hover {
+  background-color: var(--cor-principal-faded) !important;
+  color: inherit !important;
 }
 
 .dark .hover\:bg-gray-100:hover {

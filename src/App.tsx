@@ -54,6 +54,7 @@ import {
   FileText,
   CalendarDays,
   ChevronLeft,
+  ArrowLeft,
   X,
   Save,
   Send,
@@ -154,6 +155,24 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
+    const themeColors: Record<string, string> = {
+      electric_blue: "#3b82f6",
+      emerald: "#10b981",
+      neon_purple: "#a855f7",
+      sunset_orange: "#f97316",
+      hot_pink: "#ec4899",
+      carmine_red: "#ef4444",
+      cyan: "#06b6d4",
+      sunflower_yellow: "#eab308",
+    };
+    const root = document.documentElement;
+    const color = themeColors[theme] || themeColors.electric_blue;
+    root.style.setProperty('--cor-principal', color);
+    
+    // For hover versions
+    // To support opacity correctly, we need rgb variables. But for simplicity we can use hex + alpha
+    // 33 is 20% opacity in hex
+    root.style.setProperty('--cor-principal-faded', `${color}33`);
   }, [theme]);
 
   useEffect(() => {
@@ -1265,7 +1284,16 @@ export default function App() {
             ) : (
               <>
                 <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div>
+                  <div className="flex items-center gap-4">
+                    {activeTab !== "dashboard" && (
+                      <button
+                        onClick={() => window.history.back()}
+                        className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-300 rounded-lg transition-colors flex shrink-0"
+                        title="Voltar"
+                      >
+                        <ArrowLeft size={24} />
+                      </button>
+                    )}
                     <h2 className="text-3xl font-bold text-gray-900">
                       {activeTab === "dashboard" &&
                         "Olá, " + user.displayName.split(" ")[0] + "! 👋"}
@@ -3136,6 +3164,28 @@ export default function App() {
                 </button>
               </div>
             </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Notificações Push (Mobile)</h4>
+              <button
+                onClick={() => {
+                  if ("Notification" in window) {
+                    window.Notification.requestPermission().then((permission) => {
+                      if (permission === "granted") {
+                        toast.success("Notificações ativadas com sucesso! (Configuração base de PWA aplicada).");
+                      } else {
+                        toast.error("A permissão para notificações foi negada.");
+                      }
+                    });
+                  } else {
+                    toast.error("Seu dispositivo ou navegador não suporta notificações Push.");
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-50 text-indigo-700 font-bold rounded-xl border border-indigo-200 hover:bg-indigo-100 transition-all dark:bg-slate-800 dark:border-slate-600 dark:text-indigo-400 dark:hover:bg-slate-700"
+              >
+                <Bell size={18} /> Ativar Notificações no Celular
+              </button>
+            </div>
             
             <button
               onClick={() => setIsAppearanceModalOpen(false)}
@@ -3157,7 +3207,7 @@ function NavItem({
   icon,
   label,
   compact,
-  theme = "indigo",
+  theme = "electric_blue",
   badgeCount,
 }: {
   active: boolean;
@@ -3168,28 +3218,6 @@ function NavItem({
   theme?: string;
   badgeCount?: number;
 }) {
-  const themeClasses = {
-    electric_blue: "bg-blue-400 shadow-blue-100 text-white",
-    emerald: "bg-emerald-500 shadow-emerald-100 text-white",
-    neon_purple: "bg-purple-500 shadow-purple-100 text-white",
-    sunset_orange: "bg-orange-500 shadow-orange-100 text-white",
-    hot_pink: "bg-pink-400 shadow-pink-100 text-white",
-    carmine_red: "bg-red-500 shadow-red-100 text-white",
-    cyan: "bg-cyan-500 shadow-cyan-100 text-white",
-    sunflower_yellow: "bg-yellow-400 shadow-yellow-100 text-slate-900",
-  };
-
-  const textClasses = {
-    electric_blue: "text-blue-500",
-    emerald: "text-emerald-600",
-    neon_purple: "text-purple-600",
-    sunset_orange: "text-orange-600",
-    hot_pink: "text-pink-500",
-    carmine_red: "text-red-600",
-    cyan: "text-cyan-600",
-    sunflower_yellow: "text-yellow-500",
-  };
-
   return (
     <button
       onClick={onClick}
@@ -3197,17 +3225,17 @@ function NavItem({
         "flex items-center gap-3 transition-all group shrink-0 relative",
         compact ? "p-3 rounded-xl" : "px-4 py-3 md:w-full md:p-3 rounded-xl",
         active
-          ? themeClasses[theme as keyof typeof themeClasses]
+          ? "bg-primary shadow-primary text-white"
           : "text-gray-500 hover:bg-gray-100",
+        active && theme === "sunflower_yellow" ? "text-slate-900" : ""
       )}
     >
       <span
         className={cn(
           "transition-transform group-hover:scale-110",
           active
-            ? "text-white"
-            : "text-gray-400 group-hover:" +
-                textClasses[theme as keyof typeof textClasses],
+            ? "text-inherit"
+            : "text-gray-400 group-hover:text-primary",
         )}
       >
         {icon}
@@ -3662,44 +3690,11 @@ function EventForm({
     setFormData({ ...formData, daysOfWeek: newDays });
   };
 
-  const themeBg = (
-    {
-      electric_blue: "bg-blue-400 hover:bg-blue-500",
-      emerald: "bg-emerald-500 hover:bg-emerald-600",
-      neon_purple: "bg-purple-500 hover:bg-purple-600",
-      sunset_orange: "bg-orange-500 hover:bg-orange-600",
-      hot_pink: "bg-pink-400 hover:bg-pink-500",
-      carmine_red: "bg-red-500 hover:bg-red-600",
-      cyan: "bg-cyan-500 hover:bg-cyan-600",
-      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-400";
-
-  const themeText = (
-    {
-      electric_blue: "text-blue-500",
-      emerald: "text-emerald-500",
-      neon_purple: "text-purple-500",
-      sunset_orange: "text-orange-500",
-      hot_pink: "text-pink-500",
-      carmine_red: "text-red-500",
-      cyan: "text-cyan-500",
-      sunflower_yellow: "text-yellow-600",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "text-blue-500";
-
-  const themeBgLight = (
-    {
-      electric_blue: "bg-blue-50",
-      emerald: "bg-emerald-50",
-      neon_purple: "bg-purple-50",
-      sunset_orange: "bg-orange-50",
-      hot_pink: "bg-pink-50",
-      carmine_red: "bg-red-50",
-      cyan: "bg-cyan-50",
-      sunflower_yellow: "bg-yellow-50",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-50";
+  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  
+  const themeText = "text-primary";
+  
+  const themeBgLight = "bg-primary/10";
 
   return (
     <div className="space-y-4">
@@ -3857,18 +3852,7 @@ function NotificationForm({
     title: "",
     message: "",
   });
-  const themeBg = (
-    {
-      electric_blue: "bg-blue-400 hover:bg-blue-500",
-      emerald: "bg-emerald-500 hover:bg-emerald-600",
-      neon_purple: "bg-purple-500 hover:bg-purple-600",
-      sunset_orange: "bg-orange-500 hover:bg-orange-600",
-      hot_pink: "bg-pink-400 hover:bg-pink-500",
-      carmine_red: "bg-red-500 hover:bg-red-600",
-      cyan: "bg-cyan-500 hover:bg-cyan-600",
-      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-400";
+  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
 
   return (
     <div className="space-y-4">
@@ -3947,44 +3931,9 @@ function AnnouncementForm({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const themeBg = (
-    {
-      electric_blue: "bg-blue-400 hover:bg-blue-500",
-      emerald: "bg-emerald-500 hover:bg-emerald-600",
-      neon_purple: "bg-purple-500 hover:bg-purple-600",
-      sunset_orange: "bg-orange-500 hover:bg-orange-600",
-      hot_pink: "bg-pink-400 hover:bg-pink-500",
-      carmine_red: "bg-red-500 hover:bg-red-600",
-      cyan: "bg-cyan-500 hover:bg-cyan-600",
-      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-400";
-
-  const themeText = (
-    {
-      electric_blue: "text-blue-500",
-      emerald: "text-emerald-500",
-      neon_purple: "text-purple-500",
-      sunset_orange: "text-orange-500",
-      hot_pink: "text-pink-500",
-      carmine_red: "text-red-500",
-      cyan: "text-cyan-500",
-      sunflower_yellow: "text-yellow-600",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "text-blue-500";
-
-  const themeBgLight = (
-    {
-      electric_blue: "bg-blue-50",
-      emerald: "bg-emerald-50",
-      neon_purple: "bg-purple-50",
-      sunset_orange: "bg-orange-50",
-      hot_pink: "bg-pink-50",
-      carmine_red: "bg-red-50",
-      cyan: "bg-cyan-50",
-      sunflower_yellow: "bg-yellow-50",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-50";
+  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeText = "text-primary";
+  const themeBgLight = "bg-primary/10";
 
   const handleSave = async () => {
     if (!formData.title || !formData.date) {
@@ -4237,18 +4186,7 @@ function VolunteerForm({
     }
   };
 
-  const themeBg = (
-    {
-      electric_blue: "bg-blue-400 hover:bg-blue-500",
-      emerald: "bg-emerald-500 hover:bg-emerald-600",
-      neon_purple: "bg-purple-500 hover:bg-purple-600",
-      sunset_orange: "bg-orange-500 hover:bg-orange-600",
-      hot_pink: "bg-pink-400 hover:bg-pink-500",
-      carmine_red: "bg-red-500 hover:bg-red-600",
-      cyan: "bg-cyan-500 hover:bg-cyan-600",
-      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-400";
+  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
 
   return (
     <div className="space-y-4">
@@ -4568,44 +4506,9 @@ function ScaleForm({
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
-  const themeBg = (
-    {
-      electric_blue: "bg-blue-400 hover:bg-blue-500",
-      emerald: "bg-emerald-500 hover:bg-emerald-600",
-      neon_purple: "bg-purple-500 hover:bg-purple-600",
-      sunset_orange: "bg-orange-500 hover:bg-orange-600",
-      hot_pink: "bg-pink-400 hover:bg-pink-500",
-      carmine_red: "bg-red-500 hover:bg-red-600",
-      cyan: "bg-cyan-500 hover:bg-cyan-600",
-      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-400";
-
-  const themeText = (
-    {
-      electric_blue: "text-blue-500",
-      emerald: "text-emerald-500",
-      neon_purple: "text-purple-500",
-      sunset_orange: "text-orange-500",
-      hot_pink: "text-pink-500",
-      carmine_red: "text-red-500",
-      cyan: "text-cyan-500",
-      sunflower_yellow: "text-yellow-600",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "text-blue-500";
-
-  const themeBgLight = (
-    {
-      electric_blue: "bg-blue-50",
-      emerald: "bg-emerald-50",
-      neon_purple: "bg-purple-50",
-      sunset_orange: "bg-orange-50",
-      hot_pink: "bg-pink-50",
-      carmine_red: "bg-red-50",
-      cyan: "bg-cyan-50",
-      sunflower_yellow: "bg-yellow-50",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-50";
+  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeText = "text-primary";
+  const themeBgLight = "bg-primary/10";
 
   const toggleRole = (role: string) => {
     if (selectedRoles.includes(role)) {
@@ -5339,31 +5242,8 @@ function SetlistView({
     }
   };
 
-  const themeBg = (
-    {
-      electric_blue: "bg-blue-600 hover:bg-blue-700 shadow-blue-100",
-      emerald: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100",
-      neon_purple: "bg-purple-600 hover:bg-purple-700 shadow-purple-100",
-      sunset_orange: "bg-orange-600 hover:bg-orange-700 shadow-orange-100",
-      hot_pink: "bg-pink-600 hover:bg-pink-700 shadow-pink-100",
-      carmine_red: "bg-red-600 hover:bg-red-700 shadow-red-100",
-      cyan: "bg-cyan-600 hover:bg-cyan-700 shadow-cyan-100",
-      sunflower_yellow: "bg-yellow-500 hover:bg-yellow-600 shadow-yellow-100 text-slate-900",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-600";
-
-  const themeTextHov = (
-    {
-      electric_blue: "group-hover:text-blue-600",
-      emerald: "group-hover:text-emerald-600",
-      neon_purple: "group-hover:text-purple-600",
-      sunset_orange: "group-hover:text-orange-600",
-      hot_pink: "group-hover:text-pink-600",
-      carmine_red: "group-hover:text-red-600",
-      cyan: "group-hover:text-cyan-600",
-      sunflower_yellow: "group-hover:text-yellow-600",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "group-hover:text-blue-600";
+  const themeBg = "bg-primary hover:opacity-90 text-white shadow-sm " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeTextHov = "group-hover:text-primary";
 
   return (
     <div className="space-y-6">
@@ -5636,31 +5516,8 @@ function CronogramaView({
     }
   };
 
-  const themeBg = (
-    {
-      electric_blue: "bg-blue-600 hover:bg-blue-700 shadow-blue-100",
-      emerald: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100",
-      neon_purple: "bg-purple-600 hover:bg-purple-700 shadow-purple-100",
-      sunset_orange: "bg-orange-600 hover:bg-orange-700 shadow-orange-100",
-      hot_pink: "bg-pink-600 hover:bg-pink-700 shadow-pink-100",
-      carmine_red: "bg-red-600 hover:bg-red-700 shadow-red-100",
-      cyan: "bg-cyan-600 hover:bg-cyan-700 shadow-cyan-100",
-      sunflower_yellow: "bg-yellow-500 hover:bg-yellow-600 shadow-yellow-100 text-slate-900",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "bg-blue-600";
-
-  const themeTextHov = (
-    {
-      electric_blue: "group-hover:text-blue-600",
-      emerald: "group-hover:text-emerald-600",
-      neon_purple: "group-hover:text-purple-600",
-      sunset_orange: "group-hover:text-orange-600",
-      hot_pink: "group-hover:text-pink-600",
-      carmine_red: "group-hover:text-red-600",
-      cyan: "group-hover:text-cyan-600",
-      sunflower_yellow: "group-hover:text-yellow-600",
-    } as Record<string, string>
-  )[theme || "electric_blue"] || "group-hover:text-blue-600";
+  const themeBg = "bg-primary hover:opacity-90 text-white shadow-sm " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeTextHov = "group-hover:text-primary";
 
   return (
     <div className="space-y-6">
