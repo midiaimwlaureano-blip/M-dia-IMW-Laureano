@@ -118,7 +118,24 @@ import MaintenanceCenter from "./components/MaintenanceCenter";
 
 export default function App() {
   const { user, loading, login, logout, isAdmin, isCoordinator } = useAuth();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => {
+    const path = window.location.pathname.substring(1);
+    if (path === "manutencao") return "maintenance";
+    if (["calendar", "events", "scales", "volunteers", "announcements", "setlist", "cronograma", "notifications", "maintenance"].includes(path)) {
+      return path;
+    }
+    return "dashboard";
+  });
+
+  useEffect(() => {
+    if (activeTab === "maintenance") {
+      window.history.replaceState(null, "", "/manutencao");
+    } else if (activeTab === "dashboard") {
+      window.history.replaceState(null, "", "/");
+    } else {
+      window.history.replaceState(null, "", `/${activeTab}`);
+    }
+  }, [activeTab]);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [layoutMode, setLayoutMode] = useState<"modern" | "compact">(() => {
     const val = localStorage.getItem("layoutMode");
@@ -130,8 +147,8 @@ export default function App() {
   });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<
-    "indigo" | "red" | "blue" | "rose" | "sky" | "imw"
-  >(() => (localStorage.getItem("theme") as any) || "imw");
+    "electric_blue" | "emerald" | "neon_purple" | "sunset_orange" | "hot_pink" | "carmine_red" | "cyan" | "sunflower_yellow"
+  >(() => (localStorage.getItem("theme") as any) || "electric_blue");
   const [visualTheme, setVisualTheme] = useState<"claro" | "escuro" | "vidro">(() => (localStorage.getItem("visualTheme") as any) || (localStorage.getItem("isDarkMode") === "true" ? "escuro" : "claro"));
   const isDarkMode = visualTheme === "escuro" || visualTheme === "vidro";
 
@@ -2488,7 +2505,7 @@ export default function App() {
                               <div key={u.uid} className="flex-shrink-0 bg-gray-50 border border-gray-100 rounded-2xl p-4 min-w-[200px] flex items-center gap-3">
                                 <div
                                   className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0"
-                                  style={{ backgroundColor: u.bg_color || u.color || "#4F46E5" }}
+                                  style={{ backgroundColor: u.bg_color || "#4F46E5" }}
                                 >
                                   {u.profile_emoji ? (
                                     u.profile_emoji
@@ -2521,7 +2538,7 @@ export default function App() {
                         >
                           <div
                             className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shrink-0"
-                            style={{ backgroundColor: u.bg_color || u.color || "#4F46E5" }}
+                            style={{ backgroundColor: u.bg_color || "#4F46E5" }}
                           >
                             {u.profile_emoji ? (
                               u.profile_emoji
@@ -3053,29 +3070,31 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setVisualTheme("vidro")}
-                  className={cn("p-4 rounded-xl border text-center transition-all shadow-inner", visualTheme === "vidro" ? "border-indigo-600 ring-2 ring-indigo-200 bg-sky-50" : "border-gray-200 bg-gray-50")}
+                  className={cn("p-4 rounded-xl border text-center transition-all", visualTheme === "vidro" ? "border-indigo-500 ring-2 ring-indigo-500/50 bg-slate-800/80 backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.5)] outline-none" : "border-gray-200 bg-transparent")}
                 >
-                  <p className="font-bold text-sm text-slate-900 border-none">Vidro Fosco</p>
+                  <p className={cn("font-bold text-sm border-none shadow-none", isDarkMode ? "text-white" : "text-gray-900")}>Vidro Fosco</p>
                 </button>
               </div>
             </div>
 
             <div>
               <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Cores Principais</h4>
-              <div className="flex gap-2">
-                {["imw", "indigo", "red", "blue", "rose", "sky"].map((t) => (
+              <div className="flex gap-2 flex-wrap">
+                {["electric_blue", "emerald", "neon_purple", "sunset_orange", "hot_pink", "carmine_red", "cyan", "sunflower_yellow"].map((t) => (
                   <button
                     key={t}
                     onClick={() => setTheme(t as any)}
                     className={cn(
-                      "w-8 h-8 rounded-full border-2 transition-all",
-                      theme === t ? "border-gray-900 scale-110" : "border-transparent",
-                      t === "imw" ? "bg-red-600" :
-                      t === "indigo" ? "bg-indigo-600" :
-                      t === "red" ? "bg-red-600" :
-                      t === "blue" ? "bg-blue-600" :
-                      t === "rose" ? "bg-rose-900" :
-                      "bg-sky-400"
+                      "w-8 h-8 rounded-full border-2 transition-transform hover:opacity-80",
+                      theme === t ? "border-gray-900 dark:border-white scale-110" : "border-transparent",
+                      t === "electric_blue" ? "bg-blue-400" :
+                      t === "emerald" ? "bg-emerald-500" :
+                      t === "neon_purple" ? "bg-purple-500" :
+                      t === "sunset_orange" ? "bg-orange-500" :
+                      t === "hot_pink" ? "bg-pink-400" :
+                      t === "carmine_red" ? "bg-red-500" :
+                      t === "cyan" ? "bg-cyan-500" :
+                      "bg-yellow-400"
                     )}
                   />
                 ))}
@@ -3150,21 +3169,25 @@ function NavItem({
   badgeCount?: number;
 }) {
   const themeClasses = {
-    indigo: "bg-indigo-600 shadow-indigo-100 text-white",
-    red: "bg-red-600 shadow-red-100 text-white",
-    blue: "bg-blue-600 shadow-blue-100 text-white",
-    rose: "bg-rose-900 shadow-rose-100 text-white",
-    sky: "bg-sky-400 shadow-sky-100 text-white",
-    imw: "bg-indigo-600 shadow-indigo-100 text-white",
+    electric_blue: "bg-blue-400 shadow-blue-100 text-white",
+    emerald: "bg-emerald-500 shadow-emerald-100 text-white",
+    neon_purple: "bg-purple-500 shadow-purple-100 text-white",
+    sunset_orange: "bg-orange-500 shadow-orange-100 text-white",
+    hot_pink: "bg-pink-400 shadow-pink-100 text-white",
+    carmine_red: "bg-red-500 shadow-red-100 text-white",
+    cyan: "bg-cyan-500 shadow-cyan-100 text-white",
+    sunflower_yellow: "bg-yellow-400 shadow-yellow-100 text-slate-900",
   };
 
   const textClasses = {
-    indigo: "text-indigo-600",
-    red: "text-red-600",
-    blue: "text-blue-600",
-    rose: "text-rose-900",
-    sky: "text-sky-400",
-    imw: "text-indigo-600",
+    electric_blue: "text-blue-500",
+    emerald: "text-emerald-600",
+    neon_purple: "text-purple-600",
+    sunset_orange: "text-orange-600",
+    hot_pink: "text-pink-500",
+    carmine_red: "text-red-600",
+    cyan: "text-cyan-600",
+    sunflower_yellow: "text-yellow-500",
   };
 
   return (
@@ -3639,35 +3662,44 @@ function EventForm({
     setFormData({ ...formData, daysOfWeek: newDays });
   };
 
-  const themeBg =
+  const themeBg = (
     {
-      imw: "bg-red-600 hover:bg-red-700",
-      indigo: "bg-indigo-600 hover:bg-indigo-700",
-      red: "bg-red-600 hover:bg-red-700",
-      blue: "bg-blue-600 hover:bg-blue-700",
-      rose: "bg-rose-900 hover:bg-rose-950",
-      sky: "bg-sky-400 hover:bg-sky-500",
-    }[theme as keyof typeof themeBg] || "bg-indigo-600";
+      electric_blue: "bg-blue-400 hover:bg-blue-500",
+      emerald: "bg-emerald-500 hover:bg-emerald-600",
+      neon_purple: "bg-purple-500 hover:bg-purple-600",
+      sunset_orange: "bg-orange-500 hover:bg-orange-600",
+      hot_pink: "bg-pink-400 hover:bg-pink-500",
+      carmine_red: "bg-red-500 hover:bg-red-600",
+      cyan: "bg-cyan-500 hover:bg-cyan-600",
+      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-400";
 
-  const themeText =
+  const themeText = (
     {
-      imw: "text-red-600",
-      indigo: "text-indigo-600",
-      red: "text-red-600",
-      blue: "text-blue-600",
-      rose: "text-rose-900",
-      sky: "text-sky-400",
-    }[theme as keyof typeof themeText] || "text-indigo-600";
+      electric_blue: "text-blue-500",
+      emerald: "text-emerald-500",
+      neon_purple: "text-purple-500",
+      sunset_orange: "text-orange-500",
+      hot_pink: "text-pink-500",
+      carmine_red: "text-red-500",
+      cyan: "text-cyan-500",
+      sunflower_yellow: "text-yellow-600",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "text-blue-500";
 
-  const themeBgLight =
+  const themeBgLight = (
     {
-      imw: "bg-red-50",
-      indigo: "bg-indigo-50",
-      red: "bg-red-50",
-      blue: "bg-blue-50",
-      rose: "bg-rose-50",
-      sky: "bg-sky-50",
-    }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
+      electric_blue: "bg-blue-50",
+      emerald: "bg-emerald-50",
+      neon_purple: "bg-purple-50",
+      sunset_orange: "bg-orange-50",
+      hot_pink: "bg-pink-50",
+      carmine_red: "bg-red-50",
+      cyan: "bg-cyan-50",
+      sunflower_yellow: "bg-yellow-50",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-50";
 
   return (
     <div className="space-y-4">
@@ -3825,15 +3857,18 @@ function NotificationForm({
     title: "",
     message: "",
   });
-  const themeBg =
+  const themeBg = (
     {
-      imw: "bg-red-600 hover:bg-red-700",
-      indigo: "bg-indigo-600 hover:bg-indigo-700",
-      red: "bg-red-600 hover:bg-red-700",
-      blue: "bg-blue-600 hover:bg-blue-700",
-      rose: "bg-rose-900 hover:bg-rose-950",
-      sky: "bg-sky-400 hover:bg-sky-500",
-    }[theme as keyof typeof themeBg] || "bg-indigo-600";
+      electric_blue: "bg-blue-400 hover:bg-blue-500",
+      emerald: "bg-emerald-500 hover:bg-emerald-600",
+      neon_purple: "bg-purple-500 hover:bg-purple-600",
+      sunset_orange: "bg-orange-500 hover:bg-orange-600",
+      hot_pink: "bg-pink-400 hover:bg-pink-500",
+      carmine_red: "bg-red-500 hover:bg-red-600",
+      cyan: "bg-cyan-500 hover:bg-cyan-600",
+      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-400";
 
   return (
     <div className="space-y-4">
@@ -3912,35 +3947,44 @@ function AnnouncementForm({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const themeBg =
+  const themeBg = (
     {
-      imw: "bg-red-600 hover:bg-red-700",
-      indigo: "bg-indigo-600 hover:bg-indigo-700",
-      red: "bg-red-600 hover:bg-red-700",
-      blue: "bg-blue-600 hover:bg-blue-700",
-      rose: "bg-rose-900 hover:bg-rose-950",
-      sky: "bg-sky-400 hover:bg-sky-500",
-    }[theme as keyof typeof themeBg] || "bg-indigo-600";
+      electric_blue: "bg-blue-400 hover:bg-blue-500",
+      emerald: "bg-emerald-500 hover:bg-emerald-600",
+      neon_purple: "bg-purple-500 hover:bg-purple-600",
+      sunset_orange: "bg-orange-500 hover:bg-orange-600",
+      hot_pink: "bg-pink-400 hover:bg-pink-500",
+      carmine_red: "bg-red-500 hover:bg-red-600",
+      cyan: "bg-cyan-500 hover:bg-cyan-600",
+      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-400";
 
-  const themeText =
+  const themeText = (
     {
-      imw: "text-red-700",
-      indigo: "text-indigo-700",
-      red: "text-red-700",
-      blue: "text-blue-700",
-      rose: "text-rose-900",
-      sky: "text-sky-700",
-    }[theme as keyof typeof themeText] || "text-indigo-700";
+      electric_blue: "text-blue-500",
+      emerald: "text-emerald-500",
+      neon_purple: "text-purple-500",
+      sunset_orange: "text-orange-500",
+      hot_pink: "text-pink-500",
+      carmine_red: "text-red-500",
+      cyan: "text-cyan-500",
+      sunflower_yellow: "text-yellow-600",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "text-blue-500";
 
-  const themeBgLight =
+  const themeBgLight = (
     {
-      imw: "bg-red-50",
-      indigo: "bg-indigo-50",
-      red: "bg-red-50",
-      blue: "bg-blue-50",
-      rose: "bg-rose-50",
-      sky: "bg-sky-50",
-    }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
+      electric_blue: "bg-blue-50",
+      emerald: "bg-emerald-50",
+      neon_purple: "bg-purple-50",
+      sunset_orange: "bg-orange-50",
+      hot_pink: "bg-pink-50",
+      carmine_red: "bg-red-50",
+      cyan: "bg-cyan-50",
+      sunflower_yellow: "bg-yellow-50",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-50";
 
   const handleSave = async () => {
     if (!formData.title || !formData.date) {
@@ -4193,15 +4237,18 @@ function VolunteerForm({
     }
   };
 
-  const themeBg =
+  const themeBg = (
     {
-      imw: "bg-red-600 hover:bg-red-700",
-      indigo: "bg-indigo-600 hover:bg-indigo-700",
-      red: "bg-red-600 hover:bg-red-700",
-      blue: "bg-blue-600 hover:bg-blue-700",
-      rose: "bg-rose-900 hover:bg-rose-950",
-      sky: "bg-sky-400 hover:bg-sky-500",
-    }[theme as keyof typeof themeBg] || "bg-indigo-600";
+      electric_blue: "bg-blue-400 hover:bg-blue-500",
+      emerald: "bg-emerald-500 hover:bg-emerald-600",
+      neon_purple: "bg-purple-500 hover:bg-purple-600",
+      sunset_orange: "bg-orange-500 hover:bg-orange-600",
+      hot_pink: "bg-pink-400 hover:bg-pink-500",
+      carmine_red: "bg-red-500 hover:bg-red-600",
+      cyan: "bg-cyan-500 hover:bg-cyan-600",
+      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-400";
 
   return (
     <div className="space-y-4">
@@ -4521,35 +4568,44 @@ function ScaleForm({
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
-  const themeBg =
+  const themeBg = (
     {
-      imw: "bg-red-600 hover:bg-red-700",
-      indigo: "bg-indigo-600 hover:bg-indigo-700",
-      red: "bg-red-600 hover:bg-red-700",
-      blue: "bg-blue-600 hover:bg-blue-700",
-      rose: "bg-rose-900 hover:bg-rose-950",
-      sky: "bg-sky-400 hover:bg-sky-500",
-    }[theme as keyof typeof themeBg] || "bg-indigo-600";
+      electric_blue: "bg-blue-400 hover:bg-blue-500",
+      emerald: "bg-emerald-500 hover:bg-emerald-600",
+      neon_purple: "bg-purple-500 hover:bg-purple-600",
+      sunset_orange: "bg-orange-500 hover:bg-orange-600",
+      hot_pink: "bg-pink-400 hover:bg-pink-500",
+      carmine_red: "bg-red-500 hover:bg-red-600",
+      cyan: "bg-cyan-500 hover:bg-cyan-600",
+      sunflower_yellow: "bg-yellow-400 hover:bg-yellow-500 text-slate-900",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-400";
 
-  const themeText =
+  const themeText = (
     {
-      imw: "text-red-600",
-      indigo: "text-indigo-600",
-      red: "text-red-600",
-      blue: "text-blue-600",
-      rose: "text-rose-900",
-      sky: "text-sky-400",
-    }[theme as keyof typeof themeText] || "text-indigo-600";
+      electric_blue: "text-blue-500",
+      emerald: "text-emerald-500",
+      neon_purple: "text-purple-500",
+      sunset_orange: "text-orange-500",
+      hot_pink: "text-pink-500",
+      carmine_red: "text-red-500",
+      cyan: "text-cyan-500",
+      sunflower_yellow: "text-yellow-600",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "text-blue-500";
 
-  const themeBgLight =
+  const themeBgLight = (
     {
-      imw: "bg-red-50",
-      indigo: "bg-indigo-50",
-      red: "bg-red-50",
-      blue: "bg-blue-50",
-      rose: "bg-rose-50",
-      sky: "bg-sky-50",
-    }[theme as keyof typeof themeBgLight] || "bg-indigo-50";
+      electric_blue: "bg-blue-50",
+      emerald: "bg-emerald-50",
+      neon_purple: "bg-purple-50",
+      sunset_orange: "bg-orange-50",
+      hot_pink: "bg-pink-50",
+      carmine_red: "bg-red-50",
+      cyan: "bg-cyan-50",
+      sunflower_yellow: "bg-yellow-50",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-50";
 
   const toggleRole = (role: string) => {
     if (selectedRoles.includes(role)) {

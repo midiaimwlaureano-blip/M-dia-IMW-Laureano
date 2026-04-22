@@ -194,8 +194,11 @@ export default function MaintenanceCenter({ isAdmin, events, scales }: { isAdmin
 
   if (!isAdmin) {
     return (
-      <div className="p-8 text-center text-gray-500">
-        Você não tem permissão para acessar esta área.
+      <div className="p-8 flex flex-col items-center justify-center text-center">
+        <AlertTriangle className="text-red-500 w-16 h-16 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h2>
+        <p className="text-gray-500 max-w-md">Você não tem permissão para acessar esta área central de manutenção.</p>
+        <button onClick={() => window.location.reload()} className="mt-6 font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl">Voltar para o Início</button>
       </div>
     );
   }
@@ -247,6 +250,7 @@ export default function MaintenanceCenter({ isAdmin, events, scales }: { isAdmin
           onClear={handleClearLogs}
           isLoading={isLoading}
           color="stone"
+          totalAccumulated={totalAccumulated}
         />
         <MaintenanceCard
           icon={<Trash2 size={24} />}
@@ -256,6 +260,7 @@ export default function MaintenanceCenter({ isAdmin, events, scales }: { isAdmin
           onClear={handleClearNotifs}
           isLoading={isLoading}
           color="blue"
+          totalAccumulated={totalAccumulated}
         />
         <MaintenanceCard
           icon={<Trash2 size={24} />}
@@ -265,6 +270,7 @@ export default function MaintenanceCenter({ isAdmin, events, scales }: { isAdmin
           onClear={handleClearReactions}
           isLoading={isLoading}
           color="rose"
+          totalAccumulated={totalAccumulated}
         />
         <MaintenanceCard
           icon={<Trash2 size={24} />}
@@ -274,19 +280,22 @@ export default function MaintenanceCenter({ isAdmin, events, scales }: { isAdmin
           onClear={handleClearScales}
           isLoading={isLoading}
           color="indigo"
+          totalAccumulated={totalAccumulated}
         />
       </div>
     </div>
   );
 }
 
-function MaintenanceCard({ icon, title, description, count, onClear, isLoading, color }: any) {
+function MaintenanceCard({ icon, title, description, count, onClear, isLoading, color, totalAccumulated }: any) {
   const colorMap: any = {
     stone: "bg-stone-50 border-stone-100 text-stone-600",
     blue: "bg-blue-50 border-blue-100 text-blue-600",
     rose: "bg-rose-50 border-rose-100 text-rose-600",
     indigo: "bg-indigo-50 border-indigo-100 text-indigo-600",
   };
+
+  const isDisabled = isLoading || count === 0 || totalAccumulated <= 500;
 
   return (
     <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
@@ -306,7 +315,7 @@ function MaintenanceCard({ icon, title, description, count, onClear, isLoading, 
         </div>
         <button
           onClick={onClear}
-          disabled={isLoading || count === 0}
+          disabled={isDisabled}
           className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50 font-bold rounded-xl transition-all text-sm flex items-center gap-2"
         >
           Limpar
