@@ -1136,7 +1136,7 @@ export default function App() {
             compact={navStyle === "top" || isSidebarCollapsed}
             theme={theme}
           />
-          {user?.role === 'LIDER_II' && (
+          {(user?.role === 'LIDER_II' || user?.role === 'ADMIN') && (
             <NavItem
               active={activeTab === "maintenance"}
               onClick={() => setActiveTab("maintenance")}
@@ -2654,7 +2654,7 @@ export default function App() {
 
                 {activeTab === "maintenance" && (
                   <MaintenanceCenter
-                    isAdmin={user?.role === 'LIDER_II'}
+                    isAdmin={user?.role === 'LIDER_II' || user?.role === 'ADMIN'}
                     events={events}
                     scales={scales}
                   />
@@ -5339,6 +5339,32 @@ function SetlistView({
     }
   };
 
+  const themeBg = (
+    {
+      electric_blue: "bg-blue-600 hover:bg-blue-700 shadow-blue-100",
+      emerald: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100",
+      neon_purple: "bg-purple-600 hover:bg-purple-700 shadow-purple-100",
+      sunset_orange: "bg-orange-600 hover:bg-orange-700 shadow-orange-100",
+      hot_pink: "bg-pink-600 hover:bg-pink-700 shadow-pink-100",
+      carmine_red: "bg-red-600 hover:bg-red-700 shadow-red-100",
+      cyan: "bg-cyan-600 hover:bg-cyan-700 shadow-cyan-100",
+      sunflower_yellow: "bg-yellow-500 hover:bg-yellow-600 shadow-yellow-100 text-slate-900",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-600";
+
+  const themeTextHov = (
+    {
+      electric_blue: "group-hover:text-blue-600",
+      emerald: "group-hover:text-emerald-600",
+      neon_purple: "group-hover:text-purple-600",
+      sunset_orange: "group-hover:text-orange-600",
+      hot_pink: "group-hover:text-pink-600",
+      carmine_red: "group-hover:text-red-600",
+      cyan: "group-hover:text-cyan-600",
+      sunflower_yellow: "group-hover:text-yellow-600",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "group-hover:text-blue-600";
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -5349,7 +5375,7 @@ function SetlistView({
               setEditingSetlist(null);
               setIsModalOpen(true);
             }}
-            className="bg-red-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-red-100"
+            className={cn("text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg transition-colors", themeBg)}
           >
             <Plus size={16} /> Novo Setlist
           </button>
@@ -5365,7 +5391,7 @@ function SetlistView({
           >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="font-bold text-gray-900 text-lg group-hover:text-indigo-600 transition-colors">
+                <h4 className={cn("font-bold text-gray-900 text-lg transition-colors", themeTextHov)}>
                   {s.title}
                 </h4>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
@@ -5610,6 +5636,32 @@ function CronogramaView({
     }
   };
 
+  const themeBg = (
+    {
+      electric_blue: "bg-blue-600 hover:bg-blue-700 shadow-blue-100",
+      emerald: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100",
+      neon_purple: "bg-purple-600 hover:bg-purple-700 shadow-purple-100",
+      sunset_orange: "bg-orange-600 hover:bg-orange-700 shadow-orange-100",
+      hot_pink: "bg-pink-600 hover:bg-pink-700 shadow-pink-100",
+      carmine_red: "bg-red-600 hover:bg-red-700 shadow-red-100",
+      cyan: "bg-cyan-600 hover:bg-cyan-700 shadow-cyan-100",
+      sunflower_yellow: "bg-yellow-500 hover:bg-yellow-600 shadow-yellow-100 text-slate-900",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "bg-blue-600";
+
+  const themeTextHov = (
+    {
+      electric_blue: "group-hover:text-blue-600",
+      emerald: "group-hover:text-emerald-600",
+      neon_purple: "group-hover:text-purple-600",
+      sunset_orange: "group-hover:text-orange-600",
+      hot_pink: "group-hover:text-pink-600",
+      carmine_red: "group-hover:text-red-600",
+      cyan: "group-hover:text-cyan-600",
+      sunflower_yellow: "group-hover:text-yellow-600",
+    } as Record<string, string>
+  )[theme || "electric_blue"] || "group-hover:text-blue-600";
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -5620,7 +5672,7 @@ function CronogramaView({
               setEditingCronograma(null);
               setIsModalOpen(true);
             }}
-            className="bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg shadow-blue-100"
+            className={cn("text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg transition-colors", themeBg)}
           >
             <Plus size={16} /> Novo Cronograma
           </button>
@@ -5636,7 +5688,7 @@ function CronogramaView({
           >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="font-bold text-gray-900 text-lg group-hover:text-indigo-600 transition-colors">
+                <h4 className={cn("font-bold text-gray-900 text-lg transition-colors", themeTextHov)}>
                   {c.title}
                 </h4>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
