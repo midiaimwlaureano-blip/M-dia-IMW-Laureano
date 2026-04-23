@@ -16,7 +16,7 @@ import {
   getDocs,
   getDocFromServer,
 } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType, storage } from "./firebase";
+import { db, handleFirestoreError, OperationType, storage, messaging } from "./firebase";
 import {
   ref,
   uploadBytes,
@@ -128,15 +128,38 @@ export default function App() {
     return "dashboard";
   });
 
+  const isPoppingState = React.useRef(false);
+
   useEffect(() => {
+    if (isPoppingState.current) {
+      isPoppingState.current = false;
+      return;
+    }
     if (activeTab === "maintenance") {
-      window.history.replaceState(null, "", "/manutencao");
+      window.history.pushState({ tab: activeTab }, "", "/manutencao");
     } else if (activeTab === "dashboard") {
-      window.history.replaceState(null, "", "/");
+      window.history.pushState({ tab: activeTab }, "", "/");
     } else {
-      window.history.replaceState(null, "", `/${activeTab}`);
+      window.history.pushState({ tab: activeTab }, "", `/${activeTab}`);
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      // Allow browser back button to naturally navigate
+      isPoppingState.current = true;
+      const path = window.location.pathname.substring(1);
+      if (path === "manutencao") {
+        setActiveTab("maintenance");
+      } else if (["calendar", "events", "scales", "volunteers", "announcements", "setlist", "cronograma", "notifications", "maintenance"].includes(path)) {
+        setActiveTab(path as any);
+      } else {
+        setActiveTab("dashboard");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [layoutMode, setLayoutMode] = useState<"modern" | "compact">(() => {
     const val = localStorage.getItem("layoutMode");
@@ -2668,6 +2691,7 @@ export default function App() {
                     isAdmin={isAdmin}
                     theme={theme}
                     setViewingSetlist={setViewingSetlist}
+                    users={allUsers}
                   />
                 )}
 
@@ -2677,6 +2701,7 @@ export default function App() {
                     isAdmin={isAdmin}
                     theme={theme}
                     setViewingCronograma={setViewingCronograma}
+                    users={allUsers}
                   />
                 )}
 
@@ -2685,6 +2710,7 @@ export default function App() {
                     isAdmin={user?.role === 'LIDER_II' || user?.role === 'ADMIN'}
                     events={events}
                     scales={scales}
+                    users={allUsers}
                   />
                 )}
               </>
@@ -3168,15 +3194,31 @@ export default function App() {
             <div>
               <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Notificações Push (Mobile)</h4>
               <button
-                onClick={() => {
+                onClick={async () => {
                   if ("Notification" in window) {
-                    window.Notification.requestPermission().then((permission) => {
+                    try {
+                      const permission = await window.Notification.requestPermission();
                       if (permission === "granted") {
-                        toast.success("Notificações ativadas com sucesso! (Configuração base de PWA aplicada).");
+                        if (messaging) {
+                          const { getToken } = await import('firebase/messaging');
+                          const vKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+                          const token = await getToken(messaging, { vapidKey: vKey });
+                          if (token) {
+                            await updateDoc(doc(db, "users", user.uid), { fcmToken: token });
+                            toast.success("Notificações ativadas e dispositivo registrado com sucesso!");
+                          } else {
+                            toast.error("Não foi possível gerar um token FCM. Configure seu VAPID_KEY.");
+                          }
+                        } else {
+                          toast.success("Permissão concedida. Integração FCM rodando em modo fallback (offline).");
+                        }
                       } else {
                         toast.error("A permissão para notificações foi negada.");
                       }
-                    });
+                    } catch (err) {
+                      console.error(err);
+                      toast.error("Erro ao registrar notificações: " + (err as Error).message);
+                    }
                   } else {
                     toast.error("Seu dispositivo ou navegador não suporta notificações Push.");
                   }
@@ -5203,11 +5245,13 @@ function SetlistView({
   isAdmin,
   theme,
   setViewingSetlist,
+  users,
 }: {
   setlists: Setlist[];
   isAdmin: boolean;
   theme: string;
   setViewingSetlist: (s: Setlist) => void;
+  users: User[];
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
@@ -5234,6 +5278,21 @@ function SetlistView({
           updatedAt: new Date().toISOString(),
         });
         toast.success("Setlist criado!");
+        
+        // Broadcast notification to all users
+        let notifCount = 0;
+        for (const u of users) {
+          await addDoc(collection(db, "notifications"), {
+            userId: u.uid,
+            title: "Novo Setlist de Louvor",
+            message: `O setlist "${title}" foi publicado.`,
+            read: false,
+            createdAt: new Date().toISOString()
+          });
+          notifCount++;
+        }
+        if(notifCount > 0) toast.success(`Notificação enviada a ${notifCount} voluntários!`);
+
       }
       setIsModalOpen(false);
       setEditingSetlist(null);
@@ -5412,11 +5471,13 @@ function CronogramaView({
   isAdmin,
   theme,
   setViewingCronograma,
+  users,
 }: {
   cronogramas: Cronograma[];
   isAdmin: boolean;
   theme: string;
   setViewingCronograma: (c: Cronograma) => void;
+  users: User[];
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCronograma, setEditingCronograma] = useState<Cronograma | null>(
@@ -5447,6 +5508,21 @@ function CronogramaView({
           updatedAt: new Date().toISOString(),
         });
         toast.success("Cronograma criado!");
+
+        // Broadcast notification to all users
+        let notifCount = 0;
+        for (const u of users) {
+          await addDoc(collection(db, "notifications"), {
+            userId: u.uid,
+            title: "Novo Cronograma Publicado",
+            message: `Verifique o cronograma do culto: "${title}".`,
+            read: false,
+            createdAt: new Date().toISOString()
+          });
+          notifCount++;
+        }
+        if(notifCount > 0) toast.success(`Notificação enviada a ${notifCount} voluntários!`);
+
       }
       setIsModalOpen(false);
       setEditingCronograma(null);

@@ -1,15 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Trash2, ShieldCheck, Database, AlertTriangle } from 'lucide-react';
+import { Trash2, ShieldCheck, Database, AlertTriangle, Send, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function MaintenanceCenter({ isAdmin, events, scales }: { isAdmin: boolean; events: any[]; scales: any[] }) {
+export default function MaintenanceCenter({ isAdmin, events, scales, users }: { isAdmin: boolean; events: any[]; scales: any[]; users: any[] }) {
   const [oldLogsCount, setOldLogsCount] = useState(0);
   const [oldNotifsCount, setOldNotifsCount] = useState(0);
   const [oldReactionsCount, setOldReactionsCount] = useState(0);
   const [oldScalesCount, setOldScalesCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [notifMessage, setNotifMessage] = useState("");
+  const [notifTitle, setNotifTitle] = useState("Aviso da Liderança");
+  const [notifTarget, setNotifTarget] = useState<string>("all");
+  const [isSendingNotif, setIsSendingNotif] = useState(false);
+
+  const handleSendNotification = async () => {
+    if (!notifMessage.trim() || !notifTitle.trim()) {
+      toast.error("O título e a mensagem são obrigatórios!");
+      return;
+    }
+    
+    setIsSendingNotif(true);
+    let count = 0;
+    try {
+      const targetUsers = notifTarget === "all" ? users : users.filter(u => u.uid === notifTarget);
+      
+      for (const u of targetUsers) {
+        await addDoc(collection(db, "notifications"), {
+          userId: u.uid,
+          title: notifTitle,
+          message: notifMessage,
+          read: false,
+          createdAt: new Date().toISOString()
+        });
+        count++;
+      }
+      
+      toast.success(`Notificação (Push interno efetuado) enviada para ${count} voluntário(s)! Se possuir Firebase Cloud Functions, o Push Nativo será disparado em background.`);
+      setNotifMessage("");
+      setNotifTitle("Aviso da Liderança");
+      setNotifTarget("all");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao enviar comunicados.");
+    } finally {
+      setIsSendingNotif(false);
+    }
+  };
 
   useEffect(() => {
     if (isAdmin) {
@@ -282,6 +321,67 @@ export default function MaintenanceCenter({ isAdmin, events, scales }: { isAdmin
           color="indigo"
           totalAccumulated={totalAccumulated}
         />
+      </div>
+
+      <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm mt-8">
+        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Send size={20} className="text-indigo-600" />
+          Comunicado Rápido (Push)
+        </h3>
+        <p className="text-sm text-gray-500 mb-6">Envie um alerta imediato para o celular dos voluntários. Se o usuário ativou as notificações, o celular irá "apitar".</p>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Destinatário
+            </label>
+            <select
+              title="Destinatário"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-indigo-500 transition-colors"
+              value={notifTarget}
+              onChange={(e) => setNotifTarget(e.target.value)}
+            >
+              <option value="all">Todos os Voluntários</option>
+              {users.map(u => (
+                <option key={u.uid} value={u.uid}>{u.displayName} ({u.role})</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Título
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Ensaio cancelado!"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-indigo-500 transition-colors"
+              value={notifTitle}
+              onChange={(e) => setNotifTitle(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Mensagem
+            </label>
+            <textarea
+              placeholder="Digite o aviso importante..."
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-indigo-500 transition-colors resize-none h-24"
+              value={notifMessage}
+              onChange={(e) => setNotifMessage(e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={handleSendNotification}
+            disabled={isSendingNotif || !notifMessage.trim() || !notifTitle.trim()}
+            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
+          >
+            <Send size={18} />
+            {isSendingNotif ? "Enviando..." : "Disparar Alerta Push"}
+          </button>
+        </div>
       </div>
     </div>
   );
