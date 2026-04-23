@@ -19,7 +19,7 @@ import {
   enableIndexedDbPersistence
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getMessaging } from 'firebase/messaging';
+import { getMessaging, isSupported } from 'firebase/messaging';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -38,7 +38,16 @@ enableIndexedDbPersistence(db).catch((err) => {
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const messaging = typeof window !== 'undefined' && 'Notification' in window ? getMessaging(app) : null;
+
+export let messaging: any = null;
+if (typeof window !== 'undefined') {
+  isSupported().then((supported) => {
+    if (supported) {
+      messaging = getMessaging(app);
+    }
+  });
+}
+
 export const googleProvider = new GoogleAuthProvider();
 
 export enum OperationType {

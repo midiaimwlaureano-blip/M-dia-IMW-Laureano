@@ -116,6 +116,7 @@ import "react-quill-new/dist/quill.snow.css";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import MaintenanceCenter from "./components/MaintenanceCenter";
+import EventComments from "./components/EventComments";
 
 export default function App() {
   const { user, loading, login, logout, isAdmin, isCoordinator } = useAuth();
@@ -1818,6 +1819,7 @@ export default function App() {
                     scales={scales}
                     allUsers={allUsers}
                     isAdmin={isAdmin}
+                    user={user}
                     setSelectedEventForScale={setSelectedEventForScale}
                     setIsScaleModalOpen={setIsScaleModalOpen}
                     calendarFilterType={calendarFilterType}
@@ -1915,11 +1917,11 @@ export default function App() {
                                 return true;
                               })
                               .map((event) => (
-                                <tr
-                                  key={event.id}
-                                  className="hover:bg-gray-50 transition-colors group"
-                                >
-                                  <td className="px-6 py-4">
+                                <React.Fragment key={event.id}>
+                                  <tr
+                                    className="hover:bg-gray-50 transition-colors group"
+                                  >
+                                    <td className="px-6 py-4">
                                     <p className="font-bold text-gray-900">
                                       {event.title}
                                     </p>
@@ -2026,6 +2028,16 @@ export default function App() {
                                     </td>
                                   )}
                                 </tr>
+                                  <tr className="bg-gray-50/20 shadow-sm">
+                                    <td colSpan={isAdmin ? 5 : 4} className="px-6 py-4 border-b border-gray-100">
+                                      {user && (
+                                        <div className="w-full">
+                                          <EventComments eventId={event.id} user={user} isAdmin={isAdmin} />
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                </React.Fragment>
                               ))}
                           </tbody>
                         </table>
@@ -2407,17 +2419,62 @@ export default function App() {
                 )}
 
                 {activeTab === "notifications" && (
-                  <div className="max-w-2xl mx-auto space-y-4">
-                    <div className="flex justify-end mb-4">
-                      {isAdmin && (
+                  <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div>
+                         <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                           <Bell size={20} className="text-indigo-600" /> Push Notifications
+                         </h3>
+                         <p className="text-sm text-gray-500">Receba alertas no celular em tempo real.</p>
+                      </div>
+                      <div className="flex gap-2">
                         <button
-                          onClick={() => setIsNotifModalOpen(true)}
-                          className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm"
+                          onClick={async () => {
+                            if ("Notification" in window) {
+                              try {
+                                const permission = await window.Notification.requestPermission();
+                                if (permission === "granted") {
+                                  if (messaging) {
+                                    const { getToken } = await import('firebase/messaging');
+                                    const vKey = "BFoLlMlj01AqBHRBH935fkVn71ppmRm3241wR1HlMCpBclqSlOR-kkRfdhrfob35QG1v7WJ8mxA_5nJNFwWk_iA";
+                                    const token = await getToken(messaging, { vapidKey: vKey });
+                                    if (token) {
+                                      await updateDoc(doc(db, "users", user.uid), { fcmToken: token });
+                                      toast.success("Notificações ativadas e dispositivo registrado com sucesso!");
+                                    } else {
+                                      toast.error("Não foi possível gerar um token FCM. Configure seu VAPID_KEY.");
+                                    }
+                                  } else {
+                                    toast.success("Permissão concedida. Integração FCM rodando em modo fallback (offline).");
+                                  }
+                                } else {
+                                  toast.error("A permissão para notificações foi negada.");
+                                }
+                              } catch (err) {
+                                console.error(err);
+                                toast.error("Erro ao registrar notificações: " + (err as Error).message);
+                              }
+                            } else {
+                              toast.error("Seu dispositivo ou navegador não suporta notificações Push.");
+                            }
+                          }}
+                          className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl border border-indigo-200 font-bold flex items-center gap-2 hover:bg-indigo-100 transition-colors"
                         >
-                          <Send size={16} /> Enviar Notificação
+                          <Bell size={16} /> Ativar Push
                         </button>
-                      )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => setIsNotifModalOpen(true)}
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-md hover:bg-indigo-700 transition-colors"
+                          >
+                            <Send size={16} /> Redigir Alerta Push (Admin)
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    <div className="space-y-4">
+                      <h3 className="font-bold text-gray-500 uppercase tracking-widest text-xs px-2">Suas Mensagens</h3>
                     {notifications.map((notif) => (
                       <div
                         key={notif.id}
@@ -2505,6 +2562,7 @@ export default function App() {
                         </div>
                       </div>
                     ))}
+                    </div>
                   </div>
                 )}
 
@@ -3190,44 +3248,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-
-            <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Notificações Push (Mobile)</h4>
-              <button
-                onClick={async () => {
-                  if ("Notification" in window) {
-                    try {
-                      const permission = await window.Notification.requestPermission();
-                      if (permission === "granted") {
-                        if (messaging) {
-                          const { getToken } = await import('firebase/messaging');
-                          const vKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-                          const token = await getToken(messaging, { vapidKey: vKey });
-                          if (token) {
-                            await updateDoc(doc(db, "users", user.uid), { fcmToken: token });
-                            toast.success("Notificações ativadas e dispositivo registrado com sucesso!");
-                          } else {
-                            toast.error("Não foi possível gerar um token FCM. Configure seu VAPID_KEY.");
-                          }
-                        } else {
-                          toast.success("Permissão concedida. Integração FCM rodando em modo fallback (offline).");
-                        }
-                      } else {
-                        toast.error("A permissão para notificações foi negada.");
-                      }
-                    } catch (err) {
-                      console.error(err);
-                      toast.error("Erro ao registrar notificações: " + (err as Error).message);
-                    }
-                  } else {
-                    toast.error("Seu dispositivo ou navegador não suporta notificações Push.");
-                  }
-                }}
-                className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-50 text-indigo-700 font-bold rounded-xl border border-indigo-200 hover:bg-indigo-100 transition-all dark:bg-slate-800 dark:border-slate-600 dark:text-indigo-400 dark:hover:bg-slate-700"
-              >
-                <Bell size={18} /> Ativar Notificações no Celular
-              </button>
-            </div>
             
             <button
               onClick={() => setIsAppearanceModalOpen(false)}
@@ -3645,6 +3665,13 @@ function EventCard({
           )}
         </div>
       </div>
+      {(currentUserId && allUsers) && (() => {
+        const currentUser = allUsers.find(u => u.uid === currentUserId);
+        if (currentUser) {
+           return <EventComments eventId={event.id} user={currentUser} isAdmin={isAdmin} />;
+        }
+        return null;
+      })()}
     </div>
   );
 }
@@ -4941,6 +4968,7 @@ function CalendarView({
   scales,
   allUsers,
   isAdmin,
+  user,
   setSelectedEventForScale,
   setIsScaleModalOpen,
   calendarFilterType,
@@ -4952,6 +4980,7 @@ function CalendarView({
   scales: Scale[];
   allUsers: User[];
   isAdmin: boolean;
+  user: any;
   setSelectedEventForScale: (e: ChurchEvent) => void;
   setIsScaleModalOpen: (b: boolean) => void;
   calendarFilterType: string;
@@ -5172,6 +5201,9 @@ function CalendarView({
                         </button>
                       </div>
                     )}
+                    <div className="mt-4 border-t border-gray-100 pt-4">
+                      {user && <EventComments eventId={e.id} user={user} isAdmin={isAdmin} />}
+                    </div>
                   </div>
                 );
               })}
