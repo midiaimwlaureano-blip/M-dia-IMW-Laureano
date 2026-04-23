@@ -1,13 +1,16 @@
 self.addEventListener('push', function(event) {
   if (event.data) {
-    // Expected structure: { title: string, options: NotificationOptions }
     try {
       const data = event.data.json();
-      const title = data.title || 'Nova Notificação IMW Laureano';
+      
+      // Attempt to extract title and body whether they are at the root or within a 'notification' object
+      const title = data.title || data.notification?.title || 'Nova Notificação IMW Laureano';
+      const body = data.body || data.notification?.body || '';
       const options = data.options || {};
       
       event.waitUntil(
         self.registration.showNotification(title, {
+          body: body,
           icon: '/favicon.svg',
           badge: '/favicon.svg',
           vibrate: [200, 100, 200, 100, 200, 100, 200],

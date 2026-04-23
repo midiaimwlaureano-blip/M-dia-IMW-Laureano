@@ -18,11 +18,8 @@ interface Comment {
 export default function EventComments({ eventId, user, isAdmin }: { eventId: string; user: any; isAdmin: boolean }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
-    if (!isExpanded) return;
-    
     // Create query
     const q = query(
       collection(db, "events", eventId, "comentarios"),
@@ -36,7 +33,7 @@ export default function EventComments({ eventId, user, isAdmin }: { eventId: str
     });
 
     return () => unsub();
-  }, [eventId, isExpanded]);
+  }, [eventId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,29 +59,18 @@ export default function EventComments({ eventId, user, isAdmin }: { eventId: str
     }
   };
 
-  if (!isExpanded) {
-    return (
-      <button 
-        onClick={() => setIsExpanded(true)}
-        className="mt-2 text-xs font-bold text-gray-500 hover:text-indigo-600 flex items-center justify-center w-full py-2 bg-gray-50 rounded-xl gap-2 transition-colors border border-gray-100"
-      >
-        <MessageSquare size={14} /> Mostrar Comentários
-      </button>
-    );
-  }
-
   return (
-    <div className="mt-4 space-y-4 flex flex-col p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+    <div className="mt-4 space-y-4 flex flex-col p-4 bg-gray-50/50 rounded-2xl border border-gray-100 w-full mb-2">
       <div className="flex justify-between items-center px-1">
          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-            <MessageSquare size={12} /> Avaliações e Avisos
+            <MessageSquare size={12} /> Comentários
          </span>
-         <button onClick={() => setIsExpanded(false)} className="text-[10px] uppercase font-bold text-gray-400 hover:text-gray-600">Ocultar</button>
+         <span className="text-[10px] uppercase font-bold text-gray-400">{comments.length}</span>
       </div>
 
       <div className="flex-1 space-y-3 px-1">
         {comments.length === 0 && (
-          <p className="text-[11px] text-center text-gray-400 italic py-2">Sem marcações para este evento.</p>
+          <p className="text-[11px] text-center text-gray-400 italic py-2">Sem comentários para este evento.</p>
         )}
         {comments.map(c => (
           <div key={c.id} className="bg-white border text-sm border-gray-100/60 p-3 rounded-2xl shadow-sm relative group flex items-start gap-3">

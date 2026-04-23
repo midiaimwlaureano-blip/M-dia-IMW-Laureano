@@ -295,7 +295,7 @@ function MaintenanceCard({ icon, title, description, count, onClear, isLoading, 
     indigo: "bg-indigo-50 border-indigo-100 text-indigo-600",
   };
 
-  const isDisabled = isLoading || count === 0 || totalAccumulated <= 500;
+  const isDisabled = isLoading || count < 500;
 
   return (
     <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">

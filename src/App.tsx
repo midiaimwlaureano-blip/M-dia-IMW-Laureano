@@ -1179,7 +1179,7 @@ export default function App() {
             compact={navStyle === "top" || isSidebarCollapsed}
             theme={theme}
           />
-          {(user?.role === 'LIDER_II' || user?.role === 'ADMIN') && (
+          {(user?.role === 'LIDER_II' || user?.role === 'ADMIN' || user?.email === 'melolucas78@gmail.com') && (
             <NavItem
               active={activeTab === "maintenance"}
               onClick={() => setActiveTab("maintenance")}
@@ -1878,7 +1878,7 @@ export default function App() {
                     </div>
                     <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left min-w-[600px]">
+                        <table className="w-full text-left min-w-full">
                           <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
                               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -2765,7 +2765,7 @@ export default function App() {
 
                 {activeTab === "maintenance" && (
                   <MaintenanceCenter
-                    isAdmin={user?.role === 'LIDER_II' || user?.role === 'ADMIN'}
+                    isAdmin={user?.role === 'LIDER_II' || user?.role === 'ADMIN' || user?.email === 'melolucas78@gmail.com'}
                     events={events}
                     scales={scales}
                     users={allUsers}
