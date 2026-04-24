@@ -1179,15 +1179,25 @@ export default function App() {
             compact={navStyle === "top" || isSidebarCollapsed}
             theme={theme}
           />
-          {(user?.role === 'LIDER_II' || user?.role === 'ADMIN' || user?.email === 'melolucas78@gmail.com') && (
-            <NavItem
-              active={activeTab === "maintenance"}
-              onClick={() => setActiveTab("maintenance")}
-              icon={<ShieldCheck size={20} />}
-              label="Manutenção"
-              compact={navStyle === "top" || isSidebarCollapsed}
-              theme={theme}
-            />
+          {(user?.role === 'LIDER_II' || user?.role === 'ADMIN') && (
+            <>
+              <NavItem
+                active={activeTab === "maintenance"}
+                onClick={() => setActiveTab("maintenance")}
+                icon={<ShieldCheck size={20} />}
+                label="Manutenção"
+                compact={navStyle === "top" || isSidebarCollapsed}
+                theme={theme}
+              />
+              <NavItem
+                active={activeTab === "notifications"}
+                onClick={() => setActiveTab("notifications")}
+                icon={<Bell size={20} />}
+                label="Notificações"
+                compact={navStyle === "top" || isSidebarCollapsed}
+                theme={theme}
+              />
+            </>
           )}
         </nav>
 
@@ -1876,7 +1886,7 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm relative z-50">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left min-w-full">
                           <thead className="bg-gray-50 border-b border-gray-100">
@@ -2765,7 +2775,7 @@ export default function App() {
 
                 {activeTab === "maintenance" && (
                   <MaintenanceCenter
-                    isAdmin={user?.role === 'LIDER_II' || user?.role === 'ADMIN' || user?.email === 'melolucas78@gmail.com'}
+                    isAdmin={user?.role === 'LIDER_II' || user?.role === 'ADMIN'}
                     events={events}
                     scales={scales}
                     users={allUsers}

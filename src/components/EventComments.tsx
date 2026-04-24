@@ -60,7 +60,7 @@ export default function EventComments({ eventId, user, isAdmin }: { eventId: str
   };
 
   return (
-    <div className="mt-4 space-y-4 flex flex-col p-4 bg-gray-50/50 rounded-2xl border border-gray-100 w-full mb-2">
+    <div className="mt-4 space-y-4 flex flex-col p-4 bg-gray-50/50 rounded-2xl border border-gray-100 w-full mb-2 relative z-50">
       <div className="flex justify-between items-center px-1">
          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
             <MessageSquare size={12} /> Comentários
