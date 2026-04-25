@@ -31,6 +31,7 @@ export interface User {
   maxScalesPerMonth?: number;
   availableDays?: number[]; // 0 for Sunday, 1 for Monday, etc.
   fcmToken?: string;
+  pushEnabled?: boolean;
 }
 
 export interface ChurchEvent {

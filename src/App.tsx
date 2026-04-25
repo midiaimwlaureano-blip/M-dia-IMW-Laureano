@@ -29,7 +29,7 @@ import {
   Scale,
   User,
   CheckIn,
-  Notification,
+  Notification as AppNotification,
   Announcement,
   Reaction,
   Setlist,
@@ -224,7 +224,7 @@ export default function App() {
     useState<string>("all");
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [setlists, setSetlists] = useState<Setlist[]>([]);
@@ -322,7 +322,20 @@ export default function App() {
         limit(20),
       );
       unsubscribers.push(onSnapshot(qNotifs, (snapshot) => {
-        setNotifications(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Notification));
+        snapshot.docChanges().forEach((change) => {
+           if (change.type === "added") {
+              const notifData = change.doc.data() as AppNotification;
+              const createdAt = new Date(notifData.createdAt).getTime();
+              const now = Date.now();
+              // Only trigger for notifications created in the last 15 seconds
+              if (now - createdAt < 15000 && user.pushEnabled) {
+                 if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification(notifData.title, { body: notifData.message, icon: '/favicon.svg' });
+                 }
+              }
+           }
+        });
+        setNotifications(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as AppNotification));
       }, (err) => handleFirestoreError(err, OperationType.LIST, "notifications")));
     }
 
@@ -334,6 +347,18 @@ export default function App() {
         limit(20)
       );
       unsubscribers.push(onSnapshot(qAnnouncements, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+           if (change.type === "added") {
+              const annData = change.doc.data() as Announcement;
+              const createdAt = new Date(annData.createdAt).getTime();
+              const now = Date.now();
+              if (now - createdAt < 15000 && user.pushEnabled) {
+                 if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification(annData.title, { body: annData.description, icon: '/favicon.svg' });
+                 }
+              }
+           }
+        });
         setAnnouncements(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Announcement));
       }, (err) => handleFirestoreError(err, OperationType.LIST, "announcements")));
     }
@@ -2438,10 +2463,14 @@ export default function App() {
                          </h3>
                          <p className="text-sm text-gray-500">Receba alertas no celular em tempo real.</p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
+                        <span className="text-sm font-medium text-gray-700">{user.pushEnabled ? 'Ativado' : 'Desativado'}</span>
                         <button
+                          role="switch"
+                          aria-checked={user.pushEnabled ?? false}
                           onClick={async () => {
-                            if ("Notification" in window) {
+                            const newValue = !(user.pushEnabled ?? false);
+                            if (newValue && "Notification" in window) {
                               try {
                                 const permission = await window.Notification.requestPermission();
                                 if (permission === "granted") {
@@ -2450,13 +2479,14 @@ export default function App() {
                                     const vKey = "BFoLlMlj01AqBHRBH935fkVn71ppmRm3241wR1HlMCpBclqSlOR-kkRfdhrfob35QG1v7WJ8mxA_5nJNFwWk_iA";
                                     const token = await getToken(messaging, { vapidKey: vKey });
                                     if (token) {
-                                      await updateDoc(doc(db, "users", user.uid), { fcmToken: token });
-                                      toast.success("Notificações ativadas e dispositivo registrado com sucesso!");
+                                      await updateDoc(doc(db, "users", user.uid), { fcmToken: token, pushEnabled: true });
+                                      toast.success("Notificações ativadas com sucesso!");
                                     } else {
                                       toast.error("Não foi possível gerar um token FCM. Configure seu VAPID_KEY.");
                                     }
                                   } else {
-                                    toast.success("Permissão concedida. Integração FCM rodando em modo fallback (offline).");
+                                    await updateDoc(doc(db, "users", user.uid), { pushEnabled: true });
+                                    toast.success("Permissão concedida. Integração local ativada.");
                                   }
                                 } else {
                                   toast.error("A permissão para notificações foi negada.");
@@ -2466,17 +2496,30 @@ export default function App() {
                                 toast.error("Erro ao registrar notificações: " + (err as Error).message);
                               }
                             } else {
-                              toast.error("Seu dispositivo ou navegador não suporta notificações Push.");
+                              await updateDoc(doc(db, "users", user.uid), { pushEnabled: newValue });
+                              if (!newValue) {
+                                toast.success("Notificações push desativadas.");
+                              } else {
+                                toast.error("Seu dispositivo ou navegador não suporta notificações Push.");
+                              }
                             }
                           }}
-                          className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl border border-indigo-200 font-bold flex items-center gap-2 hover:bg-indigo-100 transition-colors"
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                            (user.pushEnabled ?? false) ? "bg-indigo-600" : "bg-gray-300"
+                          )}
                         >
-                          <Bell size={16} /> Ativar Push
+                          <span
+                            className={cn(
+                              "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                              (user.pushEnabled ?? false) ? "translate-x-6" : "translate-x-1"
+                            )}
+                          />
                         </button>
                         {isAdmin && (
                           <button
                             onClick={() => setIsNotifModalOpen(true)}
-                            className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-md hover:bg-indigo-700 transition-colors"
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-md hover:bg-indigo-700 transition-colors ml-4"
                           >
                             <Send size={16} /> Redigir Alerta Push (Admin)
                           </button>
