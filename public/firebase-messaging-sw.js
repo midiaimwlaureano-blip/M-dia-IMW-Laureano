@@ -23,6 +23,8 @@ self.addEventListener('push', function(event) {
           icon: '/favicon.svg',
           badge: '/favicon.svg',
           vibrate: [200, 100, 200, 100, 200, 100, 200],
+          priority: 'high',
+          requireInteraction: true,
           ...options
         })
       );
@@ -31,7 +33,9 @@ self.addEventListener('push', function(event) {
         self.registration.showNotification('Mídia IMW Laureano', {
           body: event.data.text(),
           icon: '/favicon.svg',
-          vibrate: [200, 100, 200]
+          vibrate: [200, 100, 200],
+          priority: 'high',
+          requireInteraction: true
         })
       );
     }

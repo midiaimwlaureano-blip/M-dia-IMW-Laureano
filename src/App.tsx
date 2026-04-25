@@ -294,107 +294,109 @@ export default function App() {
     fetchStaticData();
   }, [user]);
 
-  // Conditional Real-time listeners (Surgical Queries)
+  // Global Real-time listeners
   useEffect(() => {
     if (!user) return;
 
     const unsubscribers: (() => void)[] = [];
 
     // 1. Events
-    if (["dashboard", "calendar", "events", "scales"].includes(activeTab)) {
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      let qEvents = query(collection(db, "events"), orderBy("date", "asc"));
-      
-      // Filtros cirúrgicos para painéis que só precisam do presente/futuro
-      if (activeTab === "events" || activeTab === "dashboard" || activeTab === "scales") {
-        qEvents = query(
-          collection(db, "events"), 
-          where("date", ">=", startOfToday.toISOString()), 
-          orderBy("date", "asc")
-        );
-      }
-
-      unsubscribers.push(onSnapshot(qEvents, (snapshot) => {
-        setEvents(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as ChurchEvent));
-      }, (err) => handleFirestoreError(err, OperationType.LIST, "events")));
-    }
+    const qEvents = query(collection(db, "events"), orderBy("date", "asc"));
+    unsubscribers.push(onSnapshot(qEvents, (snapshot) => {
+      setEvents(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as ChurchEvent));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, "events")));
 
     // 2. Scales
-    if (["dashboard", "calendar", "events", "scales"].includes(activeTab)) {
-      unsubscribers.push(onSnapshot(collection(db, "scales"), (snapshot) => {
-        setScales(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Scale));
-      }, (err) => handleFirestoreError(err, OperationType.LIST, "scales")));
-    }
+    unsubscribers.push(onSnapshot(collection(db, "scales"), (snapshot) => {
+      setScales(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Scale));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, "scales")));
 
     // 3. Notifications
-    if (["dashboard", "notifications"].includes(activeTab)) {
-      const qNotifs = query(
-        collection(db, "notifications"),
-        where("userId", "==", user.uid),
-        orderBy("createdAt", "desc"),
-        limit(20),
-      );
-      unsubscribers.push(onSnapshot(qNotifs, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-           if (change.type === "added") {
-              const notifData = change.doc.data() as AppNotification;
-              const createdAt = new Date(notifData.createdAt).getTime();
-              const now = Date.now();
-              // Only trigger for notifications created in the last 15 seconds
-              if (now - createdAt < 15000 && user.pushEnabled) {
-                 if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification(notifData.title, { body: notifData.message, icon: '/favicon.svg', tag: 'lembrete-evento' });
-                 }
-              }
-           }
-        });
-        setNotifications(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as AppNotification));
-      }, (err) => handleFirestoreError(err, OperationType.LIST, "notifications")));
-    }
+    const qNotifs = query(
+      collection(db, "notifications"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc"),
+      limit(20),
+    );
+    unsubscribers.push(onSnapshot(qNotifs, (snapshot) => {
+      let shownNotifs: string[] = [];
+      try {
+        shownNotifs = JSON.parse(localStorage.getItem('shown_notifs_imw') || '[]');
+      } catch(e) {}
+      
+      let shouldUpdateStorage = false;
+
+      snapshot.docChanges().forEach((change) => {
+         if (change.type === "added") {
+            const notifData = change.doc.data() as AppNotification;
+            
+            if (!shownNotifs.includes(change.doc.id) && user.pushEnabled) {
+               if ("Notification" in window && Notification.permission === "granted") {
+                  new Notification(notifData.title, { body: notifData.message, icon: '/favicon.svg', tag: 'lembrete-evento', requireInteraction: true });
+               }
+               shownNotifs.push(change.doc.id);
+               shouldUpdateStorage = true;
+            }
+         }
+      });
+      
+      if (shouldUpdateStorage) {
+        if (shownNotifs.length > 50) shownNotifs = shownNotifs.slice(shownNotifs.length - 50);
+        localStorage.setItem('shown_notifs_imw', JSON.stringify(shownNotifs));
+      }
+
+      setNotifications(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as AppNotification));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, "notifications")));
 
     // 4. Announcements
-    if (["dashboard", "announcements"].includes(activeTab)) {
-      const qAnnouncements = query(
-        collection(db, "announcements"),
-        orderBy("createdAt", "desc"),
-        limit(20)
-      );
-      unsubscribers.push(onSnapshot(qAnnouncements, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-           if (change.type === "added") {
-              const annData = change.doc.data() as Announcement;
-              const createdAt = new Date(annData.createdAt).getTime();
-              const now = Date.now();
-              if (now - createdAt < 15000 && user.pushEnabled) {
-                 if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification(annData.title, { body: annData.description, icon: '/favicon.svg', tag: 'lembrete-evento' });
-                 }
-              }
-           }
-        });
-        setAnnouncements(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Announcement));
-      }, (err) => handleFirestoreError(err, OperationType.LIST, "announcements")));
-    }
+    const qAnnouncements = query(
+      collection(db, "announcements"),
+      orderBy("createdAt", "desc"),
+      limit(20)
+    );
+    unsubscribers.push(onSnapshot(qAnnouncements, (snapshot) => {
+      let shownNotifs: string[] = [];
+      try {
+        shownNotifs = JSON.parse(localStorage.getItem('shown_ann_imw') || '[]');
+      } catch(e) {}
+      
+      let shouldUpdateStorage = false;
 
-    // 5. Reactions and Setlists
-    if (["dashboard", "setlist"].includes(activeTab)) {
-      unsubscribers.push(onSnapshot(collection(db, "setlists"), (snapshot) => {
-        setSetlists(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Setlist));
-      }, (err) => handleFirestoreError(err, OperationType.LIST, "setlists")));
-    }
+      snapshot.docChanges().forEach((change) => {
+         if (change.type === "added") {
+            const annData = change.doc.data() as Announcement;
+            if (!shownNotifs.includes(change.doc.id) && user.pushEnabled) {
+               if ("Notification" in window && Notification.permission === "granted") {
+                  new Notification(annData.title, { body: annData.description, icon: '/favicon.svg', tag: 'lembrete-evento', requireInteraction: true });
+               }
+               shownNotifs.push(change.doc.id);
+               shouldUpdateStorage = true;
+            }
+         }
+      });
+
+      if (shouldUpdateStorage) {
+        if (shownNotifs.length > 50) shownNotifs = shownNotifs.slice(shownNotifs.length - 50);
+        localStorage.setItem('shown_ann_imw', JSON.stringify(shownNotifs));
+      }
+
+      setAnnouncements(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Announcement));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, "announcements")));
+
+    // 5. Setlists
+    unsubscribers.push(onSnapshot(collection(db, "setlists"), (snapshot) => {
+      setSetlists(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Setlist));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, "setlists")));
 
     // 6. Cronogramas
-    if (["dashboard", "cronograma"].includes(activeTab)) {
-      unsubscribers.push(onSnapshot(collection(db, "cronogramas"), (snapshot) => {
-        setCronogramas(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Cronograma));
-      }, (err) => handleFirestoreError(err, OperationType.LIST, "cronogramas")));
-    }
+    unsubscribers.push(onSnapshot(collection(db, "cronogramas"), (snapshot) => {
+      setCronogramas(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Cronograma));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, "cronogramas")));
 
     return () => {
       unsubscribers.forEach((unsub) => unsub());
     };
-  }, [user, activeTab]);
+  }, [user]);
 
   // Automatic Event Status Update and Birthday Notifications
   useEffect(() => {
@@ -993,6 +995,87 @@ export default function App() {
     } catch (error) {
       console.error("Erro ao excluir evento:", error);
       handleFirestoreError(error, OperationType.DELETE, `events/${eventId}`);
+    }
+  };
+
+  const handleExportWeeklyScale = async () => {
+    const tableElement = document.getElementById("scales-weekly-table");
+    if (!tableElement) {
+      toast.error("Tabela não encontrada. Mude para 'Resumo Semanal' primeiro.");
+      return;
+    }
+    
+    toast.info("Gerando PDF, aguarde...");
+    try {
+      const element = document.createElement("div");
+      element.innerHTML = `
+        <div style="background-color: #ffffff; color: #000000; font-family: Arial, Helvetica, sans-serif; padding: 10mm; width: 297mm; box-sizing: border-box;">
+          <h1 style="color: #000000; font-size: 16pt; font-weight: bold; margin-bottom: 24px; text-align: center;">Escala Semanal</h1>
+          <div id="pdf-table-container"></div>
+          <div style="margin-top: 40px; font-size: 10pt; color: #000000; border-top: 1px solid #000000; padding-top: 10px; text-align: center;">
+            Gerado em ${new Date().toLocaleString('pt-BR')} - IMW Laureano
+          </div>
+        </div>
+      `;
+      
+      const clonedTable = tableElement.cloneNode(true) as HTMLElement;
+      
+      const styleSheet = document.createElement("style");
+      styleSheet.innerText = `
+        #pdf-table-container table { width: 100%; border-collapse: collapse; background-color: #ffffff !important; }
+        #pdf-table-container th, #pdf-table-container td { border-bottom: 1px solid #e5e7eb !important; padding: 12px 16px !important; color: #000000 !important; background-color: #ffffff !important; font-family: Arial, Helvetica, sans-serif !important; }
+        #pdf-table-container th { font-weight: bold !important; text-transform: uppercase !important; font-size: 12px !important; }
+        #pdf-table-container td { font-size: 14px !important; }
+        #pdf-table-container * { color: #000000 !important; border-color: #e5e7eb !important; background-color: transparent !important; }
+        #pdf-table-container th:last-child, #pdf-table-container td:last-child { display: none !important; }
+      `;
+      
+      element.querySelector("#pdf-table-container")?.appendChild(clonedTable);
+      element.appendChild(styleSheet);
+      
+      Object.assign(element.style, {
+        position: 'absolute',
+        left: '-9999px',
+        top: '-9999px',
+        backgroundColor: '#ffffff'
+      });
+      document.body.appendChild(element);
+
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+      
+      // Calculate layout
+      const pdf = new jsPDF("l", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+      
+      pdf.save(`escala-semanal-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`);
+      toast.success("PDF exportado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF da escala", error);
+      toast.error("Erro ao gerar PDF.");
+    } finally {
+      // Clean up the temporary element
+      const el = document.getElementById("pdf-table-container")?.parentElement?.parentElement;
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
     }
   };
 
@@ -2155,6 +2238,14 @@ export default function App() {
                         
                         {isAdmin && (
                           <div className="flex gap-2 w-full sm:w-auto">
+                            {scaleViewMode === 'weekly' && (
+                              <button
+                                onClick={handleExportWeeklyScale}
+                                className="bg-blue-50 text-blue-700 px-4 py-2 rounded-2xl font-bold flex flex-1 sm:flex-none items-center justify-center gap-2 hover:bg-blue-100 transition-colors border border-blue-100"
+                              >
+                                <Download size={18} /> PDF
+                              </button>
+                            )}
                             <button
                               onClick={() => setIsDateScheduleModalOpen(true)}
                               className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-2xl font-bold flex flex-1 sm:flex-none items-center justify-center gap-2 hover:bg-indigo-100 transition-colors border border-indigo-100"
@@ -2309,7 +2400,7 @@ export default function App() {
                     </div>
                     ) : (
                       <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm p-6 overflow-x-auto">
-                        <table className="w-full text-left min-w-[800px]">
+                        <table id="scales-weekly-table" className="w-full text-left min-w-[800px]">
                           <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
                               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Evento</th>
