@@ -17,7 +17,13 @@ import {
   getDocFromServer,
   arrayUnion,
 } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType, storage, messaging } from "./firebase";
+import {
+  db,
+  handleFirestoreError,
+  OperationType,
+  storage,
+  messaging,
+} from "./firebase";
 import {
   ref,
   uploadBytes,
@@ -121,18 +127,38 @@ import EventComments from "./components/EventComments";
 
 export default function App() {
   const { user, loading, login, logout, isAdmin, isCoordinator } = useAuth();
-  
+
   const isSuperAdmin = Boolean(
-    user?.email && 
-    ['midiaimwlaureano@gmail.com', 'thatianebusiness@gmail.com', 'melolucas78@gmail.com'].includes(user.email)
+    user?.email &&
+    [
+      "midiaimwlaureano@gmail.com",
+      "thatianebusiness@gmail.com",
+      "melolucas78@gmail.com",
+    ].includes(user.email),
   );
 
-  const canSeeMaintenanceAndNotifications = isAdmin || user?.role === 'LIDER_II' || user?.role === 'ADMIN' || isSuperAdmin;
+  const canSeeMaintenanceAndNotifications =
+    isAdmin ||
+    user?.role === "LIDER_II" ||
+    user?.role === "ADMIN" ||
+    isSuperAdmin;
 
   const [activeTab, setActiveTab] = useState(() => {
     const path = window.location.pathname.substring(1);
     if (path === "manutencao") return "maintenance";
-    if (["calendar", "events", "scales", "volunteers", "announcements", "setlist", "cronograma", "notifications", "maintenance"].includes(path)) {
+    if (
+      [
+        "calendar",
+        "events",
+        "scales",
+        "volunteers",
+        "announcements",
+        "setlist",
+        "cronograma",
+        "notifications",
+        "maintenance",
+      ].includes(path)
+    ) {
       return path;
     }
     return "dashboard";
@@ -161,7 +187,19 @@ export default function App() {
       const path = window.location.pathname.substring(1);
       if (path === "manutencao") {
         setActiveTab("maintenance");
-      } else if (["calendar", "events", "scales", "volunteers", "announcements", "setlist", "cronograma", "notifications", "maintenance"].includes(path)) {
+      } else if (
+        [
+          "calendar",
+          "events",
+          "scales",
+          "volunteers",
+          "announcements",
+          "setlist",
+          "cronograma",
+          "notifications",
+          "maintenance",
+        ].includes(path)
+      ) {
         setActiveTab(path as any);
       } else {
         setActiveTab("dashboard");
@@ -173,17 +211,28 @@ export default function App() {
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [layoutMode, setLayoutMode] = useState<"modern" | "compact">(() => {
     const val = localStorage.getItem("layoutMode");
-    return (val === "modern" || val === "compact" ? val : "modern");
+    return val === "modern" || val === "compact" ? val : "modern";
   });
   const [navStyle, setNavStyle] = useState<"sidebar" | "top">(() => {
     const val = localStorage.getItem("navStyle");
-    return (val === "sidebar" || val === "top" ? val : "sidebar");
+    return val === "sidebar" || val === "top" ? val : "sidebar";
   });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<
-    "electric_blue" | "emerald" | "neon_purple" | "sunset_orange" | "hot_pink" | "carmine_red" | "cyan" | "sunflower_yellow"
+    | "electric_blue"
+    | "emerald"
+    | "neon_purple"
+    | "sunset_orange"
+    | "hot_pink"
+    | "carmine_red"
+    | "cyan"
+    | "sunflower_yellow"
   >(() => (localStorage.getItem("theme") as any) || "electric_blue");
-  const [visualTheme, setVisualTheme] = useState<"claro" | "escuro" | "vidro">(() => (localStorage.getItem("visualTheme") as any) || (localStorage.getItem("isDarkMode") === "true" ? "escuro" : "claro"));
+  const [visualTheme, setVisualTheme] = useState<"claro" | "escuro" | "vidro">(
+    () =>
+      (localStorage.getItem("visualTheme") as any) ||
+      (localStorage.getItem("isDarkMode") === "true" ? "escuro" : "claro"),
+  );
   const isDarkMode = visualTheme === "escuro" || visualTheme === "vidro";
 
   useEffect(() => {
@@ -200,20 +249,20 @@ export default function App() {
     };
     const root = document.documentElement;
     const color = themeColors[theme] || themeColors.electric_blue;
-    root.style.setProperty('--cor-principal', color);
-    
+    root.style.setProperty("--cor-principal", color);
+
     // For hover versions
     // To support opacity correctly, we need rgb variables. But for simplicity we can use hex + alpha
     // 33 is 20% opacity in hex
-    root.style.setProperty('--cor-principal-faded', `${color}33`);
+    root.style.setProperty("--cor-principal-faded", `${color}33`);
   }, [theme]);
 
   useEffect(() => {
     localStorage.setItem("visualTheme", visualTheme);
     localStorage.setItem("isDarkMode", String(isDarkMode));
-    
+
     document.documentElement.classList.remove("dark", "glass");
-    
+
     if (visualTheme === "vidro") {
       document.documentElement.classList.add("dark", "glass");
     } else if (visualTheme === "escuro") {
@@ -246,7 +295,8 @@ export default function App() {
   const [editingEvent, setEditingEvent] = useState<ChurchEvent | null>(null);
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<Announcement | null>(null);
   const [isScaleModalOpen, setIsScaleModalOpen] = useState(false);
   const [isVolunteerModalOpen, setIsVolunteerModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -254,10 +304,14 @@ export default function App() {
   const [selectedEventForScale, setSelectedEventForScale] =
     useState<ChurchEvent | null>(null);
   const [viewingSetlist, setViewingSetlist] = useState<Setlist | null>(null);
-  const [viewingCronograma, setViewingCronograma] = useState<Cronograma | null>(null);
+  const [viewingCronograma, setViewingCronograma] = useState<Cronograma | null>(
+    null,
+  );
   const [isDateScheduleModalOpen, setIsDateScheduleModalOpen] = useState(false);
   const [dateScheduleUser, setDateScheduleUser] = useState("");
-  const [localPushEnabled, setLocalPushEnabled] = useState(user?.pushEnabled ?? false);
+  const [localPushEnabled, setLocalPushEnabled] = useState(
+    user?.pushEnabled ?? false,
+  );
 
   useEffect(() => {
     setLocalPushEnabled(user?.pushEnabled ?? false);
@@ -266,12 +320,17 @@ export default function App() {
   const [dateScheduleEvents, setDateScheduleEvents] = useState<string[]>([]);
 
   // New Filters
-  const [eventFilterType, setEventFilterType] = useState('all');
-  const [eventFilterStatus, setEventFilterStatus] = useState('all');
-  const [scaleFilterRole, setScaleFilterRole] = useState('all');
-  const [scaleViewMode, setScaleViewMode] = useState<'cards' | 'weekly'>('cards');
-  const [calendarFilterType, setCalendarFilterType] = useState('all');
-  const [calendarFilterStatus, setCalendarFilterStatus] = useState('all');
+  const [eventFilterType, setEventFilterType] = useState("all");
+  const [eventFilterStatus, setEventFilterStatus] = useState("all");
+  const [scaleFilterRole, setScaleFilterRole] = useState("all");
+  const [scaleViewMode, setScaleViewMode] = useState<"cards" | "weekly">(
+    "cards",
+  );
+  const [eventViewMode, setEventViewMode] = useState<"cards" | "table">(
+    "cards",
+  );
+  const [calendarFilterType, setCalendarFilterType] = useState("all");
+  const [calendarFilterStatus, setCalendarFilterStatus] = useState("all");
 
   // Static Data - Fetched once to save Quotas
   useEffect(() => {
@@ -280,13 +339,23 @@ export default function App() {
     const fetchStaticData = async () => {
       try {
         const snapUsers = await getDocs(collection(db, "users"));
-        setAllUsers(snapUsers.docs.map((doc) => ({ uid: doc.id, ...doc.data() }) as User));
+        setAllUsers(
+          snapUsers.docs.map((doc) => ({ uid: doc.id, ...doc.data() }) as User),
+        );
 
         const snapCheckins = await getDocs(collection(db, "checkins"));
-        setCheckins(snapCheckins.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as CheckIn));
+        setCheckins(
+          snapCheckins.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as CheckIn,
+          ),
+        );
 
         const snapReactions = await getDocs(collection(db, "reactions"));
-        setReactions(snapReactions.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Reaction));
+        setReactions(
+          snapReactions.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as Reaction,
+          ),
+        );
       } catch (err) {
         console.error("Error fetching static data: ", err);
       }
@@ -302,14 +371,34 @@ export default function App() {
 
     // 1. Events
     const qEvents = query(collection(db, "events"), orderBy("date", "asc"));
-    unsubscribers.push(onSnapshot(qEvents, (snapshot) => {
-      setEvents(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as ChurchEvent));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, "events")));
+    unsubscribers.push(
+      onSnapshot(
+        qEvents,
+        (snapshot) => {
+          setEvents(
+            snapshot.docs.map(
+              (doc) => ({ id: doc.id, ...doc.data() }) as ChurchEvent,
+            ),
+          );
+        },
+        (err) => handleFirestoreError(err, OperationType.LIST, "events"),
+      ),
+    );
 
     // 2. Scales
-    unsubscribers.push(onSnapshot(collection(db, "scales"), (snapshot) => {
-      setScales(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Scale));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, "scales")));
+    unsubscribers.push(
+      onSnapshot(
+        collection(db, "scales"),
+        (snapshot) => {
+          setScales(
+            snapshot.docs.map(
+              (doc) => ({ id: doc.id, ...doc.data() }) as Scale,
+            ),
+          );
+        },
+        (err) => handleFirestoreError(err, OperationType.LIST, "scales"),
+      ),
+    );
 
     // 3. Notifications
     const qNotifs = query(
@@ -318,80 +407,145 @@ export default function App() {
       orderBy("createdAt", "desc"),
       limit(20),
     );
-    unsubscribers.push(onSnapshot(qNotifs, (snapshot) => {
-      let shownNotifs: string[] = [];
-      try {
-        shownNotifs = JSON.parse(localStorage.getItem('shown_notifs_imw') || '[]');
-      } catch(e) {}
-      
-      let shouldUpdateStorage = false;
+    unsubscribers.push(
+      onSnapshot(
+        qNotifs,
+        (snapshot) => {
+          let shownNotifs: string[] = [];
+          try {
+            shownNotifs = JSON.parse(
+              localStorage.getItem("shown_notifs_imw") || "[]",
+            );
+          } catch (e) {}
 
-      snapshot.docChanges().forEach((change) => {
-         if (change.type === "added") {
-            const notifData = change.doc.data() as AppNotification;
-            
-            if (!shownNotifs.includes(change.doc.id) && user.pushEnabled) {
-               if ("Notification" in window && Notification.permission === "granted") {
-                  new Notification(notifData.title, { body: notifData.message, icon: '/favicon.svg', tag: 'lembrete-evento', requireInteraction: true });
-               }
-               shownNotifs.push(change.doc.id);
-               shouldUpdateStorage = true;
+          let shouldUpdateStorage = false;
+
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+              const notifData = change.doc.data() as AppNotification;
+
+              if (!shownNotifs.includes(change.doc.id) && user.pushEnabled) {
+                if (
+                  "Notification" in window &&
+                  Notification.permission === "granted"
+                ) {
+                  new Notification(notifData.title, {
+                    body: notifData.message,
+                    icon: "/favicon.svg",
+                    tag: "lembrete-evento",
+                    requireInteraction: true,
+                  });
+                }
+                shownNotifs.push(change.doc.id);
+                shouldUpdateStorage = true;
+              }
             }
-         }
-      });
-      
-      if (shouldUpdateStorage) {
-        if (shownNotifs.length > 50) shownNotifs = shownNotifs.slice(shownNotifs.length - 50);
-        localStorage.setItem('shown_notifs_imw', JSON.stringify(shownNotifs));
-      }
+          });
 
-      setNotifications(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as AppNotification));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, "notifications")));
+          if (shouldUpdateStorage) {
+            if (shownNotifs.length > 50)
+              shownNotifs = shownNotifs.slice(shownNotifs.length - 50);
+            localStorage.setItem(
+              "shown_notifs_imw",
+              JSON.stringify(shownNotifs),
+            );
+          }
+
+          setNotifications(
+            snapshot.docs.map(
+              (doc) => ({ id: doc.id, ...doc.data() }) as AppNotification,
+            ),
+          );
+        },
+        (err) => handleFirestoreError(err, OperationType.LIST, "notifications"),
+      ),
+    );
 
     // 4. Announcements
     const qAnnouncements = query(
       collection(db, "announcements"),
       orderBy("createdAt", "desc"),
-      limit(20)
+      limit(20),
     );
-    unsubscribers.push(onSnapshot(qAnnouncements, (snapshot) => {
-      let shownNotifs: string[] = [];
-      try {
-        shownNotifs = JSON.parse(localStorage.getItem('shown_ann_imw') || '[]');
-      } catch(e) {}
-      
-      let shouldUpdateStorage = false;
+    unsubscribers.push(
+      onSnapshot(
+        qAnnouncements,
+        (snapshot) => {
+          let shownNotifs: string[] = [];
+          try {
+            shownNotifs = JSON.parse(
+              localStorage.getItem("shown_ann_imw") || "[]",
+            );
+          } catch (e) {}
 
-      snapshot.docChanges().forEach((change) => {
-         if (change.type === "added") {
-            const annData = change.doc.data() as Announcement;
-            if (!shownNotifs.includes(change.doc.id) && user.pushEnabled) {
-               if ("Notification" in window && Notification.permission === "granted") {
-                  new Notification(annData.title, { body: annData.description, icon: '/favicon.svg', tag: 'lembrete-evento', requireInteraction: true });
-               }
-               shownNotifs.push(change.doc.id);
-               shouldUpdateStorage = true;
+          let shouldUpdateStorage = false;
+
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+              const annData = change.doc.data() as Announcement;
+              if (!shownNotifs.includes(change.doc.id) && user.pushEnabled) {
+                if (
+                  "Notification" in window &&
+                  Notification.permission === "granted"
+                ) {
+                  new Notification(annData.title, {
+                    body: annData.description,
+                    icon: "/favicon.svg",
+                    tag: "lembrete-evento",
+                    requireInteraction: true,
+                  });
+                }
+                shownNotifs.push(change.doc.id);
+                shouldUpdateStorage = true;
+              }
             }
-         }
-      });
+          });
 
-      if (shouldUpdateStorage) {
-        if (shownNotifs.length > 50) shownNotifs = shownNotifs.slice(shownNotifs.length - 50);
-        localStorage.setItem('shown_ann_imw', JSON.stringify(shownNotifs));
-      }
+          if (shouldUpdateStorage) {
+            if (shownNotifs.length > 50)
+              shownNotifs = shownNotifs.slice(shownNotifs.length - 50);
+            localStorage.setItem("shown_ann_imw", JSON.stringify(shownNotifs));
+          }
 
-      setAnnouncements(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Announcement));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, "announcements")));
+          setAnnouncements(
+            snapshot.docs.map(
+              (doc) => ({ id: doc.id, ...doc.data() }) as Announcement,
+            ),
+          );
+        },
+        (err) => handleFirestoreError(err, OperationType.LIST, "announcements"),
+      ),
+    );
 
     // 5. Setlists
-    unsubscribers.push(onSnapshot(collection(db, "setlists"), (snapshot) => {
-      setSetlists(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Setlist));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, "setlists")));
+    unsubscribers.push(
+      onSnapshot(
+        collection(db, "setlists"),
+        (snapshot) => {
+          setSetlists(
+            snapshot.docs.map(
+              (doc) => ({ id: doc.id, ...doc.data() }) as Setlist,
+            ),
+          );
+        },
+        (err) => handleFirestoreError(err, OperationType.LIST, "setlists"),
+      ),
+    );
 
     // 6. Cronogramas
-    unsubscribers.push(onSnapshot(collection(db, "cronogramas"), (snapshot) => {
-      setCronogramas(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Cronograma));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, "cronogramas")));
+    unsubscribers.push(
+      onSnapshot(
+        collection(db, "cronogramas"),
+        (snapshot) => {
+          setCronogramas(
+            snapshot.docs.map(
+              (doc) => ({ id: doc.id, ...doc.data() }) as Cronograma,
+            ),
+          );
+        },
+        (err) => handleFirestoreError(err, OperationType.LIST, "cronogramas"),
+      ),
+    );
 
     return () => {
       unsubscribers.forEach((unsub) => unsub());
@@ -412,7 +566,9 @@ export default function App() {
 
         for (const event of pastEvents) {
           try {
-            await updateDoc(doc(db, "events", event.id), { status: "CONCLUIDO" });
+            await updateDoc(doc(db, "events", event.id), {
+              status: "CONCLUIDO",
+            });
           } catch (error) {
             console.error("Error updating event status:", error);
           }
@@ -427,25 +583,34 @@ export default function App() {
 
       allUsers.forEach(async (u) => {
         if (!u.birthDate) return;
-        const [year, month, day] = u.birthDate.split('-');
-        let nextBday = new Date(today.getFullYear(), parseInt(month) - 1, parseInt(day));
-        
+        const [year, month, day] = u.birthDate.split("-");
+        let nextBday = new Date(
+          today.getFullYear(),
+          parseInt(month) - 1,
+          parseInt(day),
+        );
+
         // If birthday already passed this year, check next year
         if (nextBday < today) {
-          nextBday = new Date(today.getFullYear() + 1, parseInt(month) - 1, parseInt(day));
+          nextBday = new Date(
+            today.getFullYear() + 1,
+            parseInt(month) - 1,
+            parseInt(day),
+          );
         }
 
         const timeDiff = nextBday.getTime() - today.getTime();
         const daysUntil = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
         if (daysUntil === 7 || daysUntil === 1 || daysUntil === 0) {
-          const notificationTitle = `Aniversário: ${u.displayName.split(' ')[0]}`;
-          const notificationMessage = daysUntil === 0 
-            ? `Hoje é o aniversário de ${u.displayName}! 🎉` 
-            : `Faltam ${daysUntil} dias para o aniversário de ${u.displayName}.`;
-          
+          const notificationTitle = `Aniversário: ${u.displayName.split(" ")[0]}`;
+          const notificationMessage =
+            daysUntil === 0
+              ? `Hoje é o aniversário de ${u.displayName}! 🎉`
+              : `Faltam ${daysUntil} dias para o aniversário de ${u.displayName}.`;
+
           const notifIdString = `bday_${u.uid}_${nextBday.getFullYear()}_${daysUntil}`;
-          
+
           // Check if we already sent this specific notification
           // A somewhat hacky way is to query if it exists for the current user (the admin who is running this)
           // To avoid massive reads, we rely on a custom ID hash or just check local state temporarily
@@ -460,26 +625,26 @@ export default function App() {
                 // We'll create it for the admin only first, but user asked for "voluntários e administradores".
                 // So let's create a broadcast notification by checking if it exists first.
               });
-              
+
               // We'll use the existing notifications collection but broadcast it or addDoc for each.
               // Actually, "userId: 'all'" might not work with our query `where("userId", "==", user.uid)`
               // Let's create it for everyone.
               const batch = [];
-              for(const appUser of allUsers) {
-                 batch.push(
-                    addDoc(collection(db, "notifications"), {
-                      userId: appUser.uid,
-                      title: notificationTitle,
-                      message: notificationMessage,
-                      read: false,
-                      createdAt: new Date().toISOString(),
-                    })
-                 );
+              for (const appUser of allUsers) {
+                batch.push(
+                  addDoc(collection(db, "notifications"), {
+                    userId: appUser.uid,
+                    title: notificationTitle,
+                    message: notificationMessage,
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                  }),
+                );
               }
               await Promise.all(batch);
             }
-          } catch(err) {
-             console.error("Failed to process birthday notification", err);
+          } catch (err) {
+            console.error("Failed to process birthday notification", err);
           }
         }
       });
@@ -488,45 +653,51 @@ export default function App() {
       if (events.length > 0) {
         const now = new Date();
         const upcomingEvents = events.filter((e) => {
-           if ((e as any).reminderSent) return false;
-           const eventDate = new Date(e.date);
-           const diff = eventDate.getTime() - now.getTime();
-           // within next 24 hours and not passed
-           return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+          if ((e as any).reminderSent) return false;
+          const eventDate = new Date(e.date);
+          const diff = eventDate.getTime() - now.getTime();
+          // within next 24 hours and not passed
+          return diff > 0 && diff <= 24 * 60 * 60 * 1000;
         });
 
         for (const e of upcomingEvents) {
-           try {
-             const scale = scales.find(s => s.eventId === e.id);
-             if (scale && scale.assignments.length > 0) {
-                const batch = [];
-                const assignedUsers = Array.from(new Set(scale.assignments.map(a => a.userId).filter(id => id && id !== "EMPTY")));
-                for(const uid of assignedUsers) {
-                   batch.push(
-                      addDoc(collection(db, "notifications"), {
-                        userId: uid,
-                        title: `Lembrete: Escala Amanhã!`,
-                        message: `Você está escalado(a) para o evento: ${e.title}. Contamos com você!`,
-                        read: false,
-                        createdAt: new Date().toISOString(),
-                      })
-                   );
-                }
-                if (batch.length > 0) {
-                  await Promise.all(batch);
-                }
-                await updateDoc(doc(db, "events", e.id), { reminderSent: true });
-             }
-           } catch(err) {
-              console.error("Failed to send 24h reminder", err);
-           }
+          try {
+            const scale = scales.find((s) => s.eventId === e.id);
+            if (scale && scale.assignments.length > 0) {
+              const batch = [];
+              const assignedUsers = Array.from(
+                new Set(
+                  scale.assignments
+                    .map((a) => a.userId)
+                    .filter((id) => id && id !== "EMPTY"),
+                ),
+              );
+              for (const uid of assignedUsers) {
+                batch.push(
+                  addDoc(collection(db, "notifications"), {
+                    userId: uid,
+                    title: `Lembrete: Escala Amanhã!`,
+                    message: `Você está escalado(a) para o evento: ${e.title}. Contamos com você!`,
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                  }),
+                );
+              }
+              if (batch.length > 0) {
+                await Promise.all(batch);
+              }
+              await updateDoc(doc(db, "events", e.id), { reminderSent: true });
+            }
+          } catch (err) {
+            console.error("Failed to send 24h reminder", err);
+          }
         }
       }
     };
 
     performDailyChecks();
     // Check every hour to see if day changed or perform past event updates
-    const interval = setInterval(performDailyChecks, 1000 * 60 * 60); 
+    const interval = setInterval(performDailyChecks, 1000 * 60 * 60);
     return () => clearInterval(interval);
   }, [events, allUsers, isAdmin]);
   const performAutoSchedule = async (
@@ -586,11 +757,20 @@ export default function App() {
     const eventYear = eventDate.getFullYear();
 
     const normalizeString = (str: string) => {
-      return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+      return str
+        ? str
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+        : "";
     };
 
-    const activeRoles = roles.filter((role) => 
-      currentUsers.some((u) => u.status === "approved" && normalizeString(u.specialty || "").includes(normalizeString(role)))
+    const activeRoles = roles.filter((role) =>
+      currentUsers.some(
+        (u) =>
+          u.status === "approved" &&
+          normalizeString(u.specialty || "").includes(normalizeString(role)),
+      ),
     );
 
     // Calculate scales per month per user
@@ -599,10 +779,16 @@ export default function App() {
       const scaleEvent = events.find((e) => e.id === scale.eventId);
       if (scaleEvent) {
         const sDate = new Date(scaleEvent.date);
-        if (sDate.getMonth() === eventMonth && sDate.getFullYear() === eventYear) {
+        if (
+          sDate.getMonth() === eventMonth &&
+          sDate.getFullYear() === eventYear
+        ) {
           scale.assignments.forEach((a) => {
             if (a.userId) {
-              userScalesThisMonth.set(a.userId, (userScalesThisMonth.get(a.userId) || 0) + 1);
+              userScalesThisMonth.set(
+                a.userId,
+                (userScalesThisMonth.get(a.userId) || 0) + 1,
+              );
             }
           });
         }
@@ -619,27 +805,30 @@ export default function App() {
         return;
       }
 
-      let eligibleUsers = currentUsers.filter(
-        (u) => {
-          if (u.status !== "approved" || usedUserIds.has(u.uid)) return false;
-          if (!normalizeString(u.specialty || "").includes(normalizeString(role))) return false;
-          
-          // Check day of week availability
-          if (u.availableDays && u.availableDays.length > 0 && !u.availableDays.includes(eventDayOfWeek)) {
+      let eligibleUsers = currentUsers.filter((u) => {
+        if (u.status !== "approved" || usedUserIds.has(u.uid)) return false;
+        if (!normalizeString(u.specialty || "").includes(normalizeString(role)))
+          return false;
+
+        // Check day of week availability
+        if (
+          u.availableDays &&
+          u.availableDays.length > 0 &&
+          !u.availableDays.includes(eventDayOfWeek)
+        ) {
+          return false;
+        }
+
+        // Check max scales per month
+        if (u.maxScalesPerMonth && u.maxScalesPerMonth > 0) {
+          const usedThisMonth = userScalesThisMonth.get(u.uid) || 0;
+          if (usedThisMonth >= u.maxScalesPerMonth) {
             return false;
           }
-
-          // Check max scales per month
-          if (u.maxScalesPerMonth && u.maxScalesPerMonth > 0) {
-            const usedThisMonth = userScalesThisMonth.get(u.uid) || 0;
-            if (usedThisMonth >= u.maxScalesPerMonth) {
-              return false;
-            }
-          }
-
-          return true;
         }
-      );
+
+        return true;
+      });
 
       if (eligibleUsers.length > 0) {
         // Sort to spread out assignments and avoid consecutive fatigue
@@ -648,7 +837,7 @@ export default function App() {
           const diff =
             (userParticipation[a.uid] || 0) - (userParticipation[b.uid] || 0);
           if (diff !== 0) return diff;
-          
+
           // 2. By scales this month
           const scalesA = userScalesThisMonth.get(a.uid) || 0;
           const scalesB = userScalesThisMonth.get(b.uid) || 0;
@@ -660,7 +849,10 @@ export default function App() {
         const selected = eligibleUsers[0];
         newAssignments.push({ userId: selected.uid, roles: [role] });
         usedUserIds.add(selected.uid);
-        userScalesThisMonth.set(selected.uid, (userScalesThisMonth.get(selected.uid) || 0) + 1);
+        userScalesThisMonth.set(
+          selected.uid,
+          (userScalesThisMonth.get(selected.uid) || 0) + 1,
+        );
       }
     });
 
@@ -710,22 +902,48 @@ export default function App() {
       const docRef = await addDoc(collection(db, "events"), ev);
       if (autoSchedule) {
         // Run AI assignment logic purely local without fetching, then add directly
-        const roles = ["Som", "Câmera", "Projeção", "Mídia", "Vídeo", "Fotos", "Cantina", "Doces", "Iluminação", "Recepção", "Café", "Placas", "Anúncios"];
+        const roles = [
+          "Som",
+          "Câmera",
+          "Projeção",
+          "Mídia",
+          "Vídeo",
+          "Fotos",
+          "Cantina",
+          "Doces",
+          "Iluminação",
+          "Recepção",
+          "Café",
+          "Placas",
+          "Anúncios",
+        ];
         const newAssignments: any[] = [];
         const usedUserIds = new Set<string>();
-        
+
         const eventDate = new Date(ev.date);
         const eventDayOfWeek = eventDate.getDay();
-        
+
         roles.forEach((role) => {
-          let eligibleUsers = allUsers.filter(u => {
+          let eligibleUsers = allUsers.filter((u) => {
             if (u.status !== "approved" || usedUserIds.has(u.uid)) return false;
-            
-            const normalizedSpecialty = u.specialty ? u.specialty.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
-            const normalizedRole = role.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+            const normalizedSpecialty = u.specialty
+              ? u.specialty
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .toLowerCase()
+              : "";
+            const normalizedRole = role
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .toLowerCase();
             if (!normalizedSpecialty.includes(normalizedRole)) return false;
-            
-            if (u.availableDays && u.availableDays.length > 0 && !u.availableDays.includes(eventDayOfWeek)) {
+
+            if (
+              u.availableDays &&
+              u.availableDays.length > 0 &&
+              !u.availableDays.includes(eventDayOfWeek)
+            ) {
               return false;
             }
             return true;
@@ -738,7 +956,7 @@ export default function App() {
             usedUserIds.add(selected.uid);
           }
         });
-        
+
         await addDoc(collection(db, "scales"), {
           eventId: docRef.id,
           assignments: newAssignments,
@@ -1001,10 +1219,12 @@ export default function App() {
   const handleExportWeeklyScale = async () => {
     const tableElement = document.getElementById("scales-weekly-table");
     if (!tableElement) {
-      toast.error("Tabela não encontrada. Mude para 'Resumo Semanal' primeiro.");
+      toast.error(
+        "Tabela não encontrada. Mude para 'Resumo Semanal' primeiro.",
+      );
       return;
     }
-    
+
     toast.info("Gerando PDF, aguarde...");
     try {
       const element = document.createElement("div");
@@ -1013,13 +1233,13 @@ export default function App() {
           <h1 style="color: #000000; font-size: 16pt; font-weight: bold; margin-bottom: 24px; text-align: center;">Escala Semanal</h1>
           <div id="pdf-table-container"></div>
           <div style="margin-top: 40px; font-size: 10pt; color: #000000; border-top: 1px solid #000000; padding-top: 10px; text-align: center;">
-            Gerado em ${new Date().toLocaleString('pt-BR')} - IMW Laureano
+            Gerado em ${new Date().toLocaleString("pt-BR")} - IMW Laureano
           </div>
         </div>
       `;
-      
+
       const clonedTable = tableElement.cloneNode(true) as HTMLElement;
-      
+
       const styleSheet = document.createElement("style");
       styleSheet.innerText = `
         #pdf-table-container table { width: 100%; border-collapse: collapse; background-color: #ffffff !important; }
@@ -1029,29 +1249,33 @@ export default function App() {
         #pdf-table-container * { color: #000000 !important; border-color: #e5e7eb !important; background-color: transparent !important; }
         #pdf-table-container th:last-child, #pdf-table-container td:last-child { display: none !important; }
       `;
-      
+
       element.querySelector("#pdf-table-container")?.appendChild(clonedTable);
       element.appendChild(styleSheet);
-      
+
       Object.assign(element.style, {
-        position: 'absolute',
-        left: '-9999px',
-        top: '-9999px',
-        backgroundColor: '#ffffff'
+        position: "absolute",
+        left: "-9999px",
+        top: "-9999px",
+        backgroundColor: "#ffffff",
       });
       document.body.appendChild(element);
 
-      const canvas = await html2canvas(element, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+      });
       const imgData = canvas.toDataURL("image/png");
-      
+
       // Calculate layout
       const pdf = new jsPDF("l", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
+
       const imgProps = pdf.getImageProperties(imgData);
       const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
+
       let heightLeft = imgHeight;
       let position = 0;
 
@@ -1064,15 +1288,18 @@ export default function App() {
         pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
         heightLeft -= pdfHeight;
       }
-      
-      pdf.save(`escala-semanal-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`);
+
+      pdf.save(
+        `escala-semanal-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`,
+      );
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar PDF da escala", error);
       toast.error("Erro ao gerar PDF.");
     } finally {
       // Clean up the temporary element
-      const el = document.getElementById("pdf-table-container")?.parentElement?.parentElement;
+      const el = document.getElementById("pdf-table-container")?.parentElement
+        ?.parentElement;
       if (el && el.parentNode) {
         el.parentNode.removeChild(el);
       }
@@ -1121,9 +1348,10 @@ export default function App() {
           {isProfileComplete ? (
             <div className="space-y-6">
               <div className="bg-green-50 text-green-700 p-4 rounded-2xl border border-green-100 text-sm">
-                <strong>Perfil completo! 🎉</strong><br/>
-                Seus dados foram enviados e estão sob análise da liderança. 
-                Você receberá acesso total assim que for aprovado.
+                <strong>Perfil completo! 🎉</strong>
+                <br />
+                Seus dados foram enviados e estão sob análise da liderança. Você
+                receberá acesso total assim que for aprovado.
               </div>
               <button
                 onClick={logout}
@@ -1136,12 +1364,15 @@ export default function App() {
             <>
               <p className="text-gray-600 mb-8 text-sm">
                 Sua conta foi criada! Para liberar seu acesso, por favor,
-                complete seu perfil (telefone, data de nascimento e funções) abaixo.
+                complete seu perfil (telefone, data de nascimento e funções)
+                abaixo.
               </p>
               <ProfileForm
                 user={user}
                 onSave={() =>
-                  toast.success("Perfil atualizado! Aguarde a aprovação da liderança.")
+                  toast.success(
+                    "Perfil atualizado! Aguarde a aprovação da liderança.",
+                  )
                 }
                 theme={theme}
               />
@@ -1356,9 +1587,14 @@ export default function App() {
                 : "p-2 hover:bg-gray-50 rounded-xl",
             )}
           >
-            <div 
-               className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden shrink-0 text-sm"
-               style={{ backgroundColor: user.photoURL ? 'transparent' : user.bg_color || user.color || '#4F46E5', color: user.photoURL ? 'inherit' : 'white' }}
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden shrink-0 text-sm"
+              style={{
+                backgroundColor: user.photoURL
+                  ? "transparent"
+                  : user.bg_color || user.color || "#4F46E5",
+                color: user.photoURL ? "inherit" : "white",
+              }}
             >
               {user.photoURL ? (
                 <img
@@ -1421,7 +1657,7 @@ export default function App() {
               "setlist",
               "cronograma",
               "notifications",
-              "maintenance"
+              "maintenance",
             ].includes(activeTab) ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
                 <div className="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 mx-auto">
@@ -1817,44 +2053,48 @@ export default function App() {
                                     </span>
                                   </div>
                                   <div className="flex flex-wrap gap-2">
-                                    {scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, idx) => {
-                                      const u = allUsers.find(
-                                            (user) => user.uid === a.userId,
-                                          );
-                                      return (
-                                        <div
-                                          key={idx}
-                                          className={cn(
-                                            "flex items-center gap-2 px-3 py-1.5 rounded-xl border",
-                                            "bg-gray-50 border-gray-100",
-                                          )}
-                                        >
+                                    {scale.assignments
+                                      .filter(
+                                        (a) => a.userId && a.userId !== "EMPTY",
+                                      )
+                                      .map((a, idx) => {
+                                        const u = allUsers.find(
+                                          (user) => user.uid === a.userId,
+                                        );
+                                        return (
                                           <div
+                                            key={idx}
                                             className={cn(
-                                              "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
-                                              "bg-indigo-100 text-indigo-600",
+                                              "flex items-center gap-2 px-3 py-1.5 rounded-xl border",
+                                              "bg-gray-50 border-gray-100",
                                             )}
                                           >
-                                            {u?.displayName?.[0] || ""}
-                                          </div>
-                                          <div className="flex flex-col">
-                                            <span
+                                            <div
                                               className={cn(
-                                                "text-[10px] font-bold leading-none",
-                                                "text-gray-900",
+                                                "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                                "bg-indigo-100 text-indigo-600",
                                               )}
                                             >
-                                              {u?.displayName.split(" ")[0]}
-                                            </span>
-                                            <span className="text-[8px] text-gray-500 font-medium uppercase tracking-tighter">
-                                              {(a.roles || [a.role])
-                                                .filter(Boolean)
-                                                .join(", ")}
-                                            </span>
+                                              {u?.displayName?.[0] || ""}
+                                            </div>
+                                            <div className="flex flex-col">
+                                              <span
+                                                className={cn(
+                                                  "text-[10px] font-bold leading-none",
+                                                  "text-gray-900",
+                                                )}
+                                              >
+                                                {u?.displayName.split(" ")[0]}
+                                              </span>
+                                              <span className="text-[8px] text-gray-500 font-medium uppercase tracking-tighter">
+                                                {(a.roles || [a.role])
+                                                  .filter(Boolean)
+                                                  .join(", ")}
+                                              </span>
+                                            </div>
                                           </div>
-                                        </div>
-                                      );
-                                    })}
+                                        );
+                                      })}
                                   </div>
                                 </div>
                               );
@@ -1970,14 +2210,16 @@ export default function App() {
                           <input
                             type="checkbox"
                             checked={showPastEvents}
-                            onChange={(e) => setShowPastEvents(e.target.checked)}
+                            onChange={(e) =>
+                              setShowPastEvents(e.target.checked)
+                            }
                             className="rounded text-indigo-600 focus:ring-indigo-500"
                           />
                           <span className="font-medium">
                             Incluir anteriores
                           </span>
                         </label>
-                        <select 
+                        <select
                           className="text-sm p-2 bg-white border border-gray-200 rounded-xl outline-none"
                           value={eventFilterType}
                           onChange={(e) => setEventFilterType(e.target.value)}
@@ -1987,7 +2229,7 @@ export default function App() {
                           <option value="ENSAIO">Ensaio</option>
                           <option value="REUNIAO">Reunião</option>
                         </select>
-                        <select 
+                        <select
                           className="text-sm p-2 bg-white border border-gray-200 rounded-xl outline-none"
                           value={eventFilterStatus}
                           onChange={(e) => setEventFilterStatus(e.target.value)}
@@ -1996,6 +2238,30 @@ export default function App() {
                           <option value="AGENDADO">Agendado</option>
                           <option value="CONCLUIDO">Concluído</option>
                         </select>
+                        <div className="flex gap-2 ml-auto">
+                          <button
+                            onClick={() => setEventViewMode("cards")}
+                            className={cn(
+                              "text-xs font-bold px-3 py-2 rounded-lg border uppercase",
+                              eventViewMode === "cards"
+                                ? "bg-indigo-600 text-white border-indigo-600"
+                                : "bg-white text-gray-500 border-gray-200",
+                            )}
+                          >
+                            Cards
+                          </button>
+                          <button
+                            onClick={() => setEventViewMode("table")}
+                            className={cn(
+                              "text-xs font-bold px-3 py-2 rounded-lg border uppercase",
+                              eventViewMode === "table"
+                                ? "bg-indigo-600 text-white border-indigo-600"
+                                : "bg-white text-gray-500 border-gray-200",
+                            )}
+                          >
+                            Lista
+                          </button>
+                        </div>
                       </div>
                       {isAdmin && (
                         <button
@@ -2009,173 +2275,248 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm relative z-50">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left min-w-full">
-                          <thead className="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Evento
-                              </th>
-                              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Data
-                              </th>
-                              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Tipo
-                              </th>
-                              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Reações
-                              </th>
-                              {isAdmin && (
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
-                                  Ações
+                    {eventViewMode === "table" ? (
+                      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm relative z-50">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left min-w-full">
+                            <thead className="bg-gray-50 border-b border-gray-100">
+                              <tr>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                  Evento
                                 </th>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {events
-                              .filter(
-                                (e) =>
-                                  showPastEvents ||
-                                  new Date(e.date) >=
-                                    new Date(new Date().setHours(0, 0, 0, 0)),
-                              )
-                              .filter((e) => eventFilterType === 'all' || e.type === eventFilterType)
-                              .filter((e) => {
-                                if (eventFilterStatus === 'all') return true;
-                                const isPast = new Date(e.date) < new Date(new Date().setHours(0, 0, 0, 0));
-                                if (eventFilterStatus === 'CONCLUIDO') return isPast;
-                                if (eventFilterStatus === 'AGENDADO') return !isPast;
-                                return true;
-                              })
-                              .map((event) => (
-                                <React.Fragment key={event.id}>
-                                  <tr
-                                    className="hover:bg-gray-50 transition-colors group"
-                                  >
-                                    <td className="px-6 py-4">
-                                    <p className="font-bold text-gray-900">
-                                      {event.title}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      {event.description}
-                                    </p>
-                                    {checkins.filter(
-                                      (c) =>
-                                        c.eventId === event.id &&
-                                        c.status === "PRESENTE",
-                                    ).length > 0 && (
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {checkins
-                                          .filter(
-                                            (c) =>
-                                              c.eventId === event.id &&
-                                              c.status === "PRESENTE",
-                                          )
-                                          .map((c) => (
-                                            <span
-                                              key={c.id}
-                                              className="text-[7px] font-bold px-1 py-0.5 bg-green-50 text-green-700 rounded border border-green-100"
-                                            >
-                                              {
-                                                allUsers
-                                                  .find(
-                                                    (u) => u.uid === c.userId,
-                                                  )
-                                                  ?.displayName.split(" ")[0]
-                                              }
-                                            </span>
-                                          ))}
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-gray-600">
-                                    {formatDate(event.date)}
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <span
-                                      className={cn(
-                                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
-                                        event.type === "CULTO"
-                                          ? "bg-blue-600 text-white"
-                                          : event.type === "ENSAIO"
-                                            ? "bg-sky-400 text-white"
-                                            : "bg-rose-900 text-white",
-                                      )}
-                                    >
-                                      {event.type}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2">
-                                      <ReactionDisplay
-                                        reactions={reactions.filter(
-                                          (r) => r.targetId === event.id,
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                  Data
+                                </th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                  Tipo
+                                </th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                  Reações
+                                </th>
+                                {isAdmin && (
+                                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
+                                    Ações
+                                  </th>
+                                )}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {events
+                                .filter(
+                                  (e) =>
+                                    showPastEvents ||
+                                    new Date(e.date) >=
+                                      new Date(new Date().setHours(0, 0, 0, 0)),
+                                )
+                                .filter(
+                                  (e) =>
+                                    eventFilterType === "all" ||
+                                    e.type === eventFilterType,
+                                )
+                                .filter((e) => {
+                                  if (eventFilterStatus === "all") return true;
+                                  const isPast =
+                                    new Date(e.date) <
+                                    new Date(new Date().setHours(0, 0, 0, 0));
+                                  if (eventFilterStatus === "CONCLUIDO")
+                                    return isPast;
+                                  if (eventFilterStatus === "AGENDADO")
+                                    return !isPast;
+                                  return true;
+                                })
+                                .map((event) => (
+                                  <React.Fragment key={event.id}>
+                                    <tr className="hover:bg-gray-50 transition-colors group">
+                                      <td className="px-6 py-4">
+                                        <p className="font-bold text-gray-900">
+                                          {event.title}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {event.description}
+                                        </p>
+                                        {checkins.filter(
+                                          (c) =>
+                                            c.eventId === event.id &&
+                                            c.status === "PRESENTE",
+                                        ).length > 0 && (
+                                          <div className="flex flex-wrap gap-1 mt-1">
+                                            {checkins
+                                              .filter(
+                                                (c) =>
+                                                  c.eventId === event.id &&
+                                                  c.status === "PRESENTE",
+                                              )
+                                              .map((c) => (
+                                                <span
+                                                  key={c.id}
+                                                  className="text-[7px] font-bold px-1 py-0.5 bg-green-50 text-green-700 rounded border border-green-100"
+                                                >
+                                                  {
+                                                    allUsers
+                                                      .find(
+                                                        (u) =>
+                                                          u.uid === c.userId,
+                                                      )
+                                                      ?.displayName.split(
+                                                        " ",
+                                                      )[0]
+                                                  }
+                                                </span>
+                                              ))}
+                                          </div>
                                         )}
-                                        allUsers={allUsers}
-                                      />
-                                      <div className="transition-opacity">
-                                        <ReactionPicker
-                                          onReact={(emoji) =>
-                                            handleReaction(event.id, emoji)
-                                          }
-                                          currentUserId={user.uid}
-                                          reactions={reactions.filter(
-                                            (r) => r.targetId === event.id,
+                                      </td>
+                                      <td className="px-6 py-4 text-sm text-gray-600">
+                                        {formatDate(event.date)}
+                                      </td>
+                                      <td className="px-6 py-4">
+                                        <span
+                                          className={cn(
+                                            "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
+                                            event.type === "CULTO"
+                                              ? "bg-blue-600 text-white"
+                                              : event.type === "ENSAIO"
+                                                ? "bg-sky-400 text-white"
+                                                : "bg-rose-900 text-white",
                                           )}
-                                        />
-                                      </div>
-                                    </div>
-                                  </td>
-                                  {isAdmin && (
-                                    <td className="px-6 py-4 text-right">
-                                      <div className="flex items-center justify-end gap-2">
-                                        <button
-                                          onClick={() =>
-                                            handleDuplicateEvent(event)
-                                          }
-                                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                                          title="Duplicar"
                                         >
-                                          <Plus size={18} />
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            setEditingEvent(event);
-                                            setIsEventModalOpen(true);
-                                          }}
-                                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                                        >
-                                          <Edit size={18} />
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            handleDeleteEvent(event.id)
-                                          }
-                                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                        >
-                                          <Trash2 size={18} />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  )}
-                                </tr>
-                                  <tr className="bg-gray-50/20 shadow-sm">
-                                    <td colSpan={isAdmin ? 5 : 4} className="px-6 py-4 border-b border-gray-100">
-                                      {user && (
-                                        <div className="w-full">
-                                          <EventComments eventId={event.id} user={user} isAdmin={isAdmin} />
+                                          {event.type}
+                                        </span>
+                                      </td>
+                                      <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                          <ReactionDisplay
+                                            reactions={reactions.filter(
+                                              (r) => r.targetId === event.id,
+                                            )}
+                                            allUsers={allUsers}
+                                          />
+                                          <div className="transition-opacity">
+                                            <ReactionPicker
+                                              onReact={(emoji) =>
+                                                handleReaction(event.id, emoji)
+                                              }
+                                              currentUserId={user.uid}
+                                              reactions={reactions.filter(
+                                                (r) => r.targetId === event.id,
+                                              )}
+                                            />
+                                          </div>
                                         </div>
+                                      </td>
+                                      {isAdmin && (
+                                        <td className="px-6 py-4 text-right">
+                                          <div className="flex items-center justify-end gap-2">
+                                            <button
+                                              onClick={() =>
+                                                handleDuplicateEvent(event)
+                                              }
+                                              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                              title="Duplicar"
+                                            >
+                                              <Plus size={18} />
+                                            </button>
+                                            <button
+                                              onClick={() => {
+                                                setEditingEvent(event);
+                                                setIsEventModalOpen(true);
+                                              }}
+                                              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                            >
+                                              <Edit size={18} />
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                handleDeleteEvent(event.id)
+                                              }
+                                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                            >
+                                              <Trash2 size={18} />
+                                            </button>
+                                          </div>
+                                        </td>
                                       )}
-                                    </td>
-                                  </tr>
-                                </React.Fragment>
-                              ))}
-                          </tbody>
-                        </table>
+                                    </tr>
+                                    <tr className="bg-gray-50/20 shadow-sm">
+                                      <td
+                                        colSpan={isAdmin ? 5 : 4}
+                                        className="px-6 py-4 border-b border-gray-100"
+                                      >
+                                        {user && (
+                                          <div className="w-full">
+                                            <EventComments
+                                              eventId={event.id}
+                                              user={user}
+                                              isAdmin={isAdmin}
+                                            />
+                                          </div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  </React.Fragment>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {events
+                          .filter(
+                            (e) =>
+                              showPastEvents ||
+                              new Date(e.date) >=
+                                new Date(new Date().setHours(0, 0, 0, 0)),
+                          )
+                          .filter(
+                            (e) =>
+                              eventFilterType === "all" ||
+                              e.type === eventFilterType,
+                          )
+                          .filter((e) => {
+                            if (eventFilterStatus === "all") return true;
+                            const isPast =
+                              new Date(e.date) <
+                              new Date(new Date().setHours(0, 0, 0, 0));
+                            if (eventFilterStatus === "CONCLUIDO")
+                              return isPast;
+                            if (eventFilterStatus === "AGENDADO")
+                              return !isPast;
+                            return true;
+                          })
+                          .map((event) => (
+                            <EventCard
+                              key={event.id}
+                              event={event}
+                              onCheckIn={handleCheckIn}
+                              userCheckIn={
+                                checkins.find(
+                                  (c) =>
+                                    c.eventId === event.id &&
+                                    c.userId === user?.uid,
+                                )?.status
+                              }
+                              isAdmin={isAdmin}
+                              onEdit={() => {
+                                setEditingEvent(event);
+                                setIsEventModalOpen(true);
+                              }}
+                              onDelete={() => handleDeleteEvent(event.id)}
+                              onDuplicate={() => handleDuplicateEvent(event)}
+                              compact={false}
+                              reactions={reactions.filter(
+                                (r) => r.targetId === event.id,
+                              )}
+                              onReaction={(emoji) =>
+                                handleReaction(event.id, emoji)
+                              }
+                              currentUserId={user?.uid}
+                              allUsers={allUsers}
+                              checkins={checkins}
+                            />
+                          ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2187,7 +2528,9 @@ export default function App() {
                           <input
                             type="checkbox"
                             checked={showPastEvents}
-                            onChange={(e) => setShowPastEvents(e.target.checked)}
+                            onChange={(e) =>
+                              setShowPastEvents(e.target.checked)
+                            }
                             className="rounded text-indigo-600 focus:ring-indigo-500"
                           />
                           <span className="font-medium">
@@ -2196,20 +2539,30 @@ export default function App() {
                         </label>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => setScaleViewMode('cards')}
-                            className={cn("text-xs font-bold px-3 py-1.5 rounded-lg border uppercase", scaleViewMode === 'cards' ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-500 border-gray-200")}
+                            onClick={() => setScaleViewMode("cards")}
+                            className={cn(
+                              "text-xs font-bold px-3 py-1.5 rounded-lg border uppercase",
+                              scaleViewMode === "cards"
+                                ? "bg-indigo-600 text-white border-indigo-600"
+                                : "bg-white text-gray-500 border-gray-200",
+                            )}
                           >
                             Visualização Cards
                           </button>
                           <button
-                            onClick={() => setScaleViewMode('weekly')}
-                            className={cn("text-xs font-bold px-3 py-1.5 rounded-lg border uppercase", scaleViewMode === 'weekly' ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-500 border-gray-200")}
+                            onClick={() => setScaleViewMode("weekly")}
+                            className={cn(
+                              "text-xs font-bold px-3 py-1.5 rounded-lg border uppercase",
+                              scaleViewMode === "weekly"
+                                ? "bg-indigo-600 text-white border-indigo-600"
+                                : "bg-white text-gray-500 border-gray-200",
+                            )}
                           >
                             Resumo Semanal
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
                         <select
                           className="p-2 bg-white border border-gray-200 rounded-xl outline-none text-sm w-full sm:w-auto"
@@ -2217,8 +2570,10 @@ export default function App() {
                           onChange={(e) => setScaleFilterRole(e.target.value)}
                         >
                           <option value="all">Todas as Funções</option>
-                          {ROLES.map(r => (
-                            <option key={r} value={r}>{r}</option>
+                          {ROLES.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
                           ))}
                         </select>
                         <select
@@ -2235,10 +2590,10 @@ export default function App() {
                             </option>
                           ))}
                         </select>
-                        
+
                         {isAdmin && (
                           <div className="flex gap-2 w-full sm:w-auto">
-                            {scaleViewMode === 'weekly' && (
+                            {scaleViewMode === "weekly" && (
                               <button
                                 onClick={handleExportWeeklyScale}
                                 className="bg-blue-50 text-blue-700 px-4 py-2 rounded-2xl font-bold flex flex-1 sm:flex-none items-center justify-center gap-2 hover:bg-blue-100 transition-colors border border-blue-100"
@@ -2262,7 +2617,7 @@ export default function App() {
                         )}
                       </div>
                     </div>
-                    {scaleViewMode === 'cards' ? (
+                    {scaleViewMode === "cards" ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {events
                           .filter(
@@ -2272,146 +2627,180 @@ export default function App() {
                                 new Date(new Date().setHours(0, 0, 0, 0)),
                           )
                           .filter((event) => {
-                            const scale = scales.find((s) => s.eventId === event.id);
+                            const scale = scales.find(
+                              (s) => s.eventId === event.id,
+                            );
                             let include = true;
                             if (scaleFilterVolunteer !== "all") {
-                              include = include && !!scale?.assignments.some((a) => a.userId === scaleFilterVolunteer);
+                              include =
+                                include &&
+                                !!scale?.assignments.some(
+                                  (a) => a.userId === scaleFilterVolunteer,
+                                );
                             }
                             if (scaleFilterRole !== "all") {
                               // Se estiver filtrando por função, checamos se aquela ROLE está em alguma das assignments
-                              include = include && !!scale?.assignments.some((a) => (a.roles || [a.role]).includes(scaleFilterRole));
+                              include =
+                                include &&
+                                !!scale?.assignments.some((a) =>
+                                  (a.roles || [a.role]).includes(
+                                    scaleFilterRole,
+                                  ),
+                                );
                             }
                             return include;
                           })
-                        .map((event) => {
-                          const scale = scales.find(
-                            (s) => s.eventId === event.id,
-                          );
-                          const scaleReactions = scale
-                            ? reactions.filter((r) => r.targetId === scale.id)
-                            : [];
+                          .map((event) => {
+                            const scale = scales.find(
+                              (s) => s.eventId === event.id,
+                            );
+                            const scaleReactions = scale
+                              ? reactions.filter((r) => r.targetId === scale.id)
+                              : [];
 
-                          return (
-                            <div
-                              key={event.id}
-                              className={cn(
-                                "p-6 rounded-3xl border shadow-sm relative overflow-hidden group transition-all",
-                                scale?.assignments.some((a) => a.userId === user?.uid)
-                                  ? "animate-neon-pulse"
-                                  : "bg-white border-gray-100",
-                              )}
-                            >
+                            return (
                               <div
+                                key={event.id}
                                 className={cn(
-                                  "absolute top-0 left-0 w-full h-1.5",
-                                  event.type === "CULTO"
-                                    ? "bg-blue-600"
-                                    : event.type === "ENSAIO"
-                                      ? "bg-sky-400"
-                                      : "bg-rose-900",
+                                  "p-6 rounded-3xl border shadow-sm relative overflow-hidden group transition-all",
+                                  scale?.assignments.some(
+                                    (a) => a.userId === user?.uid,
+                                  )
+                                    ? "animate-neon-pulse"
+                                    : "bg-white border-gray-100",
                                 )}
-                              />
-                              <h4 className="font-bold text-gray-900 mb-1">
-                                {event.title}
-                              </h4>
-                              <p className="text-[10px] text-gray-500 mb-4">
-                                {formatDate(event.date)}
-                              </p>
-                              <div className="space-y-2 mb-6">
-                                {scale?.assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-center justify-between p-2 bg-gray-50 rounded-xl"
-                                  >
-                                    <div className="flex items-center gap-2">
+                              >
+                                <div
+                                  className={cn(
+                                    "absolute top-0 left-0 w-full h-1.5",
+                                    event.type === "CULTO"
+                                      ? "bg-blue-600"
+                                      : event.type === "ENSAIO"
+                                        ? "bg-sky-400"
+                                        : "bg-rose-900",
+                                  )}
+                                />
+                                <h4 className="font-bold text-gray-900 mb-1">
+                                  {event.title}
+                                </h4>
+                                <p className="text-[10px] text-gray-500 mb-4">
+                                  {formatDate(event.date)}
+                                </p>
+                                <div className="space-y-2 mb-6">
+                                  {scale?.assignments
+                                    .filter(
+                                      (a) => a.userId && a.userId !== "EMPTY",
+                                    )
+                                    .map((a, i) => (
                                       <div
-                                        className={cn(
-                                          "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
-                                          "bg-indigo-100 text-indigo-600",
-                                        )}
+                                        key={i}
+                                        className="flex items-center justify-between p-2 bg-gray-50 rounded-xl"
                                       >
-                                        {allUsers.find(
-                                              (u) => u.uid === a.userId,
-                                            )?.displayName?.[0] || ""}
-                                      </div>
-                                      <span
-                                        className={cn(
-                                          "text-xs font-medium",
-                                          "text-gray-700",
-                                        )}
-                                      >
-                                        {allUsers.find(
-                                              (u) => u.uid === a.userId,
-                                            )?.displayName || ""}
-                                      </span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1 justify-end max-w-[100px]">
-                                      {(a.roles || [a.role])
-                                        .filter(Boolean)
-                                        .map((r: string) => (
-                                          <span
-                                            key={r}
+                                        <div className="flex items-center gap-2">
+                                          <div
                                             className={cn(
-                                              "text-[7px] font-bold px-1 py-0.5 rounded uppercase tracking-tighter",
-                                              "bg-indigo-50 text-indigo-600",
+                                              "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                              "bg-indigo-100 text-indigo-600",
                                             )}
                                           >
-                                            {r}
+                                            {allUsers.find(
+                                              (u) => u.uid === a.userId,
+                                            )?.displayName?.[0] || ""}
+                                          </div>
+                                          <span
+                                            className={cn(
+                                              "text-xs font-medium",
+                                              "text-gray-700",
+                                            )}
+                                          >
+                                            {allUsers.find(
+                                              (u) => u.uid === a.userId,
+                                            )?.displayName || ""}
                                           </span>
-                                        ))}
-                                    </div>
-                                  </div>
-                                ))}
-                                {(!scale || scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").length === 0) && (
-                                  <p className="text-xs text-gray-400 italic">
-                                    Ninguém escalado.
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-50">
-                                <div className="flex items-center gap-2">
-                                  <ReactionDisplay
-                                    reactions={scaleReactions}
-                                    allUsers={allUsers}
-                                  />
-                                  {scale && (
-                                    <div className="transition-opacity">
-                                      <ReactionPicker
-                                        onReact={(emoji) =>
-                                          handleReaction(scale.id, emoji)
-                                        }
-                                        currentUserId={user.uid}
-                                        reactions={scaleReactions}
-                                      />
-                                    </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 justify-end max-w-[100px]">
+                                          {(a.roles || [a.role])
+                                            .filter(Boolean)
+                                            .map((r: string) => (
+                                              <span
+                                                key={r}
+                                                className={cn(
+                                                  "text-[7px] font-bold px-1 py-0.5 rounded uppercase tracking-tighter",
+                                                  "bg-indigo-50 text-indigo-600",
+                                                )}
+                                              >
+                                                {r}
+                                              </span>
+                                            ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  {(!scale ||
+                                    scale.assignments.filter(
+                                      (a) => a.userId && a.userId !== "EMPTY",
+                                    ).length === 0) && (
+                                    <p className="text-xs text-gray-400 italic">
+                                      Ninguém escalado.
+                                    </p>
                                   )}
                                 </div>
-                                {isAdmin && (
-                                  <button
-                                    onClick={() => {
-                                      setSelectedEventForScale(event);
-                                      setIsScaleModalOpen(true);
-                                    }}
-                                    className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold hover:bg-indigo-600 hover:text-white transition-all uppercase"
-                                  >
-                                    Editar
-                                  </button>
-                                )}
+
+                                <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-50">
+                                  <div className="flex items-center gap-2">
+                                    <ReactionDisplay
+                                      reactions={scaleReactions}
+                                      allUsers={allUsers}
+                                    />
+                                    {scale && (
+                                      <div className="transition-opacity">
+                                        <ReactionPicker
+                                          onReact={(emoji) =>
+                                            handleReaction(scale.id, emoji)
+                                          }
+                                          currentUserId={user.uid}
+                                          reactions={scaleReactions}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedEventForScale(event);
+                                        setIsScaleModalOpen(true);
+                                      }}
+                                      className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold hover:bg-indigo-600 hover:text-white transition-all uppercase"
+                                    >
+                                      Editar
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                    </div>
+                            );
+                          })}
+                      </div>
                     ) : (
                       <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm p-6 overflow-x-auto">
-                        <table id="scales-weekly-table" className="w-full text-left min-w-[800px]">
+                        <table
+                          id="scales-weekly-table"
+                          className="w-full text-left min-w-[800px]"
+                        >
                           <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
-                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Evento</th>
-                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Data</th>
-                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Equipe</th>
-                              {isAdmin && <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Ação</th>}
+                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Evento
+                              </th>
+                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Data
+                              </th>
+                              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Equipe
+                              </th>
+                              {isAdmin && (
+                                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
+                                  Ação
+                                </th>
+                              )}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
@@ -2423,41 +2812,103 @@ export default function App() {
                                     new Date(new Date().setHours(0, 0, 0, 0)),
                               )
                               .filter((event) => {
-                                const scale = scales.find((s) => s.eventId === event.id);
+                                const scale = scales.find(
+                                  (s) => s.eventId === event.id,
+                                );
                                 let include = true;
                                 if (scaleFilterVolunteer !== "all") {
-                                  include = include && !!scale?.assignments.some((a) => a.userId === scaleFilterVolunteer);
+                                  include =
+                                    include &&
+                                    !!scale?.assignments.some(
+                                      (a) => a.userId === scaleFilterVolunteer,
+                                    );
                                 }
                                 if (scaleFilterRole !== "all") {
-                                  include = include && !!scale?.assignments.some((a) => (a.roles || [a.role]).includes(scaleFilterRole));
+                                  include =
+                                    include &&
+                                    !!scale?.assignments.some((a) =>
+                                      (a.roles || [a.role]).includes(
+                                        scaleFilterRole,
+                                      ),
+                                    );
                                 }
                                 return include;
                               })
-                              .map(event => {
-                                const scale = scales.find((s) => s.eventId === event.id);
-                                const isAssigned = scale?.assignments.some((a) => a.userId === user?.uid);
+                              .map((event) => {
+                                const scale = scales.find(
+                                  (s) => s.eventId === event.id,
+                                );
+                                const isAssigned = scale?.assignments.some(
+                                  (a) => a.userId === user?.uid,
+                                );
                                 return (
-                                  <tr key={event.id} className={cn("hover:bg-gray-50 transition-colors", isAssigned && "animate-neon-pulse")}>
-                                    <td className="px-4 py-3 font-bold text-gray-900">{event.title}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(event.date)}</td>
+                                  <tr
+                                    key={event.id}
+                                    className={cn(
+                                      "hover:bg-gray-50 transition-colors",
+                                      isAssigned && "animate-neon-pulse",
+                                    )}
+                                  >
+                                    <td className="px-4 py-3 font-bold text-gray-900">
+                                      {event.title}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-500">
+                                      {formatDate(event.date)}
+                                    </td>
                                     <td className="px-4 py-3">
                                       <div className="flex flex-wrap gap-2">
-                                        {scale?.assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, i) => {
-                                          return (
-                                            <div key={i} className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-lg">
-                                              <div className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold", "bg-indigo-100 text-indigo-600")}>
-                                                {allUsers.find(u => u.uid === a.userId)?.displayName?.[0] || ""}
+                                        {scale?.assignments
+                                          .filter(
+                                            (a) =>
+                                              a.userId && a.userId !== "EMPTY",
+                                          )
+                                          .map((a, i) => {
+                                            return (
+                                              <div
+                                                key={i}
+                                                className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-lg"
+                                              >
+                                                <div
+                                                  className={cn(
+                                                    "w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold",
+                                                    "bg-indigo-100 text-indigo-600",
+                                                  )}
+                                                >
+                                                  {allUsers.find(
+                                                    (u) => u.uid === a.userId,
+                                                  )?.displayName?.[0] || ""}
+                                                </div>
+                                                <span
+                                                  className={cn(
+                                                    "text-[10px] font-medium max-w-[80px] truncate",
+                                                    "text-gray-700",
+                                                  )}
+                                                >
+                                                  {allUsers
+                                                    .find(
+                                                      (u) => u.uid === a.userId,
+                                                    )
+                                                    ?.displayName?.split(
+                                                      " ",
+                                                    )?.[0] || ""}
+                                                </span>
+                                                <span className="text-[8px] text-gray-500 uppercase font-bold tracking-tighter mix-blend-multiply">
+                                                  {(a.roles || [a.role])
+                                                    .filter(Boolean)
+                                                    .join(",")}
+                                                </span>
                                               </div>
-                                              <span className={cn("text-[10px] font-medium max-w-[80px] truncate", "text-gray-700")}>
-                                                {allUsers.find(u => u.uid === a.userId)?.displayName?.split(' ')?.[0] || ""}
-                                              </span>
-                                              <span className="text-[8px] text-gray-500 uppercase font-bold tracking-tighter mix-blend-multiply">
-                                                {(a.roles || [a.role]).filter(Boolean).join(',')}
-                                              </span>
-                                            </div>
-                                          );
-                                        })}
-                                        {(!scale || scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").length === 0) && <span className="text-xs text-gray-400 italic">Sem equipe</span>}
+                                            );
+                                          })}
+                                        {(!scale ||
+                                          scale.assignments.filter(
+                                            (a) =>
+                                              a.userId && a.userId !== "EMPTY",
+                                          ).length === 0) && (
+                                          <span className="text-xs text-gray-400 italic">
+                                            Sem equipe
+                                          </span>
+                                        )}
                                       </div>
                                     </td>
                                     {isAdmin && (
@@ -2569,13 +3020,18 @@ export default function App() {
                   <div className="max-w-2xl mx-auto space-y-6">
                     <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div>
-                         <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                           <Bell size={20} className="text-indigo-600" /> Push Notifications
-                         </h3>
-                         <p className="text-sm text-gray-500">Receba alertas no celular em tempo real.</p>
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <Bell size={20} className="text-indigo-600" /> Push
+                          Notifications
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Receba alertas no celular em tempo real.
+                        </p>
                       </div>
                       <div className="flex gap-2 items-center">
-                        <span className="text-sm font-medium text-gray-700">{localPushEnabled ? 'Ativado' : 'Desativado'}</span>
+                        <span className="text-sm font-medium text-gray-700">
+                          {localPushEnabled ? "Ativado" : "Desativado"}
+                        </span>
                         <button
                           role="switch"
                           aria-checked={localPushEnabled}
@@ -2584,51 +3040,82 @@ export default function App() {
                             setLocalPushEnabled(newValue); // Optimistic UI
                             if (newValue && "Notification" in window) {
                               try {
-                                const permission = await window.Notification.requestPermission();
+                                const permission =
+                                  await window.Notification.requestPermission();
                                 if (permission === "granted") {
                                   if (messaging) {
-                                    const { getToken } = await import('firebase/messaging');
-                                    const vKey = "BFoLlMlj01AqBHRBH935fkVn71ppmRm3241wR1HlMCpBclqSlOR-kkRfdhrfob35QG1v7WJ8mxA_5nJNFwWk_iA";
-                                    const token = await getToken(messaging, { vapidKey: vKey });
+                                    const { getToken } =
+                                      await import("firebase/messaging");
+                                    const vKey =
+                                      "BFoLlMlj01AqBHRBH935fkVn71ppmRm3241wR1HlMCpBclqSlOR-kkRfdhrfob35QG1v7WJ8mxA_5nJNFwWk_iA";
+                                    const token = await getToken(messaging, {
+                                      vapidKey: vKey,
+                                    });
                                     if (token) {
-                                      await updateDoc(doc(db, "users", user.uid), { fcmTokens: arrayUnion(token), pushEnabled: true });
-                                      toast.success("Notificações ativadas com sucesso!");
+                                      await updateDoc(
+                                        doc(db, "users", user.uid),
+                                        {
+                                          fcmTokens: arrayUnion(token),
+                                          pushEnabled: true,
+                                        },
+                                      );
+                                      toast.success(
+                                        "Notificações ativadas com sucesso!",
+                                      );
                                     } else {
-                                      toast.error("Não foi possível gerar um token FCM. Configure seu VAPID_KEY.");
+                                      toast.error(
+                                        "Não foi possível gerar um token FCM. Configure seu VAPID_KEY.",
+                                      );
                                       setLocalPushEnabled(false);
                                     }
                                   } else {
-                                    await updateDoc(doc(db, "users", user.uid), { pushEnabled: true });
-                                    toast.success("Permissão concedida. Integração local ativada.");
+                                    await updateDoc(
+                                      doc(db, "users", user.uid),
+                                      { pushEnabled: true },
+                                    );
+                                    toast.success(
+                                      "Permissão concedida. Integração local ativada.",
+                                    );
                                   }
                                 } else {
-                                  toast.error("A permissão para notificações foi negada.");
+                                  toast.error(
+                                    "A permissão para notificações foi negada.",
+                                  );
                                   setLocalPushEnabled(false);
                                 }
                               } catch (err) {
                                 console.error(err);
-                                toast.error("Erro ao registrar notificações: " + (err as Error).message);
+                                toast.error(
+                                  "Erro ao registrar notificações: " +
+                                    (err as Error).message,
+                                );
                                 setLocalPushEnabled(false);
                               }
                             } else {
-                              await updateDoc(doc(db, "users", user.uid), { pushEnabled: newValue });
+                              await updateDoc(doc(db, "users", user.uid), {
+                                pushEnabled: newValue,
+                              });
                               if (!newValue) {
                                 toast.success("Notificações push desativadas.");
                               } else {
-                                toast.error("Seu dispositivo ou navegador não suporta notificações Push.");
+                                toast.error(
+                                  "Seu dispositivo ou navegador não suporta notificações Push.",
+                                );
                                 setLocalPushEnabled(false);
                               }
                             }
                           }}
                           className={cn(
                             "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
-                            localPushEnabled ? "bg-indigo-600" : "bg-gray-300"
+                            localPushEnabled ? "bg-indigo-600" : "bg-gray-300",
                           )}
                         >
                           <span
                             className={cn(
                               "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                              localPushEnabled ? "translate-x-6" : "translate-x-1"
+                              localPushEnabled
+                                ? "translate-x-6"
+                                : "translate-x-1",
                             )}
                           />
                         </button>
@@ -2644,94 +3131,96 @@ export default function App() {
                     </div>
 
                     <div className="space-y-4">
-                      <h3 className="font-bold text-gray-500 uppercase tracking-widest text-xs px-2">Suas Mensagens</h3>
-                    {notifications.map((notif) => (
-                      <div
-                        key={notif.id}
-                        className={cn(
-                          "p-6 rounded-3xl border transition-all",
-                          notif.read
-                            ? isDarkMode
-                              ? "bg-slate-800 border-slate-700 opacity-75"
-                              : "bg-white border-gray-100 opacity-75"
-                            : isDarkMode
-                              ? "bg-indigo-900/30 border-indigo-500/30 shadow-md"
-                              : "bg-indigo-50 border-indigo-100 shadow-md",
-                        )}
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h4
-                            className={cn(
-                              "font-bold",
-                              isDarkMode ? "text-white" : "text-gray-900",
-                            )}
-                          >
-                            {notif.title}
-                          </h4>
-                          <span className="text-[10px] text-gray-400">
-                            {formatDate(notif.createdAt)}
-                          </span>
-                        </div>
-                        <p
+                      <h3 className="font-bold text-gray-500 uppercase tracking-widest text-xs px-2">
+                        Suas Mensagens
+                      </h3>
+                      {notifications.map((notif) => (
+                        <div
+                          key={notif.id}
                           className={cn(
-                            "text-sm mb-4",
-                            isDarkMode ? "text-gray-300" : "text-gray-600",
+                            "p-6 rounded-3xl border transition-all",
+                            notif.read
+                              ? isDarkMode
+                                ? "bg-slate-800 border-slate-700 opacity-75"
+                                : "bg-white border-gray-100 opacity-75"
+                              : isDarkMode
+                                ? "bg-indigo-900/30 border-indigo-500/30 shadow-md"
+                                : "bg-indigo-50 border-indigo-100 shadow-md",
                           )}
                         >
-                          {notif.message}
-                        </p>
-                        <div className="flex items-center gap-4">
-                          {!notif.read && (
+                          <div className="flex justify-between items-start mb-2">
+                            <h4
+                              className={cn(
+                                "font-bold",
+                                isDarkMode ? "text-white" : "text-gray-900",
+                              )}
+                            >
+                              {notif.title}
+                            </h4>
+                            <span className="text-[10px] text-gray-400">
+                              {formatDate(notif.createdAt)}
+                            </span>
+                          </div>
+                          <p
+                            className={cn(
+                              "text-sm mb-4",
+                              isDarkMode ? "text-gray-300" : "text-gray-600",
+                            )}
+                          >
+                            {notif.message}
+                          </p>
+                          <div className="flex items-center gap-4">
+                            {!notif.read && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await updateDoc(
+                                      doc(db, "notifications", notif.id),
+                                      { read: true },
+                                    );
+                                  } catch (error) {
+                                    handleFirestoreError(
+                                      error,
+                                      OperationType.UPDATE,
+                                      "notifications",
+                                    );
+                                  }
+                                }}
+                                className={cn(
+                                  "text-xs font-bold hover:underline",
+                                  isDarkMode
+                                    ? "text-indigo-400"
+                                    : "text-indigo-600",
+                                )}
+                              >
+                                Marcar como lida
+                              </button>
+                            )}
                             <button
                               onClick={async () => {
                                 try {
-                                  await updateDoc(
+                                  await deleteDoc(
                                     doc(db, "notifications", notif.id),
-                                    { read: true },
                                   );
+                                  toast.success("Notificação excluída");
                                 } catch (error) {
                                   handleFirestoreError(
                                     error,
-                                    OperationType.UPDATE,
+                                    OperationType.DELETE,
                                     "notifications",
                                   );
                                 }
                               }}
                               className={cn(
                                 "text-xs font-bold hover:underline",
-                                isDarkMode
-                                  ? "text-indigo-400"
-                                  : "text-indigo-600",
+                                isDarkMode ? "text-red-400" : "text-red-600",
                               )}
                             >
-                              Marcar como lida
+                              Excluir
                             </button>
-                          )}
-                          <button
-                            onClick={async () => {
-                              try {
-                                await deleteDoc(
-                                  doc(db, "notifications", notif.id),
-                                );
-                                toast.success("Notificação excluída");
-                              } catch (error) {
-                                handleFirestoreError(
-                                  error,
-                                  OperationType.DELETE,
-                                  "notifications",
-                                );
-                              }
-                            }}
-                            className={cn(
-                              "text-xs font-bold hover:underline",
-                              isDarkMode ? "text-red-400" : "text-red-600",
-                            )}
-                          >
-                            Excluir
-                          </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                     </div>
                   </div>
                 )}
@@ -2754,7 +3243,7 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                    
+
                     <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                       <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                         🎉 Próximos Aniversariantes
@@ -2762,41 +3251,68 @@ export default function App() {
                       {(() => {
                         const today = new Date();
                         const upcoming = allUsers
-                          .filter(u => u.birthDate)
-                          .map(u => {
-                            const [year, month, day] = u.birthDate!.split('-');
-                            let nextBday = new Date(today.getFullYear(), parseInt(month) - 1, parseInt(day));
-                            if (nextBday < new Date(today.setHours(0, 0, 0, 0))) {
-                              nextBday = new Date(today.getFullYear() + 1, parseInt(month) - 1, parseInt(day));
+                          .filter((u) => u.birthDate)
+                          .map((u) => {
+                            const [year, month, day] = u.birthDate!.split("-");
+                            let nextBday = new Date(
+                              today.getFullYear(),
+                              parseInt(month) - 1,
+                              parseInt(day),
+                            );
+                            if (
+                              nextBday < new Date(today.setHours(0, 0, 0, 0))
+                            ) {
+                              nextBday = new Date(
+                                today.getFullYear() + 1,
+                                parseInt(month) - 1,
+                                parseInt(day),
+                              );
                             }
                             return { ...u, nextBday };
                           })
-                          .sort((a, b) => a.nextBday.getTime() - b.nextBday.getTime())
+                          .sort(
+                            (a, b) =>
+                              a.nextBday.getTime() - b.nextBday.getTime(),
+                          )
                           .slice(0, 5);
 
                         if (upcoming.length === 0) {
-                          return <p className="text-sm text-gray-500">Nenhum aniversário cadastrado.</p>;
+                          return (
+                            <p className="text-sm text-gray-500">
+                              Nenhum aniversário cadastrado.
+                            </p>
+                          );
                         }
 
                         return (
                           <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
-                            {upcoming.map(u => (
-                              <div key={u.uid} className="flex-shrink-0 bg-gray-50 border border-gray-100 rounded-2xl p-4 min-w-[200px] flex items-center gap-3">
+                            {upcoming.map((u) => (
+                              <div
+                                key={u.uid}
+                                className="flex-shrink-0 bg-gray-50 border border-gray-100 rounded-2xl p-4 min-w-[200px] flex items-center gap-3"
+                              >
                                 <div
                                   className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0"
-                                  style={{ backgroundColor: u.bg_color || "#4F46E5" }}
+                                  style={{
+                                    backgroundColor: u.bg_color || "#4F46E5",
+                                  }}
                                 >
                                   {u.profile_emoji ? (
                                     u.profile_emoji
                                   ) : u.photoURL ? (
-                                    <img src={u.photoURL} alt="" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                                    <img
+                                      src={u.photoURL}
+                                      alt=""
+                                      className="w-full h-full object-cover rounded-full"
+                                      referrerPolicy="no-referrer"
+                                    />
                                   ) : (
                                     u.initials || u.displayName[0]
                                   )}
                                 </div>
                                 <div>
                                   <p className="font-bold text-gray-900 text-sm truncate w-24">
-                                    {u.displayName.split(' ')[0]}
+                                    {u.displayName.split(" ")[0]}
                                   </p>
                                   <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mt-0.5">
                                     {format(u.nextBday, "dd/MM")}
@@ -2829,7 +3345,8 @@ export default function App() {
                                 referrerPolicy="no-referrer"
                               />
                             ) : (
-                              u.initials || u.displayName.substring(0, 2).toUpperCase()
+                              u.initials ||
+                              u.displayName.substring(0, 2).toUpperCase()
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -3070,19 +3587,14 @@ export default function App() {
             theme={theme}
             onSave={async (data) => {
               try {
-                const targetUsers =
-                  data.userId === "all"
-                    ? allUsers
-                    : [allUsers.find((u) => u.uid === data.userId)!];
-                for (const u of targetUsers) {
-                  await addDoc(collection(db, "notifications"), {
-                    userId: u.uid,
-                    title: data.title,
-                    message: data.message,
-                    read: false,
-                    createdAt: new Date().toISOString(),
-                  });
-                }
+                const targetUsers = data.targetIds.includes("all")
+                  ? allUsers
+                  : allUsers.filter((u) => data.targetIds.includes(u.uid));
+
+                const { sendNotification } =
+                  await import("./utils/notificationService");
+                await sendNotification(targetUsers, data.title, data.message);
+
                 toast.success("Notificação enviada!");
                 setIsNotifModalOpen(false);
               } catch (error) {
@@ -3111,7 +3623,10 @@ export default function App() {
             theme={theme}
             onSave={async (data) => {
               if (editingAnnouncement) {
-                await updateDoc(doc(db, "announcements", editingAnnouncement.id), data);
+                await updateDoc(
+                  doc(db, "announcements", editingAnnouncement.id),
+                  data,
+                );
                 toast.success("Anúncio atualizado!");
               } else {
                 await addDoc(collection(db, "announcements"), {
@@ -3289,13 +3804,20 @@ export default function App() {
               }
               toast.success("Escala atualizada!");
               setIsScaleModalOpen(false);
-              
+
               // Notifica voluntários escalados
               try {
-                const { sendNotification } = await import('./utils/notificationService');
-                const targetUsers = allUsers.filter(u => assignments.some(a => a.userId === u.uid));
+                const { sendNotification } =
+                  await import("./utils/notificationService");
+                const targetUsers = allUsers.filter((u) =>
+                  assignments.some((a) => a.userId === u.uid),
+                );
                 if (targetUsers.length > 0) {
-                  await sendNotification(targetUsers, "Nova Escala!", "Você foi escalado. Confira os detalhes no App!");
+                  await sendNotification(
+                    targetUsers,
+                    "Nova Escala!",
+                    "Você foi escalado. Confira os detalhes no App!",
+                  );
                 }
               } catch (err) {
                 console.error("Erro ao notificar escalados", err);
@@ -3346,47 +3868,91 @@ export default function App() {
         >
           <div className="space-y-6">
             <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Tema Visual</h4>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
+                Tema Visual
+              </h4>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setVisualTheme("claro")}
-                  className={cn("p-4 rounded-xl border text-center transition-all", visualTheme === "claro" ? "border-indigo-600 bg-indigo-50" : "border-gray-200 bg-white")}
+                  className={cn(
+                    "p-4 rounded-xl border text-center transition-all",
+                    visualTheme === "claro"
+                      ? "border-indigo-600 bg-indigo-50"
+                      : "border-gray-200 bg-white",
+                  )}
                 >
                   <p className="font-bold text-sm text-gray-900">Claro</p>
                 </button>
                 <button
                   onClick={() => setVisualTheme("escuro")}
-                  className={cn("p-4 rounded-xl border text-center transition-all", visualTheme === "escuro" ? "border-indigo-600 bg-slate-800" : "border-slate-700 bg-slate-900")}
+                  className={cn(
+                    "p-4 rounded-xl border text-center transition-all",
+                    visualTheme === "escuro"
+                      ? "border-indigo-600 bg-slate-800"
+                      : "border-slate-700 bg-slate-900",
+                  )}
                 >
                   <p className="font-bold text-sm text-white">Escuro</p>
                 </button>
                 <button
                   onClick={() => setVisualTheme("vidro")}
-                  className={cn("p-4 rounded-xl border text-center transition-all", visualTheme === "vidro" ? "border-indigo-500 ring-2 ring-indigo-500/50 bg-slate-800/80 backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.5)] outline-none" : "border-gray-200 bg-transparent")}
+                  className={cn(
+                    "p-4 rounded-xl border text-center transition-all",
+                    visualTheme === "vidro"
+                      ? "border-indigo-500 ring-2 ring-indigo-500/50 bg-slate-800/80 backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.5)] outline-none"
+                      : "border-gray-200 bg-transparent",
+                  )}
                 >
-                  <p className={cn("font-bold text-sm border-none shadow-none", isDarkMode ? "text-white" : "text-gray-900")}>Vidro Fosco</p>
+                  <p
+                    className={cn(
+                      "font-bold text-sm border-none shadow-none",
+                      isDarkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
+                    Vidro Fosco
+                  </p>
                 </button>
               </div>
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Cores Principais</h4>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
+                Cores Principais
+              </h4>
               <div className="flex gap-2 flex-wrap">
-                {["electric_blue", "emerald", "neon_purple", "sunset_orange", "hot_pink", "carmine_red", "cyan", "sunflower_yellow"].map((t) => (
+                {[
+                  "electric_blue",
+                  "emerald",
+                  "neon_purple",
+                  "sunset_orange",
+                  "hot_pink",
+                  "carmine_red",
+                  "cyan",
+                  "sunflower_yellow",
+                ].map((t) => (
                   <button
                     key={t}
                     onClick={() => setTheme(t as any)}
                     className={cn(
                       "w-8 h-8 rounded-full border-2 transition-transform hover:opacity-80",
-                      theme === t ? "border-gray-900 dark:border-white scale-110" : "border-transparent",
-                      t === "electric_blue" ? "bg-blue-400" :
-                      t === "emerald" ? "bg-emerald-500" :
-                      t === "neon_purple" ? "bg-purple-500" :
-                      t === "sunset_orange" ? "bg-orange-500" :
-                      t === "hot_pink" ? "bg-pink-400" :
-                      t === "carmine_red" ? "bg-red-500" :
-                      t === "cyan" ? "bg-cyan-500" :
-                      "bg-yellow-400"
+                      theme === t
+                        ? "border-gray-900 dark:border-white scale-110"
+                        : "border-transparent",
+                      t === "electric_blue"
+                        ? "bg-blue-400"
+                        : t === "emerald"
+                          ? "bg-emerald-500"
+                          : t === "neon_purple"
+                            ? "bg-purple-500"
+                            : t === "sunset_orange"
+                              ? "bg-orange-500"
+                              : t === "hot_pink"
+                                ? "bg-pink-400"
+                                : t === "carmine_red"
+                                  ? "bg-red-500"
+                                  : t === "cyan"
+                                    ? "bg-cyan-500"
+                                    : "bg-yellow-400",
                     )}
                   />
                 ))}
@@ -3394,17 +3960,29 @@ export default function App() {
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Layout dos Cards</h4>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
+                Layout dos Cards
+              </h4>
               <div className="flex gap-2">
                 <button
                   onClick={() => setLayoutMode("modern")}
-                  className={cn("flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all", layoutMode === "modern" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-500")}
+                  className={cn(
+                    "flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all",
+                    layoutMode === "modern"
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                      : "border-gray-200 bg-white text-gray-500",
+                  )}
                 >
                   Moderno
                 </button>
                 <button
                   onClick={() => setLayoutMode("compact")}
-                  className={cn("flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all", layoutMode === "compact" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-500")}
+                  className={cn(
+                    "flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all",
+                    layoutMode === "compact"
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                      : "border-gray-200 bg-white text-gray-500",
+                  )}
                 >
                   Compacto
                 </button>
@@ -3412,23 +3990,35 @@ export default function App() {
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Posição do Menu</h4>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
+                Posição do Menu
+              </h4>
               <div className="flex gap-2">
                 <button
                   onClick={() => setNavStyle("sidebar")}
-                  className={cn("flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all", navStyle === "sidebar" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-500")}
+                  className={cn(
+                    "flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all",
+                    navStyle === "sidebar"
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                      : "border-gray-200 bg-white text-gray-500",
+                  )}
                 >
                   Lateral
                 </button>
                 <button
                   onClick={() => setNavStyle("top")}
-                  className={cn("flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all", navStyle === "top" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-500")}
+                  className={cn(
+                    "flex-1 p-3 rounded-xl border text-center font-bold text-sm transition-all",
+                    navStyle === "top"
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                      : "border-gray-200 bg-white text-gray-500",
+                  )}
                 >
                   Superior
                 </button>
               </div>
             </div>
-            
+
             <button
               onClick={() => setIsAppearanceModalOpen(false)}
               className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors"
@@ -3438,7 +4028,6 @@ export default function App() {
           </div>
         </Modal>
       )}
-
     </div>
   );
 }
@@ -3469,15 +4058,13 @@ function NavItem({
         active
           ? "bg-primary shadow-primary text-white"
           : "text-gray-500 hover:bg-gray-100",
-        active && theme === "sunflower_yellow" ? "text-slate-900" : ""
+        active && theme === "sunflower_yellow" ? "text-slate-900" : "",
       )}
     >
       <span
         className={cn(
           "transition-transform group-hover:scale-110",
-          active
-            ? "text-inherit"
-            : "text-gray-400 group-hover:text-primary",
+          active ? "text-inherit" : "text-gray-400 group-hover:text-primary",
         )}
       >
         {icon}
@@ -3845,13 +4432,21 @@ function EventCard({
           )}
         </div>
       </div>
-      {(currentUserId && allUsers) && (() => {
-        const currentUser = allUsers.find(u => u.uid === currentUserId);
-        if (currentUser) {
-           return <EventComments eventId={event.id} user={currentUser} isAdmin={isAdmin} />;
-        }
-        return null;
-      })()}
+      {currentUserId &&
+        allUsers &&
+        (() => {
+          const currentUser = allUsers.find((u) => u.uid === currentUserId);
+          if (currentUser) {
+            return (
+              <EventComments
+                eventId={event.id}
+                user={currentUser}
+                isAdmin={isAdmin}
+              />
+            );
+          }
+          return null;
+        })()}
     </div>
   );
 }
@@ -3868,7 +4463,7 @@ function Modal({
   isDarkMode?: boolean;
 }) {
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={onClose}
     >
@@ -3939,10 +4534,12 @@ function EventForm({
     setFormData({ ...formData, daysOfWeek: newDays });
   };
 
-  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
-  
+  const themeBg =
+    "bg-primary hover:opacity-90 text-white " +
+    (theme === "sunflower_yellow" ? "text-slate-900" : "");
+
   const themeText = "text-primary";
-  
+
   const themeBgLight = "bg-primary/10";
 
   return (
@@ -4096,12 +4693,34 @@ function NotificationForm({
   onSave: (data: any) => void;
   theme?: string;
 }) {
-  const [formData, setFormData] = useState({
-    userId: "all",
+  const [formData, setFormData] = useState<{
+    targetIds: string[];
+    title: string;
+    message: string;
+  }>({
+    targetIds: ["all"],
     title: "",
     message: "",
   });
-  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeBg =
+    "bg-primary hover:opacity-90 text-white " +
+    (theme === "sunflower_yellow" ? "text-slate-900" : "");
+
+  const toggleUser = (uid: string) => {
+    let newTargets = [...formData.targetIds];
+    if (uid === "all") {
+      newTargets = ["all"];
+    } else {
+      newTargets = newTargets.filter((id) => id !== "all");
+      if (newTargets.includes(uid)) {
+        newTargets = newTargets.filter((id) => id !== uid);
+      } else {
+        newTargets.push(uid);
+      }
+      if (newTargets.length === 0) newTargets = ["all"];
+    }
+    setFormData({ ...formData, targetIds: newTargets });
+  };
 
   return (
     <div className="space-y-4">
@@ -4109,18 +4728,35 @@ function NotificationForm({
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
           Para
         </label>
-        <select
-          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-          value={formData.userId}
-          onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-        >
-          <option value="all">Todos os Voluntários</option>
+        <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl bg-gray-50 p-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => toggleUser("all")}
+            className={cn(
+              "text-xs font-bold p-2 rounded-lg border text-left",
+              formData.targetIds.includes("all")
+                ? "bg-indigo-100 border-indigo-500 text-indigo-700"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-100",
+            )}
+          >
+            Todos os Voluntários
+          </button>
           {users.map((u) => (
-            <option key={u.uid} value={u.uid}>
-              {u.displayName}
-            </option>
+            <button
+              key={u.uid}
+              type="button"
+              onClick={() => toggleUser(u.uid)}
+              className={cn(
+                "text-xs font-bold p-2 rounded-lg border text-left flex items-center justify-between",
+                formData.targetIds.includes(u.uid)
+                  ? "bg-indigo-100 border-indigo-500 text-indigo-700"
+                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-100",
+              )}
+            >
+              <span className="truncate">{u.displayName}</span>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
@@ -4180,7 +4816,9 @@ function AnnouncementForm({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeBg =
+    "bg-primary hover:opacity-90 text-white " +
+    (theme === "sunflower_yellow" ? "text-slate-900" : "");
   const themeText = "text-primary";
   const themeBgLight = "bg-primary/10";
 
@@ -4356,7 +4994,11 @@ function VolunteerForm({
     photoURL: initialData?.photoURL || "",
     birthDate: initialData?.birthDate || "",
     phone: initialData?.phone || "",
-    maxScalesPerMonth: (initialData?.maxScalesPerMonth !== undefined && initialData?.maxScalesPerMonth !== null) ? initialData?.maxScalesPerMonth.toString() : "",
+    maxScalesPerMonth:
+      initialData?.maxScalesPerMonth !== undefined &&
+      initialData?.maxScalesPerMonth !== null
+        ? initialData?.maxScalesPerMonth.toString()
+        : "",
     availableDays: initialData?.availableDays || [0, 1, 2, 3, 4, 5, 6],
   });
   const [isUploading, setIsUploading] = useState(false);
@@ -4435,7 +5077,9 @@ function VolunteerForm({
     }
   };
 
-  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeBg =
+    "bg-primary hover:opacity-90 text-white " +
+    (theme === "sunflower_yellow" ? "text-slate-900" : "");
 
   return (
     <div className="space-y-4">
@@ -4636,7 +5280,7 @@ function VolunteerForm({
           })}
         </div>
       </div>
-      
+
       <div className="border-t border-gray-100 pt-6 mt-6">
         <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
           <CalendarDays size={18} className="text-indigo-600" />
@@ -4666,7 +5310,7 @@ function VolunteerForm({
                       "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border",
                       isSelected
                         ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50",
                     )}
                   >
                     {day.label}
@@ -4695,10 +5339,14 @@ function VolunteerForm({
       </div>
 
       <button
-        onClick={() => onSave({
-          ...formData,
-          maxScalesPerMonth: formData.maxScalesPerMonth ? parseInt(formData.maxScalesPerMonth, 10) : null
-        })}
+        onClick={() =>
+          onSave({
+            ...formData,
+            maxScalesPerMonth: formData.maxScalesPerMonth
+              ? parseInt(formData.maxScalesPerMonth, 10)
+              : null,
+          })
+        }
         disabled={isUploading}
         className={cn(
           "w-full text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50",
@@ -4750,12 +5398,16 @@ function ScaleForm({
   theme?: string;
 }) {
   const [assignments, setAssignments] = useState<any[]>(
-    (initialScale?.assignments || []).filter(a => a.userId && a.userId !== "EMPTY")
+    (initialScale?.assignments || []).filter(
+      (a) => a.userId && a.userId !== "EMPTY",
+    ),
   );
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
-  const themeBg = "bg-primary hover:opacity-90 text-white " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeBg =
+    "bg-primary hover:opacity-90 text-white " +
+    (theme === "sunflower_yellow" ? "text-slate-900" : "");
   const themeText = "text-primary";
   const themeBgLight = "bg-primary/10";
 
@@ -4777,11 +5429,24 @@ function ScaleForm({
       toast.error("Selecione pelo menos uma função.");
       return;
     }
-    const existingIndex = assignments.findIndex((a) => a.userId === selectedUser);
+    const existingIndex = assignments.findIndex(
+      (a) => a.userId === selectedUser,
+    );
     if (existingIndex !== -1) {
       const newAssignments = [...assignments];
-      const mergedRoles = Array.from(new Set([...(newAssignments[existingIndex].roles || []), ...(newAssignments[existingIndex].role ? [newAssignments[existingIndex].role] : []), ...selectedRoles]));
-      newAssignments[existingIndex] = { ...newAssignments[existingIndex], roles: mergedRoles };
+      const mergedRoles = Array.from(
+        new Set([
+          ...(newAssignments[existingIndex].roles || []),
+          ...(newAssignments[existingIndex].role
+            ? [newAssignments[existingIndex].role]
+            : []),
+          ...selectedRoles,
+        ]),
+      );
+      newAssignments[existingIndex] = {
+        ...newAssignments[existingIndex],
+        roles: mergedRoles,
+      };
       setAssignments(newAssignments);
       toast.success("Mais funções atribuídas a este voluntário!");
     } else {
@@ -4814,11 +5479,20 @@ function ScaleForm({
     const usedUserIds = new Set<string>();
 
     const normalizeString = (str: string) => {
-      return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+      return str
+        ? str
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+        : "";
     };
 
-    const activeRoles = rolesToAssign.filter((role) => 
-      users.some((u) => u.status === "approved" && normalizeString(u.specialty || "").includes(normalizeString(role)))
+    const activeRoles = rolesToAssign.filter((role) =>
+      users.some(
+        (u) =>
+          u.status === "approved" &&
+          normalizeString(u.specialty || "").includes(normalizeString(role)),
+      ),
     );
 
     const userParticipation: Record<string, number> = {};
@@ -4850,15 +5524,20 @@ function ScaleForm({
 
       let eligibleUsers = users.filter((u) => {
         if (u.status !== "approved" || usedUserIds.has(u.uid)) return false;
-        if (!normalizeString(u.specialty || "").includes(normalizeString(role))) return false;
-        
+        if (!normalizeString(u.specialty || "").includes(normalizeString(role)))
+          return false;
+
         // We can also check availability here if we want, similar to performAutoSchedule
         const eventDate = new Date(event.date);
         const eventDayOfWeek = eventDate.getDay();
         const eventMonth = eventDate.getMonth();
         const eventYear = eventDate.getFullYear();
 
-        if (u.availableDays && u.availableDays.length > 0 && !u.availableDays.includes(eventDayOfWeek)) {
+        if (
+          u.availableDays &&
+          u.availableDays.length > 0 &&
+          !u.availableDays.includes(eventDayOfWeek)
+        ) {
           return false;
         }
 
@@ -4869,8 +5548,11 @@ function ScaleForm({
             const scaleEvent = allEvents.find((e) => e.id === scale.eventId);
             if (scaleEvent) {
               const sDate = new Date(scaleEvent.date);
-              if (sDate.getMonth() === eventMonth && sDate.getFullYear() === eventYear) {
-                if (scale.assignments.some(a => a.userId === u.uid)) {
+              if (
+                sDate.getMonth() === eventMonth &&
+                sDate.getFullYear() === eventYear
+              ) {
+                if (scale.assignments.some((a) => a.userId === u.uid)) {
                   userScalesThisMonth++;
                 }
               }
@@ -5032,98 +5714,97 @@ function ScaleForm({
             </button>
           )}
         </div>
-        {assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, i) => {
-          const u = users.find((user) => user.uid === a.userId);
-          const currentRoles = a.roles || [a.role];
+        {assignments
+          .filter((a) => a.userId && a.userId !== "EMPTY")
+          .map((a, i) => {
+            const u = users.find((user) => user.uid === a.userId);
+            const currentRoles = a.roles || [a.role];
 
-          // Find compatible users for the first role in their set
-          const roleTocheck = currentRoles[0] || "";
-          const compatibleUsers = users.filter(
-            (user) =>
-              user.status === "approved" &&
-              user.uid !== a.userId &&
-              user.specialty?.toLowerCase().includes(roleTocheck.toLowerCase()),
-          );
+            // Find compatible users for the first role in their set
+            const roleTocheck = currentRoles[0] || "";
+            const compatibleUsers = users.filter(
+              (user) =>
+                user.status === "approved" &&
+                user.uid !== a.userId &&
+                user.specialty
+                  ?.toLowerCase()
+                  .includes(roleTocheck.toLowerCase()),
+            );
 
-          return (
-            <div
-              key={i}
-              className={cn(
-                "flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border shadow-sm animate-in fade-in slide-in-from-left-2 duration-200 gap-4",
-                "border-gray-100",
-                selectedForRemoval.includes(i) ? "ring-2 ring-red-400" : "",
-              )}
-            >
-              <div className="flex items-start sm:items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={selectedForRemoval.includes(i)}
-                  onChange={() => toggleRemovalSelection(i)}
-                  className="mt-1 sm:mt-0 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                />
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-inner text-sm shrink-0",
-                    "bg-indigo-50 text-indigo-600",
-                  )}
-                >
-                  {u?.displayName?.[0] || ""}
-                </div>
-                <div className="flex flex-col">
-                  <p
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border shadow-sm animate-in fade-in slide-in-from-left-2 duration-200 gap-4",
+                  "border-gray-100",
+                  selectedForRemoval.includes(i) ? "ring-2 ring-red-400" : "",
+                )}
+              >
+                <div className="flex items-start sm:items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedForRemoval.includes(i)}
+                    onChange={() => toggleRemovalSelection(i)}
+                    className="mt-1 sm:mt-0 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <div
                     className={cn(
-                      "text-sm font-bold",
-                      "text-gray-900",
+                      "w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-inner text-sm shrink-0",
+                      "bg-indigo-50 text-indigo-600",
                     )}
                   >
-                    {u?.displayName}
-                  </p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {currentRoles.filter(Boolean).map((r: string) => (
-                      <span
-                        key={r}
-                        className={cn(
-                          "text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                          "bg-indigo-50 text-indigo-600",
-                        )}
-                      >
-                        {r}
-                      </span>
-                    ))}
+                    {u?.displayName?.[0] || ""}
+                  </div>
+                  <div className="flex flex-col">
+                    <p className={cn("text-sm font-bold", "text-gray-900")}>
+                      {u?.displayName}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {currentRoles.filter(Boolean).map((r: string) => (
+                        <span
+                          key={r}
+                          className={cn(
+                            "text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                            "bg-indigo-50 text-indigo-600",
+                          )}
+                        >
+                          {r}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <select
-                  className="flex-1 sm:w-32 text-xs p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  value=""
-                  onChange={(e) => handleQuickSwap(i, e.target.value)}
-                >
-                  <option value="" disabled>
-                    Trocar...
-                  </option>
-                  {compatibleUsers.map((compUser) => (
-                    <option key={compUser.uid} value={compUser.uid}>
-                      {compUser.displayName}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <select
+                    className="flex-1 sm:w-32 text-xs p-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    value=""
+                    onChange={(e) => handleQuickSwap(i, e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Trocar...
                     </option>
-                  ))}
-                  {compatibleUsers.length === 0 && (
-                    <option disabled>Nenhum voluntário apto</option>
-                  )}
-                </select>
-                <button
-                  onClick={() =>
-                    setAssignments(assignments.filter((_, idx) => idx !== i))
-                  }
-                  className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-                >
-                  <Trash2 size={16} />
-                </button>
+                    {compatibleUsers.map((compUser) => (
+                      <option key={compUser.uid} value={compUser.uid}>
+                        {compUser.displayName}
+                      </option>
+                    ))}
+                    {compatibleUsers.length === 0 && (
+                      <option disabled>Nenhum voluntário apto</option>
+                    )}
+                  </select>
+                  <button
+                    onClick={() =>
+                      setAssignments(assignments.filter((_, idx) => idx !== i))
+                    }
+                    className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         {assignments.length === 0 && (
           <p className="text-center text-gray-400 text-sm italic py-4">
             Nenhum voluntário escalado.
@@ -5154,7 +5835,7 @@ function CalendarView({
   calendarFilterType,
   setCalendarFilterType,
   calendarFilterStatus,
-  setCalendarFilterStatus
+  setCalendarFilterStatus,
 }: {
   events: ChurchEvent[];
   scales: Scale[];
@@ -5179,19 +5860,22 @@ function CalendarView({
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
   const filteredEvents = events
-    .filter((e) => calendarFilterType === 'all' || e.type === calendarFilterType)
+    .filter(
+      (e) => calendarFilterType === "all" || e.type === calendarFilterType,
+    )
     .filter((e) => {
-      if (calendarFilterStatus === 'all') return true;
-      const isPast = new Date(e.date) < new Date(new Date().setHours(0, 0, 0, 0));
-      if (calendarFilterStatus === 'CONCLUIDO') return isPast;
-      if (calendarFilterStatus === 'AGENDADO') return !isPast;
+      if (calendarFilterStatus === "all") return true;
+      const isPast =
+        new Date(e.date) < new Date(new Date().setHours(0, 0, 0, 0));
+      if (calendarFilterStatus === "CONCLUIDO") return isPast;
+      if (calendarFilterStatus === "AGENDADO") return !isPast;
       return true;
     });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-        <select 
+        <select
           className="text-sm p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none"
           value={calendarFilterType}
           onChange={(e) => setCalendarFilterType(e.target.value)}
@@ -5201,7 +5885,7 @@ function CalendarView({
           <option value="ENSAIO">Ensaio</option>
           <option value="REUNIAO">Reunião</option>
         </select>
-        <select 
+        <select
           className="text-sm p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none"
           value={calendarFilterStatus}
           onChange={(e) => setCalendarFilterStatus(e.target.value)}
@@ -5213,184 +5897,218 @@ function CalendarView({
       </div>
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in duration-300">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
-        <div>
-          <h3 className="text-xl font-bold text-gray-900 capitalize">
-            {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
-          </h3>
-          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">
-            Planejamento Mensal
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 hover:bg-white bg-white/50 rounded-xl transition-colors shadow-sm"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 hover:bg-white bg-white/50 rounded-xl transition-colors shadow-sm"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-      </div>
-      <div className="grid grid-cols-7 bg-gray-50/50 border-b border-gray-100">
-        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
-          <div
-            key={day}
-            className="py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest"
-          >
-            {day}
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 capitalize">
+              {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
+            </h3>
+            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">
+              Planejamento Mensal
+            </p>
           </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7">
-        {calendarDays.map((day, i) => {
-          const dayEvents = filteredEvents.filter((e) =>
-            isSameDay(new Date(e.date), day),
-          );
-          const isCurrentMonth = isSameMonth(day, monthStart);
-
-          return (
-            <div
-              key={i}
-              onClick={() => dayEvents.length > 0 && setSelectedDate(day)}
-              className={cn(
-                "min-h-[140px] p-2 border-r border-b border-gray-50 transition-colors hover:bg-gray-50/50",
-                !isCurrentMonth && "opacity-25",
-                dayEvents.length > 0 && "cursor-pointer"
-              )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+              className="p-2 hover:bg-white bg-white/50 rounded-xl transition-colors shadow-sm"
             >
-              <span
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+              className="p-2 hover:bg-white bg-white/50 rounded-xl transition-colors shadow-sm"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 bg-gray-50/50 border-b border-gray-100">
+          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
+            <div
+              key={day}
+              className="py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {calendarDays.map((day, i) => {
+            const dayEvents = filteredEvents.filter((e) =>
+              isSameDay(new Date(e.date), day),
+            );
+            const isCurrentMonth = isSameMonth(day, monthStart);
+
+            return (
+              <div
+                key={i}
+                onClick={() => dayEvents.length > 0 && setSelectedDate(day)}
                 className={cn(
-                  "text-xs font-bold mb-2 block w-6 h-6 flex items-center justify-center rounded-lg",
-                  isSameDay(day, new Date())
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-100"
-                    : "text-gray-400",
+                  "min-h-[100px] md:min-h-[140px] p-1.5 md:p-2 border-r border-b border-gray-100 transition-colors hover:bg-gray-50/50",
+                  !isCurrentMonth && "opacity-25",
+                  dayEvents.length > 0 && "cursor-pointer",
                 )}
               >
-                {format(day, "d")}
-              </span>
-              <div className="space-y-1.5">
-                {dayEvents.map((e) => {
-                  const scale = scales.find((s) => s.eventId === e.id);
-                  const volunteers = scale?.assignments
-                    .map(
-                      (a) =>
-                        allUsers
-                          .find((u) => u.uid === a.userId)
-                          ?.displayName.split(" ")[0],
-                    )
-                    .filter(Boolean)
-                    .join(", ");
+                <span
+                  className={cn(
+                    "text-xs font-bold mb-1.5 inline-flex w-6 h-6 items-center justify-center rounded-lg",
+                    isSameDay(day, new Date())
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-100"
+                      : "text-gray-400 font-medium",
+                  )}
+                >
+                  {format(day, "d")}
+                </span>
+                <div className="space-y-1">
+                  {dayEvents.map((e) => {
+                    const scale = scales.find((s) => s.eventId === e.id);
+                    const volunteers = scale?.assignments
+                      .map(
+                        (a) =>
+                          allUsers
+                            .find((u) => u.uid === a.userId)
+                            ?.displayName.split(" ")[0],
+                      )
+                      .filter(Boolean)
+                      .join(", ");
 
+                    return (
+                      <div
+                        key={e.id}
+                        className={cn(
+                          "p-1.5 rounded-md text-[10px] font-bold truncate transition-colors",
+                          e.type === "CULTO"
+                            ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                            : e.type === "ENSAIO"
+                              ? "bg-sky-50 text-sky-700 hover:bg-sky-100"
+                              : "bg-rose-50 text-rose-800 hover:bg-rose-100",
+                        )}
+                      >
+                        <div className="flex items-center justify-start gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
+                          <span className="truncate">
+                            {format(new Date(e.date), "HH:mm")} - {e.title}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {selectedDate && (
+          <Modal
+            title={`Atividades: ${format(selectedDate, "dd/MM/yyyy")}`}
+            onClose={() => setSelectedDate(null)}
+            isDarkMode={false}
+          >
+            <div className="space-y-4">
+              {events
+                .filter((e) => isSameDay(new Date(e.date), selectedDate))
+                .map((e) => {
+                  const scale = scales.find((s) => s.eventId === e.id);
                   return (
                     <div
                       key={e.id}
-                      className={cn(
-                        "px-2 py-1.5 rounded-lg text-[9px] font-bold border-l-2 shadow-sm",
-                        e.type === "CULTO"
-                          ? "bg-blue-50 text-blue-700 border-blue-600"
-                          : e.type === "ENSAIO"
-                            ? "bg-sky-50 text-sky-700 border-sky-400"
-                            : "bg-rose-50 text-rose-900 border-rose-900",
-                      )}
+                      className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm"
                     >
-                      <div className="flex justify-between items-center mb-0.5">
-                        <span>
-                          {format(new Date(e.date), "HH:mm")} {e.title}
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold text-gray-900">
+                          {format(new Date(e.date), "HH:mm")} - {e.title}
+                        </h4>
+                        <span
+                          className={cn(
+                            "px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider",
+                            e.type === "CULTO"
+                              ? "bg-blue-100 text-blue-700"
+                              : e.type === "ENSAIO"
+                                ? "bg-sky-100 text-sky-700"
+                                : "bg-rose-100 text-rose-900",
+                          )}
+                        >
+                          {e.type}
                         </span>
                       </div>
-                      {volunteers && (
-                        <div className="text-[7px] text-gray-500 italic border-t border-black/5 pt-0.5 mt-0.5 truncate">
-                          Escala: {volunteers}
+                      {e.description && (
+                        <p className="text-sm text-gray-600 mb-4">
+                          {e.description}
+                        </p>
+                      )}
+
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                          Equipe Escalada
+                        </p>
+                        {scale &&
+                        scale.assignments.filter(
+                          (a) => a.userId && a.userId !== "EMPTY",
+                        ).length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {scale.assignments
+                              .filter((a) => a.userId && a.userId !== "EMPTY")
+                              .map((a, i) => {
+                                const user = allUsers.find(
+                                  (u) => u.uid === a.userId,
+                                );
+                                return (
+                                  <div
+                                    key={i}
+                                    className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100"
+                                  >
+                                    <span
+                                      className={cn(
+                                        "text-xs font-bold",
+                                        "text-gray-900",
+                                      )}
+                                    >
+                                      {user?.displayName}
+                                    </span>
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded uppercase tracking-tighter">
+                                      {(a.roles || [(a as any).role])
+                                        .filter(Boolean)
+                                        .join(", ")}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">
+                            Ninguém escalado ainda.
+                          </p>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                          <button
+                            onClick={() => {
+                              setSelectedDate(null);
+                              setSelectedEventForScale(e);
+                              setIsScaleModalOpen(true);
+                            }}
+                            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all uppercase"
+                          >
+                            Editar Escalas
+                          </button>
                         </div>
                       )}
+                      <div className="mt-4 border-t border-gray-100 pt-4">
+                        {user && (
+                          <EventComments
+                            eventId={e.id}
+                            user={user}
+                            isAdmin={isAdmin}
+                          />
+                        )}
+                      </div>
                     </div>
                   );
                 })}
-              </div>
             </div>
-          );
-        })}
+          </Modal>
+        )}
       </div>
-
-      {selectedDate && (
-        <Modal 
-          title={`Atividades: ${format(selectedDate, "dd/MM/yyyy")}`}
-          onClose={() => setSelectedDate(null)}
-          isDarkMode={false}
-        >
-          <div className="space-y-4">
-            {events
-              .filter((e) => isSameDay(new Date(e.date), selectedDate))
-              .map((e) => {
-                const scale = scales.find((s) => s.eventId === e.id);
-                return (
-                  <div key={e.id} className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                       <h4 className="font-bold text-gray-900">{format(new Date(e.date), "HH:mm")} - {e.title}</h4>
-                       <span className={cn(
-                          "px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider",
-                          e.type === "CULTO"
-                            ? "bg-blue-100 text-blue-700"
-                            : e.type === "ENSAIO"
-                              ? "bg-sky-100 text-sky-700"
-                              : "bg-rose-100 text-rose-900"
-                        )}>
-                          {e.type}
-                        </span>
-                    </div>
-                    {e.description && <p className="text-sm text-gray-600 mb-4">{e.description}</p>}
-                    
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Equipe Escalada</p>
-                      {scale && scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {scale.assignments.filter(a => a.userId && a.userId !== "EMPTY").map((a, i) => {
-                            const user = allUsers.find(u => u.uid === a.userId);
-                            return (
-                              <div key={i} className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
-                                <span className={cn("text-xs font-bold", "text-gray-900")}>
-                                  {user?.displayName}
-                                </span>
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded uppercase tracking-tighter">
-                                  {(a.roles || [(a as any).role]).filter(Boolean).join(', ')}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-400 italic">Ninguém escalado ainda.</p>
-                      )}
-                    </div>
-                    {isAdmin && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-                        <button
-                          onClick={() => {
-                            setSelectedDate(null);
-                            setSelectedEventForScale(e);
-                            setIsScaleModalOpen(true);
-                          }}
-                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all uppercase"
-                        >
-                          Editar Escalas
-                        </button>
-                      </div>
-                    )}
-                    <div className="mt-4 border-t border-gray-100 pt-4">
-                      {user && <EventComments eventId={e.id} user={user} isAdmin={isAdmin} />}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </Modal>
-      )}
-    </div>
     </div>
   );
 }
@@ -5433,11 +6151,7 @@ function SetlistForm({
           Conteúdo
         </label>
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <ReactQuill
-            theme="snow"
-            value={content}
-            onChange={setContent}
-          />
+          <ReactQuill theme="snow" value={content} onChange={setContent} />
         </div>
       </div>
       <button
@@ -5490,7 +6204,7 @@ function SetlistView({
           updatedAt: new Date().toISOString(),
         });
         toast.success("Setlist criado!");
-        
+
         // Broadcast notification to all users
         let notifCount = 0;
         for (const u of users) {
@@ -5499,12 +6213,12 @@ function SetlistView({
             title: "Novo Setlist de Louvor",
             message: `O setlist "${title}" foi publicado.`,
             read: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
           });
           notifCount++;
         }
-        if(notifCount > 0) toast.success(`Notificação enviada a ${notifCount} voluntários!`);
-
+        if (notifCount > 0)
+          toast.success(`Notificação enviada a ${notifCount} voluntários!`);
       }
       setIsModalOpen(false);
       setEditingSetlist(null);
@@ -5513,7 +6227,9 @@ function SetlistView({
     }
   };
 
-  const themeBg = "bg-primary hover:opacity-90 text-white shadow-sm " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeBg =
+    "bg-primary hover:opacity-90 text-white shadow-sm " +
+    (theme === "sunflower_yellow" ? "text-slate-900" : "");
   const themeTextHov = "group-hover:text-primary";
 
   return (
@@ -5526,7 +6242,10 @@ function SetlistView({
               setEditingSetlist(null);
               setIsModalOpen(true);
             }}
-            className={cn("text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg transition-colors", themeBg)}
+            className={cn(
+              "text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg transition-colors",
+              themeBg,
+            )}
           >
             <Plus size={16} /> Novo Setlist
           </button>
@@ -5542,7 +6261,12 @@ function SetlistView({
           >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className={cn("font-bold text-gray-900 text-lg transition-colors", themeTextHov)}>
+                <h4
+                  className={cn(
+                    "font-bold text-gray-900 text-lg transition-colors",
+                    themeTextHov,
+                  )}
+                >
                   {s.title}
                 </h4>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
@@ -5596,9 +6320,9 @@ function SetlistView({
           onClose={() => setIsModalOpen(false)}
         >
           <SetlistForm
-             initialTitle={editingSetlist?.title || ""}
-             initialContent={editingSetlist?.content || ""}
-             onSave={handleSave}
+            initialTitle={editingSetlist?.title || ""}
+            initialContent={editingSetlist?.content || ""}
+            onSave={handleSave}
           />
         </Modal>
       )}
@@ -5615,7 +6339,11 @@ function CronogramaForm({
   initialTitle: string;
   initialContent: string;
   initialLink: string;
-  onSave: (title: string, content: string, externalLink: string) => Promise<void>;
+  onSave: (
+    title: string,
+    content: string,
+    externalLink: string,
+  ) => Promise<void>;
 }) {
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
@@ -5647,11 +6375,7 @@ function CronogramaForm({
           Conteúdo (Opcional se houver link)
         </label>
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <ReactQuill
-            theme="snow"
-            value={content}
-            onChange={setContent}
-          />
+          <ReactQuill theme="snow" value={content} onChange={setContent} />
         </div>
       </div>
       <div>
@@ -5696,7 +6420,11 @@ function CronogramaView({
     null,
   );
 
-  const handleSave = async (title: string, content: string, externalLink: string) => {
+  const handleSave = async (
+    title: string,
+    content: string,
+    externalLink: string,
+  ) => {
     if (!title || (!content && !externalLink)) {
       toast.error("Título e (conteúdo ou link) são obrigatórios.");
       return;
@@ -5729,12 +6457,12 @@ function CronogramaView({
             title: "Novo Cronograma Publicado",
             message: `Verifique o cronograma do culto: "${title}".`,
             read: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
           });
           notifCount++;
         }
-        if(notifCount > 0) toast.success(`Notificação enviada a ${notifCount} voluntários!`);
-
+        if (notifCount > 0)
+          toast.success(`Notificação enviada a ${notifCount} voluntários!`);
       }
       setIsModalOpen(false);
       setEditingCronograma(null);
@@ -5754,28 +6482,32 @@ function CronogramaView({
         </div>
       </div>
     `;
-    
+
     // Explicitly resetting any inherited dark mode classes to ensure children styling works fine internally
     Object.assign(element.style, {
-      position: 'absolute',
-      left: '-9999px',
-      top: '-9999px',
-      backgroundColor: '#ffffff'
+      position: "absolute",
+      left: "-9999px",
+      top: "-9999px",
+      backgroundColor: "#ffffff",
     });
     element.className = ""; // Remove any 'dark' or 'glass' class
 
     // Quill uses strong inline styles but sometimes color inherits from body
     // Let's force all child text to be black.
     const styleSheet = document.createElement("style");
-    styleSheet.innerText = "* { color: #000000 !important; background-color: transparent; }";
+    styleSheet.innerText =
+      "* { color: #000000 !important; background-color: transparent; }";
     element.appendChild(styleSheet);
 
     document.body.appendChild(element);
 
     try {
-      const canvas = await html2canvas(element, { scale: 2, backgroundColor: "#ffffff" });
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+      });
       const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF("p", "mm", "a4");
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -5804,7 +6536,9 @@ function CronogramaView({
     }
   };
 
-  const themeBg = "bg-primary hover:opacity-90 text-white shadow-sm " + (theme === "sunflower_yellow" ? "text-slate-900" : "");
+  const themeBg =
+    "bg-primary hover:opacity-90 text-white shadow-sm " +
+    (theme === "sunflower_yellow" ? "text-slate-900" : "");
   const themeTextHov = "group-hover:text-primary";
 
   return (
@@ -5817,7 +6551,10 @@ function CronogramaView({
               setEditingCronograma(null);
               setIsModalOpen(true);
             }}
-            className={cn("text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg transition-colors", themeBg)}
+            className={cn(
+              "text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm shadow-lg transition-colors",
+              themeBg,
+            )}
           >
             <Plus size={16} /> Novo Cronograma
           </button>
@@ -5833,7 +6570,12 @@ function CronogramaView({
           >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className={cn("font-bold text-gray-900 text-lg transition-colors", themeTextHov)}>
+                <h4
+                  className={cn(
+                    "font-bold text-gray-900 text-lg transition-colors",
+                    themeTextHov,
+                  )}
+                >
                   {c.title}
                 </h4>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
@@ -5940,7 +6682,10 @@ function ProfileForm({
     bg_color: user.bg_color || user.color || "#4F46E5",
     profile_emoji: user.profile_emoji || "",
     initials: user.initials || "",
-    maxScalesPerMonth: (user.maxScalesPerMonth !== undefined && user.maxScalesPerMonth !== null) ? user.maxScalesPerMonth.toString() : "",
+    maxScalesPerMonth:
+      user.maxScalesPerMonth !== undefined && user.maxScalesPerMonth !== null
+        ? user.maxScalesPerMonth.toString()
+        : "",
     availableDays: user.availableDays || [0, 1, 2, 3, 4, 5, 6],
   });
 
@@ -5948,8 +6693,16 @@ function ProfileForm({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const PROFILE_COLORS = [
-    "#EF4444", "#F97316", "#F59E0B", "#10B981", "#06B6D4",
-    "#3B82F6", "#6366F1", "#8B5CF6", "#D946EF", "#F43F5E"
+    "#EF4444",
+    "#F97316",
+    "#F59E0B",
+    "#10B981",
+    "#06B6D4",
+    "#3B82F6",
+    "#6366F1",
+    "#8B5CF6",
+    "#D946EF",
+    "#F43F5E",
   ];
 
   const DAYS_OF_WEEK = [
@@ -5964,16 +6717,97 @@ function ProfileForm({
 
   const PROFILE_EMOJIS = [
     // Rosto e Sentimentos
-    "😀", "😎", "🤓", "😇", "🤠", "😜", "🤩", "🤔", "🤫", "🤬", "🤡", "👻", "👽", "👾", "🤖",
+    "😀",
+    "😎",
+    "🤓",
+    "😇",
+    "🤠",
+    "😜",
+    "🤩",
+    "🤔",
+    "🤫",
+    "🤬",
+    "🤡",
+    "👻",
+    "👽",
+    "👾",
+    "🤖",
     // Variações de Pessoas
-    "🧑", "👩", "👱‍♂️", "👱‍♀️", "🧔", "👨‍🦲", "👩‍🦲", "👨‍🦳", "👩‍🦳", "🧑‍🦱", "👩‍🦱", "🧑‍🦰", "👩‍🦰", 
-    "👶", "👦", "👧", "👨", "👩", "🧓", "👴", "👵",
+    "🧑",
+    "👩",
+    "👱‍♂️",
+    "👱‍♀️",
+    "🧔",
+    "👨‍🦲",
+    "👩‍🦲",
+    "👨‍🦳",
+    "👩‍🦳",
+    "🧑‍🦱",
+    "👩‍🦱",
+    "🧑‍🦰",
+    "👩‍🦰",
+    "👶",
+    "👦",
+    "👧",
+    "👨",
+    "👩",
+    "🧓",
+    "👴",
+    "👵",
     // Animais
-    "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🦄", "🐙", "🦖", "🦋",
+    "🐶",
+    "🐱",
+    "🐭",
+    "🐹",
+    "🐰",
+    "🦊",
+    "🐻",
+    "🐼",
+    "🐨",
+    "🐯",
+    "🦁",
+    "🐮",
+    "🐷",
+    "🐸",
+    "🐵",
+    "🦄",
+    "🐙",
+    "🦖",
+    "🦋",
     // Música e Mídia
-    "🎸", "🥁", "🎹", "🎺", "🎻", "🎤", "🎧", "📻", "📷", "📸", "📹", "🎥", "🎬", "📺", "💻", "📱",
+    "🎸",
+    "🥁",
+    "🎹",
+    "🎺",
+    "🎻",
+    "🎤",
+    "🎧",
+    "📻",
+    "📷",
+    "📸",
+    "📹",
+    "🎥",
+    "🎬",
+    "📺",
+    "💻",
+    "📱",
     // Igreja e Outros
-    "⛪", "✝️", "🔥", "🕊️", "🙌", "🙏", "📖", "✨", "❤️", "⭐", "🎵", "🎶", "👑", "🛡️", "⚔️", "💡"
+    "⛪",
+    "✝️",
+    "🔥",
+    "🕊️",
+    "🙌",
+    "🙏",
+    "📖",
+    "✨",
+    "❤️",
+    "⭐",
+    "🎵",
+    "🎶",
+    "👑",
+    "🛡️",
+    "⚔️",
+    "💡",
   ];
 
   const handleEmojiSelect = (emoji: string) => {
@@ -6000,7 +6834,10 @@ function ProfileForm({
 
   useEffect(() => {
     if (formData.displayName && !formData.initials && !user.initials) {
-      setFormData(prev => ({...prev, initials: prev.displayName.substring(0, 2).toUpperCase()}));
+      setFormData((prev) => ({
+        ...prev,
+        initials: prev.displayName.substring(0, 2).toUpperCase(),
+      }));
     }
   }, [formData.displayName, user.initials]);
 
@@ -6021,7 +6858,9 @@ function ProfileForm({
         bg_color: formData.bg_color,
         profile_emoji: formData.profile_emoji,
         initials: formData.initials,
-        maxScalesPerMonth: formData.maxScalesPerMonth ? parseInt(formData.maxScalesPerMonth, 10) : null,
+        maxScalesPerMonth: formData.maxScalesPerMonth
+          ? parseInt(formData.maxScalesPerMonth, 10)
+          : null,
         availableDays: formData.availableDays,
         updatedAt: new Date().toISOString(),
       });
@@ -6037,9 +6876,14 @@ function ProfileForm({
   return (
     <div className="space-y-6 max-h-[80vh] overflow-y-auto hide-scrollbar px-2">
       <div className="flex flex-col items-center gap-4 relative">
-        <div 
+        <div
           className="w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden relative group flex items-center justify-center text-4xl font-bold"
-          style={{ backgroundColor: formData.photoURL ? 'transparent' : formData.bg_color, color: 'white' }}
+          style={{
+            backgroundColor: formData.photoURL
+              ? "transparent"
+              : formData.bg_color,
+            color: "white",
+          }}
         >
           {formData.photoURL ? (
             <img
@@ -6051,7 +6895,8 @@ function ProfileForm({
           ) : formData.profile_emoji ? (
             formData.profile_emoji
           ) : (
-             formData.initials || formData.displayName.substring(0, 2).toUpperCase()
+            formData.initials ||
+            formData.displayName.substring(0, 2).toUpperCase()
           )}
           <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex flex-col items-center justify-center gap-1 text-white">
             <Camera size={20} />
@@ -6088,9 +6933,11 @@ function ProfileForm({
           {showEmojiPicker && (
             <div className="absolute top-10 left-1/2 -translate-x-1/2 p-4 bg-white border border-gray-100 rounded-xl shadow-lg w-full min-w-[280px] z-50">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Escolha um emoji</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Escolha um emoji
+                </span>
                 {formData.profile_emoji && (
-                  <button 
+                  <button
                     onClick={() => handleEmojiSelect("")}
                     className="text-[10px] font-bold text-red-500 hover:underline"
                   >
@@ -6105,7 +6952,8 @@ function ProfileForm({
                     onClick={() => handleEmojiSelect(emoji)}
                     className={cn(
                       "w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-50 rounded-lg transition-colors border border-gray-100",
-                      formData.profile_emoji === emoji && "bg-indigo-50 border-indigo-200"
+                      formData.profile_emoji === emoji &&
+                        "bg-indigo-50 border-indigo-200",
                     )}
                   >
                     {emoji}
@@ -6117,23 +6965,29 @@ function ProfileForm({
         </div>
 
         {!formData.photoURL && (
-           <div className="w-full mt-2">
-             <label className="block text-xs font-bold text-center text-gray-400 uppercase tracking-widest mb-2">Cor de Fundo</label>
-             <div className="flex flex-wrap justify-center gap-2">
-               {PROFILE_COLORS.map(color => (
-                 <button
-                   key={color}
-                   type="button"
-                   onClick={() => setFormData(prev => ({...prev, bg_color: color}))}
-                   className={cn(
-                     "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
-                     formData.bg_color === color ? "border-gray-900 scale-110" : "border-transparent"
-                   )}
-                   style={{ backgroundColor: color }}
-                 />
-               ))}
-             </div>
-           </div>
+          <div className="w-full mt-2">
+            <label className="block text-xs font-bold text-center text-gray-400 uppercase tracking-widest mb-2">
+              Cor de Fundo
+            </label>
+            <div className="flex flex-wrap justify-center gap-2">
+              {PROFILE_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, bg_color: color }))
+                  }
+                  className={cn(
+                    "w-8 h-8 rounded-full border-2 transition-transform hover:scale-110",
+                    formData.bg_color === color
+                      ? "border-gray-900 scale-110"
+                      : "border-transparent",
+                  )}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
@@ -6167,7 +7021,10 @@ function ProfileForm({
             )}
             value={formData.initials}
             onChange={(e) =>
-              setFormData({ ...formData, initials: e.target.value.toUpperCase() })
+              setFormData({
+                ...formData,
+                initials: e.target.value.toUpperCase(),
+              })
             }
           />
         </div>
@@ -6245,7 +7102,7 @@ function ProfileForm({
                       "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border",
                       isSelected
                         ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50",
                     )}
                   >
                     {day.label}
@@ -6253,7 +7110,9 @@ function ProfileForm({
                 );
               })}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">A IA não colocará você em eventos nos dias desmarcados.</p>
+            <p className="text-[10px] text-gray-400 mt-1">
+              A IA não colocará você em eventos nos dias desmarcados.
+            </p>
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">

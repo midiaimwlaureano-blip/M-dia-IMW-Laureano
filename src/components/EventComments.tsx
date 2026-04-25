@@ -66,7 +66,8 @@ export default function EventComments({ eventId, user, isAdmin }: { eventId: str
         onClick={() => setIsExpanded(true)}
         className="mt-2 text-xs font-bold text-gray-500 hover:text-indigo-600 flex items-center justify-center w-full py-2 bg-gray-50 rounded-xl gap-2 transition-colors border border-gray-100"
       >
-        <MessageSquare size={14} /> Mostrar Comentários
+        <MessageSquare size={14} /> 
+        {comments.length > 0 ? `${comments.length} Comentário${comments.length !== 1 ? 's' : ''}` : 'Adicionar Comentário'}
       </button>
     );
   }
