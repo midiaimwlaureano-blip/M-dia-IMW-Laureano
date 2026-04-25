@@ -2294,7 +2294,12 @@ export default function App() {
                           return (
                             <div
                               key={event.id}
-                              className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group"
+                              className={cn(
+                                "p-6 rounded-3xl border shadow-sm relative overflow-hidden group transition-all",
+                                scale?.assignments.some((a) => a.userId === user?.uid)
+                                  ? "bg-blue-50/20 border-blue-500 shadow-blue-500/10"
+                                  : "bg-white border-gray-100",
+                              )}
                             >
                               <div
                                 className={cn(
@@ -2430,8 +2435,9 @@ export default function App() {
                               })
                               .map(event => {
                                 const scale = scales.find((s) => s.eventId === event.id);
+                                const isAssigned = scale?.assignments.some((a) => a.userId === user?.uid);
                                 return (
-                                  <tr key={event.id} className="hover:bg-gray-50 transition-colors">
+                                  <tr key={event.id} className={cn("hover:bg-gray-50 transition-colors", isAssigned && "bg-blue-50/20")}>
                                     <td className="px-4 py-3 font-bold text-gray-900">{event.title}</td>
                                     <td className="px-4 py-3 text-sm text-gray-500">{formatDate(event.date)}</td>
                                     <td className="px-4 py-3">
@@ -2932,7 +2938,6 @@ export default function App() {
                     isAdmin={canSeeMaintenanceAndNotifications}
                     events={events}
                     scales={scales}
-                    users={allUsers}
                   />
                 )}
               </>
@@ -3284,6 +3289,17 @@ export default function App() {
               }
               toast.success("Escala atualizada!");
               setIsScaleModalOpen(false);
+              
+              // Notifica voluntários escalados
+              try {
+                const { sendNotification } = await import('./utils/notificationService');
+                const targetUsers = allUsers.filter(u => assignments.some(a => a.userId === u.uid));
+                if (targetUsers.length > 0) {
+                  await sendNotification(targetUsers, "Nova Escala!", "Você foi escalado. Confira os detalhes no App!");
+                }
+              } catch (err) {
+                console.error("Erro ao notificar escalados", err);
+              }
             }}
           />
         </Modal>
