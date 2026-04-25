@@ -25,6 +25,8 @@ self.addEventListener('push', function(event) {
           badge: '/favicon.svg',
           vibrate: [200, 100, 200, 100, 200, 100, 200],
           tag: tag,
+          requireInteraction: true,
+          priority: 'high',
           ...options
         })
       );
@@ -35,7 +37,9 @@ self.addEventListener('push', function(event) {
           body: event.data.text(),
           icon: '/favicon.svg',
           vibrate: [200, 100, 200],
-          tag: 'lembrete-evento'
+          tag: 'lembrete-evento',
+          priority: 'high',
+          requireInteraction: true
         })
       );
     }

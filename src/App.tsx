@@ -15,6 +15,7 @@ import {
   setDoc,
   getDocs,
   getDocFromServer,
+  arrayUnion,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType, storage, messaging } from "./firebase";
 import {
@@ -120,6 +121,14 @@ import EventComments from "./components/EventComments";
 
 export default function App() {
   const { user, loading, login, logout, isAdmin, isCoordinator } = useAuth();
+  
+  const isSuperAdmin = Boolean(
+    user?.email && 
+    ['midiaimwlaureano@gmail.com', 'thatianebusiness@gmail.com', 'melolucas78@gmail.com'].includes(user.email)
+  );
+
+  const canSeeMaintenanceAndNotifications = isAdmin || user?.role === 'LIDER_II' || user?.role === 'ADMIN' || isSuperAdmin;
+
   const [activeTab, setActiveTab] = useState(() => {
     const path = window.location.pathname.substring(1);
     if (path === "manutencao") return "maintenance";
@@ -1141,8 +1150,8 @@ export default function App() {
           className={cn(
             "flex gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar",
             navStyle === "sidebar"
-              ? "flex-row md:flex-col p-4 flex-none md:flex-1"
-              : "flex-row items-center px-4",
+              ? "flex-row md:flex-col p-4 flex-none md:flex-1 min-h-0"
+              : "flex-row items-center px-4 min-h-0",
           )}
         >
           <NavItem
@@ -1209,7 +1218,7 @@ export default function App() {
             compact={navStyle === "top" || isSidebarCollapsed}
             theme={theme}
           />
-          {(isAdmin || user?.role === 'LIDER_II' || user?.role === 'ADMIN') && (
+          {canSeeMaintenanceAndNotifications && (
             <>
               <NavItem
                 active={activeTab === "maintenance"}
@@ -2485,7 +2494,7 @@ export default function App() {
                                     const vKey = "BFoLlMlj01AqBHRBH935fkVn71ppmRm3241wR1HlMCpBclqSlOR-kkRfdhrfob35QG1v7WJ8mxA_5nJNFwWk_iA";
                                     const token = await getToken(messaging, { vapidKey: vKey });
                                     if (token) {
-                                      await updateDoc(doc(db, "users", user.uid), { fcmToken: token, pushEnabled: true });
+                                      await updateDoc(doc(db, "users", user.uid), { fcmTokens: arrayUnion(token), pushEnabled: true });
                                       toast.success("Notificações ativadas com sucesso!");
                                     } else {
                                       toast.error("Não foi possível gerar um token FCM. Configure seu VAPID_KEY.");
@@ -2829,7 +2838,7 @@ export default function App() {
 
                 {activeTab === "maintenance" && (
                   <MaintenanceCenter
-                    isAdmin={user?.role === 'LIDER_II' || user?.role === 'ADMIN'}
+                    isAdmin={canSeeMaintenanceAndNotifications}
                     events={events}
                     scales={scales}
                     users={allUsers}
