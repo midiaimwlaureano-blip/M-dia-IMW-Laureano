@@ -2297,7 +2297,7 @@ export default function App() {
                               className={cn(
                                 "p-6 rounded-3xl border shadow-sm relative overflow-hidden group transition-all",
                                 scale?.assignments.some((a) => a.userId === user?.uid)
-                                  ? "bg-blue-50/20 border-blue-500 shadow-blue-500/10"
+                                  ? "animate-neon-pulse"
                                   : "bg-white border-gray-100",
                               )}
                             >
@@ -2437,7 +2437,7 @@ export default function App() {
                                 const scale = scales.find((s) => s.eventId === event.id);
                                 const isAssigned = scale?.assignments.some((a) => a.userId === user?.uid);
                                 return (
-                                  <tr key={event.id} className={cn("hover:bg-gray-50 transition-colors", isAssigned && "bg-blue-50/20")}>
+                                  <tr key={event.id} className={cn("hover:bg-gray-50 transition-colors", isAssigned && "animate-neon-pulse")}>
                                     <td className="px-4 py-3 font-bold text-gray-900">{event.title}</td>
                                     <td className="px-4 py-3 text-sm text-gray-500">{formatDate(event.date)}</td>
                                     <td className="px-4 py-3">
