@@ -213,9 +213,38 @@ export default function MaintenanceCenter({ isAdmin, events, scales }: { isAdmin
           <h2 className="text-2xl font-bold text-gray-900">Manutenção</h2>
           <p className="text-gray-500 text-sm">Controle e otimização do banco de dados (Firebase Spark).</p>
         </div>
+        <button
+          onClick={async () => {
+             const { addDoc } = await import('firebase/firestore');
+             let thirtyOneDaysAgo = new Date();
+             thirtyOneDaysAgo.setDate(thirtyOneDaysAgo.getDate() - 31);
+             
+             setIsLoading(true);
+             try {
+               const promises = [];
+               for(let i=0; i<10; i++) {
+                 promises.push(addDoc(collection(db, 'logs'), {
+                   timestamp: Timestamp.fromDate(thirtyOneDaysAgo),
+                   msg: 'Fake test log ' + i
+                 }));
+               }
+               await Promise.all(promises);
+               toast.success("10 logs falsos criados. Atualizando painel...");
+               calculateCounts();
+             } catch(err) {
+               console.error(err);
+             } finally {
+               setIsLoading(false);
+             }
+          }}
+          disabled={isLoading}
+          className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+        >
+          Simular Lixo
+        </button>
       </div>
 
-      {totalAccumulated > 500 && (
+      {totalAccumulated > 0 && (
         <div className="bg-amber-50 rounded-2xl border border-amber-100 p-6 flex flex-col md:flex-row items-center gap-6 justify-between animate-in slide-in-from-top-4 fade-in">
           <div className="flex items-center gap-4 text-amber-800">
             <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
@@ -295,7 +324,7 @@ function MaintenanceCard({ icon, title, description, count, onClear, isLoading, 
     indigo: "bg-indigo-50 border-indigo-100 text-indigo-600",
   };
 
-  const isDisabled = isLoading || count < 500;
+  const isDisabled = isLoading || count <= 0;
 
   return (
     <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">

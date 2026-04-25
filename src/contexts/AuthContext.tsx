@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
 import { User } from '../types';
 
@@ -21,7 +21,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let userUnsubscribe: (() => void) | undefined;
+
+    const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
           const isLider2Email = ['melolucas78@gmail.com'].includes(firebaseUser.email || '');
@@ -29,70 +31,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           let expectedRole = isLider2Email ? 'LIDER_II' : (isAdminEmail ? 'LIDER_I' : undefined);
 
-          // Try to find user by UID first
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data() as User;
-            if (expectedRole && (userData.role !== expectedRole || userData.status !== 'approved')) {
-              await updateDoc(doc(db, 'users', firebaseUser.uid), { role: expectedRole, status: 'approved' });
-              userData.role = expectedRole as any;
-              userData.status = 'approved';
-            }
-            setUser({ uid: userDoc.id, ...userData });
-          } else {
-            // Check if user was pre-registered by email
-            const q = query(collection(db, 'users'), where('email', '==', firebaseUser.email));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-              const existingDoc = querySnapshot.docs[0];
-              const existingData = existingDoc.data();
-              
-              const newUser: User = {
-                ...existingData,
-                uid: firebaseUser.uid,
-                displayName: firebaseUser.displayName || existingData.displayName || 'Usuário',
-                email: firebaseUser.email || existingData.email || '',
-              } as User;
-
-              if (expectedRole) {
-                newUser.role = expectedRole as any;
-                newUser.status = 'approved';
+          // Listen to user document
+          userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), async (userDoc) => {
+            if (userDoc.exists()) {
+              const userData = userDoc.data() as User;
+              if (expectedRole && (userData.role !== expectedRole || userData.status !== 'approved')) {
+                await updateDoc(doc(db, 'users', firebaseUser.uid), { role: expectedRole, status: 'approved' });
+                userData.role = expectedRole as any;
+                userData.status = 'approved';
               }
-
-              await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-              if (existingDoc.id !== firebaseUser.uid) {
-                await deleteDoc(existingDoc.ref);
-              }
-              setUser(newUser);
+              setUser({ uid: userDoc.id, ...userData });
+              setLoading(false);
             } else {
-              // New user registration
-              const newUser: User = {
-                uid: firebaseUser.uid,
-                displayName: firebaseUser.displayName || 'Usuário',
-                email: firebaseUser.email || '',
-                role: expectedRole ? (expectedRole as any) : 'VOLUNTARIO',
-                status: expectedRole ? 'approved' : 'pending',
-                createdAt: new Date().toISOString(),
-                color: '#4F46E5', // Default indigo
-              };
-              await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-              setUser(newUser);
+              // Check if user was pre-registered by email
+              const q = query(collection(db, 'users'), where('email', '==', firebaseUser.email));
+              const querySnapshot = await getDocs(q);
+              
+              if (!querySnapshot.empty) {
+                const existingDoc = querySnapshot.docs[0];
+                const existingData = existingDoc.data();
+                
+                const newUser: User = {
+                  ...existingData,
+                  uid: firebaseUser.uid,
+                  displayName: firebaseUser.displayName || existingData.displayName || 'Usuário',
+                  email: firebaseUser.email || existingData.email || '',
+                } as User;
+
+                if (expectedRole) {
+                  newUser.role = expectedRole as any;
+                  newUser.status = 'approved';
+                }
+
+                await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+                if (existingDoc.id !== firebaseUser.uid) {
+                  await deleteDoc(existingDoc.ref);
+                }
+                // don't setUser here, the snapshot will catch it
+              } else {
+                // New user registration
+                const newUser: User = {
+                  uid: firebaseUser.uid,
+                  displayName: firebaseUser.displayName || 'Usuário',
+                  email: firebaseUser.email || '',
+                  role: expectedRole ? (expectedRole as any) : 'VOLUNTARIO',
+                  status: expectedRole ? 'approved' : 'pending',
+                  createdAt: new Date().toISOString(),
+                  color: '#4F46E5', // Default indigo
+                };
+                await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+                // snapshot catches it
+              }
             }
-          }
+          }, (err) => {
+             console.error("Snapshot error:", err);
+             setLoading(false);
+          });
         } catch (error) {
           console.error("Error fetching or creating user:", error);
-          // If there's an error (like permission denied), we should sign out to prevent a broken state
           await signOut(auth);
           setUser(null);
+          setLoading(false);
         }
       } else {
+        if (userUnsubscribe) {
+          userUnsubscribe();
+          userUnsubscribe = undefined;
+        }
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (userUnsubscribe) userUnsubscribe();
+      authUnsubscribe();
+    };
   }, []);
 
   const login = async () => {

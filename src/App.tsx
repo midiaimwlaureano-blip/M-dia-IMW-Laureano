@@ -248,6 +248,11 @@ export default function App() {
   const [viewingCronograma, setViewingCronograma] = useState<Cronograma | null>(null);
   const [isDateScheduleModalOpen, setIsDateScheduleModalOpen] = useState(false);
   const [dateScheduleUser, setDateScheduleUser] = useState("");
+  const [localPushEnabled, setLocalPushEnabled] = useState(user?.pushEnabled ?? false);
+
+  useEffect(() => {
+    setLocalPushEnabled(user?.pushEnabled ?? false);
+  }, [user?.pushEnabled]);
   const [dateScheduleRole, setDateScheduleRole] = useState("");
   const [dateScheduleEvents, setDateScheduleEvents] = useState<string[]>([]);
 
@@ -330,7 +335,7 @@ export default function App() {
               // Only trigger for notifications created in the last 15 seconds
               if (now - createdAt < 15000 && user.pushEnabled) {
                  if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification(notifData.title, { body: notifData.message, icon: '/favicon.svg' });
+                    new Notification(notifData.title, { body: notifData.message, icon: '/favicon.svg', tag: 'lembrete-evento' });
                  }
               }
            }
@@ -354,7 +359,7 @@ export default function App() {
               const now = Date.now();
               if (now - createdAt < 15000 && user.pushEnabled) {
                  if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification(annData.title, { body: annData.description, icon: '/favicon.svg' });
+                    new Notification(annData.title, { body: annData.description, icon: '/favicon.svg', tag: 'lembrete-evento' });
                  }
               }
            }
@@ -1204,7 +1209,7 @@ export default function App() {
             compact={navStyle === "top" || isSidebarCollapsed}
             theme={theme}
           />
-          {(user?.role === 'LIDER_II' || user?.role === 'ADMIN') && (
+          {(isAdmin || user?.role === 'LIDER_II' || user?.role === 'ADMIN') && (
             <>
               <NavItem
                 active={activeTab === "maintenance"}
@@ -2464,12 +2469,13 @@ export default function App() {
                          <p className="text-sm text-gray-500">Receba alertas no celular em tempo real.</p>
                       </div>
                       <div className="flex gap-2 items-center">
-                        <span className="text-sm font-medium text-gray-700">{user.pushEnabled ? 'Ativado' : 'Desativado'}</span>
+                        <span className="text-sm font-medium text-gray-700">{localPushEnabled ? 'Ativado' : 'Desativado'}</span>
                         <button
                           role="switch"
-                          aria-checked={user.pushEnabled ?? false}
+                          aria-checked={localPushEnabled}
                           onClick={async () => {
-                            const newValue = !(user.pushEnabled ?? false);
+                            const newValue = !localPushEnabled;
+                            setLocalPushEnabled(newValue); // Optimistic UI
                             if (newValue && "Notification" in window) {
                               try {
                                 const permission = await window.Notification.requestPermission();
@@ -2483,6 +2489,7 @@ export default function App() {
                                       toast.success("Notificações ativadas com sucesso!");
                                     } else {
                                       toast.error("Não foi possível gerar um token FCM. Configure seu VAPID_KEY.");
+                                      setLocalPushEnabled(false);
                                     }
                                   } else {
                                     await updateDoc(doc(db, "users", user.uid), { pushEnabled: true });
@@ -2490,10 +2497,12 @@ export default function App() {
                                   }
                                 } else {
                                   toast.error("A permissão para notificações foi negada.");
+                                  setLocalPushEnabled(false);
                                 }
                               } catch (err) {
                                 console.error(err);
                                 toast.error("Erro ao registrar notificações: " + (err as Error).message);
+                                setLocalPushEnabled(false);
                               }
                             } else {
                               await updateDoc(doc(db, "users", user.uid), { pushEnabled: newValue });
@@ -2501,18 +2510,19 @@ export default function App() {
                                 toast.success("Notificações push desativadas.");
                               } else {
                                 toast.error("Seu dispositivo ou navegador não suporta notificações Push.");
+                                setLocalPushEnabled(false);
                               }
                             }
                           }}
                           className={cn(
                             "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
-                            (user.pushEnabled ?? false) ? "bg-indigo-600" : "bg-gray-300"
+                            localPushEnabled ? "bg-indigo-600" : "bg-gray-300"
                           )}
                         >
                           <span
                             className={cn(
                               "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                              (user.pushEnabled ?? false) ? "translate-x-6" : "translate-x-1"
+                              localPushEnabled ? "translate-x-6" : "translate-x-1"
                             )}
                           />
                         </button>

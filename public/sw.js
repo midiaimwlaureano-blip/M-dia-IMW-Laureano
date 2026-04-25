@@ -7,6 +7,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', function(event) {
+  console.log('Recebi Push', event);
   if (event.data) {
     try {
       const data = event.data.json();
@@ -15,6 +16,7 @@ self.addEventListener('push', function(event) {
       const title = data.title || data.notification?.title || 'Nova Notificação IMW Laureano';
       const body = data.body || data.notification?.body || '';
       const options = data.options || {};
+      const tag = data.tag || options.tag || 'lembrete-evento';
       
       event.waitUntil(
         self.registration.showNotification(title, {
@@ -22,6 +24,7 @@ self.addEventListener('push', function(event) {
           icon: '/favicon.svg',
           badge: '/favicon.svg',
           vibrate: [200, 100, 200, 100, 200, 100, 200],
+          tag: tag,
           ...options
         })
       );
@@ -31,7 +34,8 @@ self.addEventListener('push', function(event) {
         self.registration.showNotification('Mídia IMW Laureano', {
           body: event.data.text(),
           icon: '/favicon.svg',
-          vibrate: [200, 100, 200]
+          vibrate: [200, 100, 200],
+          tag: 'lembrete-evento'
         })
       );
     }
