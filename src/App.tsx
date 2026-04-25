@@ -1109,7 +1109,7 @@ export default function App() {
 
         <nav
           className={cn(
-            "flex gap-2 overflow-x-auto no-scrollbar",
+            "flex gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar",
             navStyle === "sidebar"
               ? "flex-row md:flex-col p-4 flex-none md:flex-1"
               : "flex-row items-center px-4",
@@ -1299,6 +1299,7 @@ export default function App() {
               "setlist",
               "cronograma",
               "notifications",
+              "maintenance"
             ].includes(activeTab) ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
                 <div className="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 mx-auto">
@@ -3563,11 +3564,11 @@ function EventCard({
   }
 
   return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group overflow-hidden">
+    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group overflow-visible">
       {/* Accent bar with wine color */}
       <div
         className={cn(
-          "absolute top-0 left-0 w-full h-1.5",
+          "absolute top-0 left-0 w-full h-1.5 rounded-t-3xl",
           event.type === "CULTO"
             ? "bg-blue-600"
             : event.type === "ENSAIO"

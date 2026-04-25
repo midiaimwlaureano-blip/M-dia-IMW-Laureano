@@ -18,6 +18,7 @@ interface Comment {
 export default function EventComments({ eventId, user, isAdmin }: { eventId: string; user: any; isAdmin: boolean }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     // Create query
@@ -59,16 +60,30 @@ export default function EventComments({ eventId, user, isAdmin }: { eventId: str
     }
   };
 
+  if (!isExpanded) {
+    return (
+      <button 
+        onClick={() => setIsExpanded(true)}
+        className="mt-2 text-xs font-bold text-gray-500 hover:text-indigo-600 flex items-center justify-center w-full py-2 bg-gray-50 rounded-xl gap-2 transition-colors border border-gray-100"
+      >
+        <MessageSquare size={14} /> Mostrar Comentários
+      </button>
+    );
+  }
+
   return (
     <div className="mt-4 space-y-4 flex flex-col p-4 bg-gray-50/50 rounded-2xl border border-gray-100 w-full mb-2 relative z-50">
       <div className="flex justify-between items-center px-1">
          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
             <MessageSquare size={12} /> Comentários
          </span>
-         <span className="text-[10px] uppercase font-bold text-gray-400">{comments.length}</span>
+         <div className="flex items-center gap-3">
+           <span className="text-[10px] uppercase font-bold text-gray-400">{comments.length}</span>
+           <button onClick={() => setIsExpanded(false)} className="text-[10px] uppercase font-bold text-gray-400 hover:text-gray-600">Ocultar</button>
+         </div>
       </div>
 
-      <div className="flex-1 space-y-3 px-1">
+      <div className="flex-1 space-y-3 px-1 block w-full overflow-visible">
         {comments.length === 0 && (
           <p className="text-[11px] text-center text-gray-400 italic py-2">Sem comentários para este evento.</p>
         )}

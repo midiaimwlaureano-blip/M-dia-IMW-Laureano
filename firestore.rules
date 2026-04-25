@@ -80,6 +80,12 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if isAuthenticated();
       allow create, update, delete: if isCoordinator();
+
+      match /comentarios/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      }
     }
 
     match /scales/{scaleId} {
