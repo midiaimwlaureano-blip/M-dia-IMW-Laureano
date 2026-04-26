@@ -52,12 +52,25 @@ export default function EventComments({ eventId, user, isAdmin }: { eventId: str
     }
   };
 
-  const handleDelete = async (commentId: string) => {
-    try {
-      await deleteDoc(doc(db, "events", eventId, "comentarios", commentId));
-    } catch (e) {
-      toast.error("Erro ao excluir.");
-    }
+  const handleDelete = (commentId: string) => {
+    toast('Excluir este comentário?', {
+      description: 'Esta ação não pode ser desfeita.',
+      action: {
+        label: 'Confirmar',
+        onClick: async () => {
+          try {
+            await deleteDoc(doc(db, "events", eventId, "comentarios", commentId));
+            toast.success("Comentário excluído!");
+          } catch (e) {
+            toast.error("Erro ao excluir.");
+          }
+        }
+      },
+      cancel: {
+        label: 'Cancelar',
+        onClick: () => {}
+      }
+    });
   };
 
   if (!isExpanded) {

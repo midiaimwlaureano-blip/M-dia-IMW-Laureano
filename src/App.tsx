@@ -58,6 +58,7 @@ import {
   User as UserIcon,
   Settings,
   Megaphone,
+  RefreshCw,
   FileText,
   CalendarDays,
   ChevronLeft,
@@ -276,6 +277,11 @@ export default function App() {
   }, [layoutMode, navStyle]);
 
   const [isAppearanceModalOpen, setIsAppearanceModalOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{isOpen: boolean; title: string; message: string; onConfirm: () => void;}>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+  
+  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm });
+  };
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [scales, setScales] = useState<Scale[]>([]);
   const [scaleFilterVolunteer, setScaleFilterVolunteer] =
@@ -332,42 +338,32 @@ export default function App() {
   const [calendarFilterType, setCalendarFilterType] = useState("all");
   const [calendarFilterStatus, setCalendarFilterStatus] = useState("all");
 
-  // Static Data - Fetched once to save Quotas
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchStaticData = async () => {
-      try {
-        const snapUsers = await getDocs(collection(db, "users"));
-        setAllUsers(
-          snapUsers.docs.map((doc) => ({ uid: doc.id, ...doc.data() }) as User),
-        );
-
-        const snapCheckins = await getDocs(collection(db, "checkins"));
-        setCheckins(
-          snapCheckins.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as CheckIn,
-          ),
-        );
-
-        const snapReactions = await getDocs(collection(db, "reactions"));
-        setReactions(
-          snapReactions.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as Reaction,
-          ),
-        );
-      } catch (err) {
-        console.error("Error fetching static data: ", err);
-      }
-    };
-    fetchStaticData();
-  }, [user]);
-
   // Global Real-time listeners
   useEffect(() => {
     if (!user) return;
 
     const unsubscribers: (() => void)[] = [];
+
+    unsubscribers.push(
+      onSnapshot(collection(db, "users"), (snapshot) => {
+        setAllUsers(snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }) as User));
+      }, (error) => {
+        console.error("Users error: ", error);
+        // Error handling could be expanded, but avoid throwing in render
+      })
+    );
+
+    unsubscribers.push(
+      onSnapshot(collection(db, "checkins"), (snapshot) => {
+        setCheckins(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as CheckIn));
+      })
+    );
+
+    unsubscribers.push(
+      onSnapshot(collection(db, "reactions"), (snapshot) => {
+        setReactions(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Reaction));
+      })
+    );
 
     // 1. Events
     const qEvents = query(collection(db, "events"), orderBy("date", "asc"));
@@ -1188,10 +1184,8 @@ export default function App() {
         (c) => c.eventId === eventId && c.userId === user?.uid,
       );
       if (existing) {
-        await updateDoc(doc(db, "checkins", existing.id), {
-          status,
-          timestamp: new Date().toISOString(),
-        });
+        toast.error("Você já realizou este check-in!");
+        return;
       } else {
         await addDoc(collection(db, "checkins"), {
           eventId,
@@ -1206,14 +1200,20 @@ export default function App() {
     }
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
-    try {
-      await deleteDoc(doc(db, "events", eventId));
-      toast.success("Evento excluído com sucesso!");
-    } catch (error) {
-      console.error("Erro ao excluir evento:", error);
-      handleFirestoreError(error, OperationType.DELETE, `events/${eventId}`);
-    }
+  const handleDeleteEvent = (eventId: string) => {
+    showConfirm(
+      "Excluir Evento",
+      "Tem certeza que deseja excluir este evento? Esta ação não pode ser desfeita.",
+      async () => {
+        try {
+          await deleteDoc(doc(db, "events", eventId));
+          toast.success("Evento excluído com sucesso!");
+        } catch (error) {
+          console.error("Erro ao excluir evento:", error);
+          handleFirestoreError(error, OperationType.DELETE, `events/${eventId}`);
+        }
+      }
+    );
   };
 
   const handleExportWeeklyScale = async () => {
@@ -1719,6 +1719,19 @@ export default function App() {
                       {notifications.filter((n) => !n.read).length > 0 && (
                         <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
                       )}
+                    </button>
+
+                    <button
+                      onClick={() => window.location.reload()}
+                      className={cn(
+                        "relative p-3 rounded-full transition-all flex items-center justify-center",
+                        isDarkMode
+                          ? "bg-slate-800 text-gray-300 hover:bg-slate-700"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+                      )}
+                      title="Atualizar App"
+                    >
+                      <RefreshCw size={20} />
                     </button>
 
                     <button
@@ -2494,7 +2507,7 @@ export default function App() {
                                   (c) =>
                                     c.eventId === event.id &&
                                     c.userId === user?.uid,
-                                )?.status
+                                )
                               }
                               isAdmin={isAdmin}
                               onEdit={() => {
@@ -2968,19 +2981,21 @@ export default function App() {
                                   <Edit size={18} />
                                 </button>
                                 <button
-                                  onClick={async () => {
-                                    try {
-                                      await deleteDoc(
-                                        doc(db, "announcements", ann.id),
-                                      );
-                                      toast.success("Anúncio excluído");
-                                    } catch (error) {
-                                      handleFirestoreError(
-                                        error,
-                                        OperationType.DELETE,
-                                        "announcements",
-                                      );
-                                    }
+                                  onClick={() => {
+                                    showConfirm("Excluir Anúncio", "Tem certeza que deseja excluir este anúncio?", async () => {
+                                      try {
+                                        await deleteDoc(
+                                          doc(db, "announcements", ann.id),
+                                        );
+                                        toast.success("Anúncio excluído");
+                                      } catch (error) {
+                                        handleFirestoreError(
+                                          error,
+                                          OperationType.DELETE,
+                                          "announcements",
+                                        );
+                                      }
+                                    });
                                   }}
                                   className="p-2 text-gray-400 hover:text-red-600 transition-opacity"
                                 >
@@ -3197,19 +3212,21 @@ export default function App() {
                               </button>
                             )}
                             <button
-                              onClick={async () => {
-                                try {
-                                  await deleteDoc(
-                                    doc(db, "notifications", notif.id),
-                                  );
-                                  toast.success("Notificação excluída");
-                                } catch (error) {
-                                  handleFirestoreError(
-                                    error,
-                                    OperationType.DELETE,
-                                    "notifications",
-                                  );
-                                }
+                              onClick={() => {
+                                showConfirm("Excluir Notificação", "Tem certeza que deseja excluir esta notificação?", async () => {
+                                  try {
+                                    await deleteDoc(
+                                      doc(db, "notifications", notif.id),
+                                    );
+                                    toast.success("Notificação excluída");
+                                  } catch (error) {
+                                    handleFirestoreError(
+                                      error,
+                                      OperationType.DELETE,
+                                      "notifications",
+                                    );
+                                  }
+                                });
                               }}
                               className={cn(
                                 "text-xs font-bold hover:underline",
@@ -3406,17 +3423,19 @@ export default function App() {
                                 <Edit size={16} />
                               </button>
                               <button
-                                onClick={async () => {
-                                  try {
-                                    await deleteDoc(doc(db, "users", u.uid));
-                                    toast.success("Voluntário excluído");
-                                  } catch (error) {
-                                    handleFirestoreError(
-                                      error,
-                                      OperationType.DELETE,
-                                      "users",
-                                    );
-                                  }
+                                onClick={() => {
+                                  showConfirm("Excluir Voluntário", "Tem certeza que deseja excluir este voluntário?", async () => {
+                                    try {
+                                      await deleteDoc(doc(db, "users", u.uid));
+                                      toast.success("Voluntário excluído");
+                                    } catch (error) {
+                                      handleFirestoreError(
+                                        error,
+                                        OperationType.DELETE,
+                                        "users",
+                                      );
+                                    }
+                                  });
                                 }}
                                 className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                               >
@@ -3857,6 +3876,37 @@ export default function App() {
               }
             }}
           />
+        </Modal>
+      )}
+
+      {confirmDialog.isOpen && (
+        <Modal
+          title={confirmDialog.title}
+          onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+          isDarkMode={isDarkMode}
+        >
+          <div className="space-y-6">
+            <p className="text-gray-600 dark:text-gray-300">
+              {confirmDialog.message}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors dark:hover:bg-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                  setConfirmDialog({ ...confirmDialog, isOpen: false });
+                }}
+                className="px-4 py-2 text-sm font-bold bg-red-600 text-white hover:bg-red-700 rounded-xl transition-colors"
+              >
+                Confirmar Exclusão
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
 
@@ -6286,18 +6336,20 @@ function SetlistView({
                     <Edit size={16} />
                   </button>
                   <button
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.stopPropagation();
-                      try {
-                        await deleteDoc(doc(db, "setlists", s.id));
-                        toast.success("Setlist excluído");
-                      } catch (error) {
-                        handleFirestoreError(
-                          error,
-                          OperationType.DELETE,
-                          "setlists",
-                        );
-                      }
+                      showConfirm("Excluir Setlist", "Tem certeza que deseja excluir este setlist?", async () => {
+                        try {
+                          await deleteDoc(doc(db, "setlists", s.id));
+                          toast.success("Setlist excluído");
+                        } catch (error) {
+                          handleFirestoreError(
+                            error,
+                            OperationType.DELETE,
+                            "setlists",
+                          );
+                        }
+                      });
                     }}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                   >
@@ -6605,18 +6657,20 @@ function CronogramaView({
                       <Edit size={16} />
                     </button>
                     <button
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.stopPropagation();
-                        try {
-                          await deleteDoc(doc(db, "cronogramas", c.id));
-                          toast.success("Cronograma excluído");
-                        } catch (error) {
-                          handleFirestoreError(
-                            error,
-                            OperationType.DELETE,
-                            "cronogramas",
-                          );
-                        }
+                        showConfirm("Excluir Cronograma", "Tem certeza que deseja excluir este cronograma?", async () => {
+                          try {
+                            await deleteDoc(doc(db, "cronogramas", c.id));
+                            toast.success("Cronograma excluído");
+                          } catch (error) {
+                            handleFirestoreError(
+                              error,
+                              OperationType.DELETE,
+                              "cronogramas",
+                            );
+                          }
+                        });
                       }}
                       className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                     >
